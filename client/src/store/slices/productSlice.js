@@ -3,16 +3,12 @@ import { axiosInstance } from "../../lib/axios";
 import { toast } from "react-toastify";
 
 // --- ASYNC THUNKS ---
-
+// Connected API
 export const fetchAllProducts = createAsyncThunk(
   "product/fetchAllProducts",
-  async (queryParams, thunkAPI) => {
+  async (_, thunkAPI) => {
     try {
-      const params = new URLSearchParams();
-      if (queryParams?.availability) params.append("availability", queryParams.availability);
-      if (queryParams?.page) params.append("page", queryParams.page);
-
-      const res = await axiosInstance.get(`/product?${params.toString()}`);
+      const res = await axiosInstance.get("/product/list");
       return res.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(

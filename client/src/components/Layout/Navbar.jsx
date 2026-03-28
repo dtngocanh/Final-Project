@@ -8,7 +8,7 @@ const Navbar = () => {
   const dispatch = useDispatch();
 
   const { cart } = useSelector((state) => state.cart);
-  const cartItemsCount = cart ? cart.reduce((total, item) => total + item.quantity, 0) : 0;
+  const cartItemsCount = cart ? cart.length : 0;
 
   // MÀU SẮC CHUẨN TỪ FOOTER
   const darkGreenLight = "#77cd3af2"; // Xanh lá sáng (Neon nhẹ)

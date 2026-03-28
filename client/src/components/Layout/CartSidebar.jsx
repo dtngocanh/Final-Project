@@ -1,12 +1,13 @@
 import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { removeFromCart, updateCartQuantity } from "../../store/slices/cartSlice";
+import { removeFromCartAndSync, updateQuantityAndSync } from "../../store/thunks/cartThunks";
 import { toggleCart } from "../../store/slices/popupSlice";
-
 const CartSidebar = () => {
   const dispatch = useDispatch();
   const { isCartOpen } = useSelector((state) => state.popup);
   const { cart } = useSelector((state) => state.cart);
+  
   const { theme } = useSelector((state) => state.auth); // Hoặc từ context theme của má
 
   const activeColor = "#77cd3af2"; // Xanh Neon đặc trưng
@@ -16,9 +17,9 @@ const CartSidebar = () => {
   const updateQuantity = (id, currentQty, change) => {
     const newQty = currentQty + change;
     if (newQty <= 0) {
-      dispatch(removeFromCart({ id }));
+      dispatch(removeFromCartAndSync({ id }));
     } else {
-      dispatch(updateCartQuantity({ id, quantity: change }));
+      dispatch(updateQuantityAndSync({id, quantity: change}));
     }
   };
 
@@ -60,10 +61,10 @@ const CartSidebar = () => {
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 scrollbar-hide">
           {cart.length > 0 ? (
             cart.map((item) => (
-              <div key={item.product.id} className="group relative flex gap-6 items-start animate-in fade-in slide-in-from-bottom-2">
+              <div key={item._id} className="group relative flex gap-6 items-start animate-in fade-in slide-in-from-bottom-2">
                 {/* Product Image */}
                 <div className="w-24 h-24 rounded-2xl bg-gray-50 dark:bg-white/5 overflow-hidden flex-shrink-0 border border-gray-100 dark:border-white/10">
-                  <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <img src={item.product.images?.[0]?.url} alt={item.product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 </div>
 
                 {/* Details */}
@@ -74,11 +75,11 @@ const CartSidebar = () => {
                   <div className="flex items-center justify-between mt-4">
                     {/* Quantity Selector */}
                     <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-full px-2 py-1 gap-4">
-                      <button onClick={() => updateQuantity(item.product.id, item.quantity, -1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
+                      <button onClick={() => updateQuantity(item.product._id, item.quantity, -1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
                         <Minus size={14} />
                       </button>
                       <span className="text-sm font-medium dark:text-white w-4 text-center">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.product.id, item.quantity, 1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
+                      <button onClick={() => updateQuantity(item.product._id, item.quantity, 1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
                         <Plus size={14} />
                       </button>
                     </div>
@@ -88,7 +89,7 @@ const CartSidebar = () => {
 
                 {/* Remove Button */}
                 <button 
-                  onClick={() => dispatch(removeFromCart({ id: item.product.id }))}
+                  onClick={() => dispatch(removeFromCart({ id: item.product._id }))}
                   className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all"
                 >
                   <Trash2 size={18} strokeWidth={1.5} />

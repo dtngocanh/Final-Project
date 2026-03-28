@@ -49,7 +49,7 @@ const ProfilePanel = () => {
 
       {/* PANEL */}
       <aside className="fixed right-0 top-0 h-full w-full max-w-[400px] md:max-w-[450px] z-[130] bg-white/95 dark:bg-[#050505]/95 backdrop-blur-3xl shadow-[-50px_0_100px_-20px_rgba(0,0,0,0.2)] flex flex-col animate-in slide-in-from-right duration-500 ease-in-out">
-        
+
         {/* CLOSE BUTTON */}
         <button
           onClick={handleClose}
@@ -71,15 +71,15 @@ const ProfilePanel = () => {
 
         {/* CONTENT */}
         <div className="flex-1 overflow-y-auto px-12 py-6 space-y-12 scrollbar-hide">
-          
+
           {/* AVATAR SECTION */}
           <div className="flex flex-col items-center gap-6">
             <div className="relative group">
               <div className="w-28 h-28 rounded-full overflow-hidden border border-gray-100 dark:border-white/10 p-1 group-hover:border-[#77cd3af2]/50 transition-all duration-700">
-                <img 
-                  src={preview} 
-                  alt="avatar" 
-                  className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-all duration-500 bg-gray-100 dark:bg-gray-800" 
+                <img
+                  src={preview}
+                  alt="avatar"
+                  className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-all duration-500 bg-gray-100 dark:bg-gray-800"
                 />
               </div>
               <label className="absolute bottom-1 right-1 p-2 bg-white dark:bg-gray-900 shadow-xl rounded-full cursor-pointer hover:scale-110 transition-transform opacity-0 group-hover:opacity-100 duration-300 border border-gray-100 dark:border-white/10">
@@ -99,9 +99,9 @@ const ProfilePanel = () => {
               <label className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black">Full Name</label>
               <div className="flex items-center gap-4 mt-2 border-b border-gray-100 dark:border-white/5 pb-2 group-focus-within:border-[#77cd3af2]/50 transition-all duration-300">
                 <User size={18} className="text-gray-300 group-focus-within:text-[#77cd3af2] transition-colors" />
-                <input 
-                  type="text" 
-                  value={name} 
+                <input
+                  type="text"
+                  value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="bg-transparent w-full outline-none text-base font-light dark:text-white placeholder:opacity-20"
                 />
@@ -112,16 +112,16 @@ const ProfilePanel = () => {
               <label className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black">Email Address</label>
               <div className="flex items-center gap-4 mt-2 border-b border-gray-100 dark:border-white/5 pb-2 group-focus-within:border-[#77cd3af2]/50 transition-all duration-300">
                 <Mail size={18} className="text-gray-300 group-focus-within:text-[#77cd3af2] transition-colors" />
-                <input 
-                  type="email" 
-                  value={email} 
+                <input
+                  type="email"
+                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-transparent w-full outline-none text-base font-light dark:text-white placeholder:opacity-20"
                 />
               </div>
             </div>
 
-            <button 
+            <button
               type="submit"
               disabled={isUpdatingProfile}
               className="w-full py-4 rounded-xl bg-gray-950 dark:bg-[#77cd3af2] text-white dark:text-gray-950 font-bold text-[10px] uppercase tracking-[0.3em] hover:opacity-90 active:scale-[0.98] transition-all shadow-xl disabled:opacity-50"
@@ -145,9 +145,11 @@ const ProfilePanel = () => {
 
         {/* FOOTER: Sign Out */}
         <div className="p-12 pt-8 border-t border-gray-100 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.01]">
-          <button 
+          <button
             onClick={() => {
-              dispatch(logout());
+              dispatch(logout()); // clear auth
+              dispatch({ type: "RESET_APP" }); // 👈 reset toàn bộ Redux
+              localStorage.removeItem("token");
               handleClose();
             }}
             className="group flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] font-black text-red-500 hover:text-red-600 transition-all"

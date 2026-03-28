@@ -7,7 +7,7 @@ import { toggleAuthPopup } from "./popupSlice";
 
 export const register = createAsyncThunk("auth/register", async (data, thunkAPI) => {
   try {
-    const res = await axiosInstance.post("auth/register", data);
+    const res = await axiosInstance.post("/user/register", data);
     toast.success(res.data.message);
     thunkAPI.dispatch(toggleAuthPopup());
     return res.data.user;
@@ -20,8 +20,8 @@ export const register = createAsyncThunk("auth/register", async (data, thunkAPI)
 
 export const login = createAsyncThunk("auth/login", async (data, thunkAPI) => {
   try {
-    const res = await axiosInstance.post("auth/login", data);
-    if (res.data.token) localStorage.setItem("token", res.data.token);
+    const res = await axiosInstance.post("/user/login", data);
+    // if (res.data.token) localStorage.setItem("token", res.data.token);
     toast.success(res.data.message || "Login successful!");
     thunkAPI.dispatch(toggleAuthPopup());
     return res.data.user;
@@ -43,8 +43,7 @@ export const getUser = createAsyncThunk("auth/getUser", async (_, thunkAPI) => {
 
 export const logout = createAsyncThunk("auth/logout", async (_, thunkAPI) => {
   try {
-    await axiosInstance.post("auth/logout");
-    localStorage.removeItem("token");
+    await axiosInstance.get("/user/logout");
     toast.success("Logged out!");
     return null;
   } catch (error) {

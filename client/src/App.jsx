@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastContainer } from "react-toastify";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 // Layout Components
 import Navbar from "./components/Layout/Navbar";
 import Sidebar from "./components/Layout/Sidebar";
@@ -23,9 +23,20 @@ import About from "./pages/About";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
+import { useEffect } from "react";
+import { fetchCart } from "./store/thunks/cartThunks";
 
 const App = () => {
   const { isTomatoMode } = useSelector((state) => state.ui);
+  const dispatch = useDispatch();
+  const { authUser } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (authUser) {
+      dispatch(fetchCart());
+    }
+  }, [authUser, dispatch]);
+
   return (
     <>
       <ThemeProvider>
