@@ -6,25 +6,25 @@ import { motion } from "framer-motion";
 const CategoryGrid = () => {
   // Mock data tiếng Anh nếu bạn chưa đổi trong file data
   const categories = [
-    { id: 1, name: "Fresh Greens", image: "/kale.png" },
-    { id: 2, name: "Root & Citrus", image: "/123orange.png" },
-    { id: 3, name: "Premium Meat", image: "/meat.png" },
-    { id: 4, name: "Seasonal Fruit", image: "/staw.png" },
+    { id: 1, name: "Apple", image: "/apple.png" },
+    { id: 2, name: "Melon", image: "/melon.png" },
+    { id: 3, name: "Meat", image: "/meat.png" },
+    { id: 4, name: "Pear", image: "/pear.png" },
   ];
 
   return (
     <section className="relative py-24 bg-white dark:bg-[#0a0a0a] transition-colors duration-700 overflow-hidden">
-      
+
       {/* Glow Orbs */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className="absolute top-[10%] left-[5%] w-64 h-64 bg-[#77cd3a]/10 rounded-full blur-[120px] dark:opacity-20" />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
-        
+
         {/* HEADER: MINIMAL ENGLISH STYLE */}
         <div className="flex flex-col items-center mb-20 text-center">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 0.6 }}
             className="flex items-center gap-3 mb-4"
@@ -36,7 +36,7 @@ const CategoryGrid = () => {
             <span className="w-8 h-[1px] bg-[#77cd3a]" />
           </motion.div>
 
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-5xl font-light text-gray-900 dark:text-white tracking-tight leading-tight"
@@ -59,12 +59,12 @@ const CategoryGrid = () => {
               viewport={{ once: true }}
             >
               <Link
-                to={`/products?category=${category.name}`}
+                to={`/products?subcategory=${category.name}`}
                 className="group relative block"
               >
                 {/* CARD BOX */}
                 <div className="relative aspect-square overflow-hidden bg-white dark:bg-[#111] border border-gray-100 dark:border-white/5 rounded-2xl p-8 transition-all duration-500 group-hover:border-[#77cd3af2]/40 group-hover:shadow-[0_0_50px_rgba(119,205,58,0.1)]">
-                  
+
                   {/* Image Container */}
                   <div className="relative h-[85%] w-full flex items-center justify-center">
                     <motion.img
@@ -81,10 +81,10 @@ const CategoryGrid = () => {
                     <span className="text-lg font-light tracking-wide text-gray-800 dark:text-gray-200 group-hover:text-[#77cd3a] transition-colors duration-300">
                       {category.name}
                     </span>
-                    
+
                     {/* Animated Line */}
                     <div className="ml-4 h-[1px] flex-grow bg-gray-200 dark:bg-white/10 relative overflow-hidden">
-                      <motion.div 
+                      <motion.div
                         className="absolute inset-0 bg-[#77cd3a]"
                         initial={{ x: "-101%" }}
                         whileHover={{ x: "0%" }}
@@ -100,19 +100,19 @@ const CategoryGrid = () => {
 
         {/* BOTTOM ACTION */}
         <div className="mt-16 flex justify-center">
-           <Link 
-              to="/products" 
-              className="group flex items-center gap-4 px-8 py-3 rounded-full border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 hover:bg-[#77cd3a] transition-all duration-500"
-            >
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] group-hover:text-white dark:text-white">
-                View All Categories
-              </span>
-              <div className="w-6 h-6 rounded-full bg-white dark:bg-[#0a0a0a] flex items-center justify-center group-hover:translate-x-2 transition-transform duration-500">
-                 <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className="stroke-black dark:stroke-white">
-                    <path d="M1 11L11 1M11 1H1M11 1V11" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                 </svg>
-              </div>
-           </Link>
+          <Link
+            to="/products"
+            className="group flex items-center gap-4 px-8 py-3 rounded-full border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 hover:bg-[#77cd3a] transition-all duration-500"
+          >
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] group-hover:text-white dark:text-white">
+              View All Categories
+            </span>
+            <div className="w-6 h-6 rounded-full bg-white dark:bg-[#0a0a0a] flex items-center justify-center group-hover:translate-x-2 transition-transform duration-500">
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className="stroke-black dark:stroke-white">
+                <path d="M1 11L11 1M11 1H1M11 1V11" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </Link>
         </div>
       </div>
     </section>

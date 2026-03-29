@@ -9,8 +9,13 @@ const CartSidebar = () => {
    const navigate = useNavigate();
   const { isCartOpen } = useSelector((state) => state.popup);
   const { cart } = useSelector((state) => state.cart);
+<<<<<<< HEAD
   
   const { theme } = useSelector((state) => state.auth); 
+=======
+
+  const { theme } = useSelector((state) => state.auth); // Hoặc từ context theme của má
+>>>>>>> 7480ba22863b041e7d57504697229f4d4c61f4b3
 
   const activeColor = "#77cd3af2"; 
 
@@ -21,14 +26,15 @@ const CartSidebar = () => {
     if (newQty <= 0) {
       dispatch(removeFromCartAndSync({ id }));
     } else {
-      dispatch(updateQuantityAndSync({id, quantity: change}));
+      dispatch(updateQuantityAndSync({ id, quantity: change }));
     }
   };
 
   const total = cart?.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum, item) => sum + item?.product.price * item?.quantity,
     0
   ) || 0;
+
 
   if (!isCartOpen) return null;
 
@@ -42,7 +48,7 @@ const CartSidebar = () => {
 
       {/* CART SIDEBAR: Trượt từ bên PHẢI */}
       <aside className="fixed right-0 top-0 h-full w-full max-w-[400px] md:max-w-[450px] z-[110] bg-white/95 dark:bg-[#050505]/95 backdrop-blur-2xl shadow-[-50px_0_100px_-20px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-500 ease-in-out animate-in slide-in-from-right">
-        
+
         {/* HEADER: Close Button & Title */}
         <div className="p-8 pb-4 flex items-center justify-between border-b border-gray-100 dark:border-white/5">
           <div className="flex items-center gap-3">
@@ -73,7 +79,7 @@ const CartSidebar = () => {
                 <div className="flex-1 space-y-1">
                   <h3 className="font-medium text-gray-900 dark:text-white text-lg truncate">{item.product.name}</h3>
                   <p className="text-sm text-gray-400 italic font-serif">Freshly picked</p>
-                  
+
                   <div className="flex items-center justify-between mt-4">
                     {/* Quantity Selector */}
                     <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-full px-2 py-1 gap-4">
@@ -90,7 +96,7 @@ const CartSidebar = () => {
                 </div>
 
                 {/* Remove Button */}
-                <button 
+                <button
                   onClick={() => dispatch(removeFromCart({ id: item.product._id }))}
                   className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all"
                 >
@@ -101,7 +107,7 @@ const CartSidebar = () => {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
               <div className="w-20 h-20 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center border border-dashed border-gray-200 dark:border-white/10">
-                 <ShoppingBag size={30} opacity={0.3} />
+                <ShoppingBag size={30} opacity={0.3} />
               </div>
               <p className="italic font-serif">Your cart is feeling a bit empty...</p>
             </div>

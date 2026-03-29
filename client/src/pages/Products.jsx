@@ -8,46 +8,79 @@ import Pagination from "../components/Products/Pagination";
 import AISearchModal from "../components/Products/AISearchModal";
 import RatingDropdown from "../components/Products/RatingDropdown";
 import ExpandedFilter from "../components/Products/ExpandedFilter"; // Nhớ tạo file này nhé
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
+import { fetchAllProducts } from "../store/slices/productSlice";
+import { useLocation } from "react-router-dom";
 
-const MOCK_PRODUCTS = Array.from({ length: 24 }).map((_, i) => ({
-  _id: `${i + 1}`,
-  name: ["Mango", "Broccoli", "Salad", "Cherry", "Peach", "Apple"][i % 6],
-  image: ["/mango.png", "/broli.png", "/xalach.png", "/cheri1.png", "/peach.png", "/apple.png"][i % 6],
-  price: Math.floor(Math.random() * 100) + 10,
-  ratings: (Math.random() * (5 - 3) + 3).toFixed(1),
-  category: ["Fruits", "Vegetables", "Organic", "Seasons"][i % 4],
-  stock: i % 8 === 0 ? 0 : 10,
-}));
+// const MOCK_PRODUCTS = Array.from({ length: 24 }).map((_, i) => ({
+//   _id: `${i + 1}`,
+//   name: ["Mango", "Broccoli", "Salad", "Cherry", "Peach", "Apple"][i % 6],
+//   image: ["/mango.png", "/broli.png", "/xalach.png", "/cheri1.png", "/peach.png", "/apple.png"][i % 6],
+//   price: Math.floor(Math.random() * 100) + 10,
+//   ratings: (Math.random() * (5 - 3) + 3).toFixed(1),
+//   category: ["Fruits", "Vegetables", "Organic", "Seasons"][i % 4],
+//   stock: i % 8 === 0 ? 0 : 10,
+// }));
 
-// PHẢI CÓ DÒNG NÀY Ở NGOÀI
-const categories = ["All", "Fruits", "Vegetables", "Organic"];
+const categories = ["All", "Fruit", "Vegetables", "Packages"];
 
 const Products = () => {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const [openFilter, setOpenFilter] = useState(null); 
+  const [openFilter, setOpenFilter] = useState(null);
   const [filters, setFilters] = useState({
     category: "All",
     rating: null,
     stock: "all",
     maxPrice: 150,
+    subcategory:"",
     search: "",
   });
 
+  //?subcategory=Potato
+  const {search} = useLocation();
+
+  const { products, isLoading } = useSelector((state) => state.product);
+  const dispatch = useDispatch();
+
+  //Listen URL to setFilters
+  useEffect(()=>{
+    const params = new URLSearchParams(search);
+    const subcat = params.get("subcategory");
+    if(subcat){
+      setFilters(prev =>({
+        ...prev,
+        subcategory:subcat,
+        category:"All"
+      }))
+    }
+  },[search]);
+
+  useEffect(() => {
+    dispatch(fetchAllProducts());
+  }, [dispatch]);
+
   const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter((p) => {
+    if (!products) return [];
+    return products.filter((p) => {
       const matchCat = filters.category === "All" || p.category === filters.category;
+      
+      const matchSub = filters.subcategory 
+        ? p.subcategory === filters.subcategory 
+        : true;
+      
       const matchStar = filters.rating ? Math.floor(p.ratings) >= filters.rating : true;
       const matchPrice = p.price <= filters.maxPrice;
       const matchStock = filters.stock === "all" ? true : filters.stock === "in" ? p.stock > 0 : p.stock === 0;
       const matchSearch = p.name.toLowerCase().includes(filters.search.toLowerCase());
-      return matchCat && matchStar && matchPrice && matchStock && matchSearch;
+      return matchCat && matchSub && matchStar && matchPrice && matchStock && matchSearch;
     });
-  }, [filters]);
+  }, [products, filters]);
 
   return (
     <main className="min-h-screen pt-32 pb-24 bg-white dark:bg-[#060606] transition-all duration-700">
       <div className="max-w-[1200px] mx-auto px-6">
-        
+
         {/* HEADER */}
         <header className="mb-16 flex items-baseline justify-between border-b border-gray-100 dark:border-white/5 pb-10">
           <h1 className="text-5xl font-extralight tracking-tighter uppercase dark:text-white">
@@ -60,15 +93,14 @@ const Products = () => {
 
         {/* FILTER BAR */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16 relative border-y border-gray-100 dark:border-white/5 py-8">
-          
+
           <div className="flex gap-10 overflow-x-auto no-scrollbar">
             {categories.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setFilters({ ...filters, category: cat })}
-                className={`text-sm uppercase tracking-[0.2em] pb-1 transition-all whitespace-nowrap ${
-                  filters.category === cat ? "text-[#77cd3a] border-b-2 border-[#77cd3a] font-black" : "text-gray-400 hover:text-white"
-                }`}
+                onClick={() => setFilters({ ...filters, category: cat, subcategory:"" })}
+                className={`text-sm uppercase tracking-[0.2em] pb-1 transition-all whitespace-nowrap ${filters.category === cat ? "text-[#77cd3a] border-b-2 border-[#77cd3a] font-black" : "text-gray-400 hover:text-white"
+                  }`}
               >
                 {cat}
               </button>
@@ -87,9 +119,9 @@ const Products = () => {
             </div>
 
             {/* Rating Dropdown Đã tách */}
-            <RatingDropdown 
-              filters={filters} 
-              setFilters={setFilters} 
+            <RatingDropdown
+              filters={filters}
+              setFilters={setFilters}
               isOpen={openFilter === "rating"}
               setOpen={() => setOpenFilter(openFilter === "rating" ? null : "rating")}
             />
@@ -105,10 +137,10 @@ const Products = () => {
           {/* Expanded Panel Đã tách */}
           <AnimatePresence>
             {openFilter === "more" && (
-              <ExpandedFilter 
-                filters={filters} 
-                setFilters={setFilters} 
-                onClose={() => setOpenFilter(null)} 
+              <ExpandedFilter
+                filters={filters}
+                setFilters={setFilters}
+                onClose={() => setOpenFilter(null)}
               />
             )}
           </AnimatePresence>
@@ -130,7 +162,7 @@ const Products = () => {
           )}
         </section>
 
-        <Pagination currentPage={1} totalPages={3} onPageChange={() => {}} />
+        <Pagination currentPage={1} totalPages={3} onPageChange={() => { }} />
       </div>
 
       {isAIModalOpen && <AISearchModal onClose={() => setIsAIModalOpen(false)} />}

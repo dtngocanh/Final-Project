@@ -194,7 +194,7 @@ export const importProducts = async (req, res) => {
             validProducts.push({
                 name: p.name,
                 category: p.category || "",
-                subcategory: p.category || "",
+                subcategory: p.subcategory || "",
                 description: p.description || "",
                 images,
                 price,
