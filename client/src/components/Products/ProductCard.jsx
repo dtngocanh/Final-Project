@@ -3,8 +3,8 @@ import { Star, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { addToCart } from "../../store/slices/cartSlice";
 import { toast } from "react-toastify";
+import { addToCartAndSync } from "../../store/thunks/cartThunks";
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
@@ -15,12 +15,12 @@ const ProductCard = ({ product }) => {
     e.stopPropagation();
 
     dispatch(
-      addToCart({
+      addToCartAndSync({
         product: {
-          id: product._id,
+          _id: product._id,
           name: product.name,
           price: product.price,
-          image: product.image,
+          images: product.images,
         },
         quantity: 1,
       })
@@ -56,11 +56,11 @@ const ProductCard = ({ product }) => {
     >
       <Link to={`/product/${product._id}`}>
         <div className="relative overflow-hidden bg-[#fbfbfb] dark:bg-[#111111] rounded-2xl transition-all duration-500 border border-transparent dark:border-white/[0.03]">
-          
+
           {/* Product Image Area */}
           <div className="relative aspect-square flex items-center justify-center p-8">
             <motion.img
-              src={product.image}
+              src={product.images?.[0]?.url}
               alt={product.name}
               className="w-[80%] h-[80%] object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)] transition-transform duration-700 group-hover:scale-110 group-hover:-rotate-2"
             />
@@ -77,7 +77,7 @@ const ProductCard = ({ product }) => {
             <div className="absolute top-4 left-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
               <Star size={14} fill="#77cd3a" className="text-[#77cd3a]" />
               <span className="text-xs text-gray-400 font-medium tracking-tighter">
-                {product.ratings || "5.0"}
+                {product.ratings}
               </span>
             </div>
           </div>
