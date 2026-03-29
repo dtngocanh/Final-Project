@@ -22,9 +22,6 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
     dispatch(fetchAllProducts());
   }, [dispatch]);
 
-
-
-
   // Add to cart
   const handleAddToCart = (product) => {
     dispatch(addToCartAndSync({

@@ -36,7 +36,9 @@ export const addProduct = async (req, res) => {
 export const productList = async (req, res) => {
     try {
 
-        const products = await Product.find({})
+        // const products = await Product.find({})
+        const count = await Product.countDocuments();
+        const products = await Product.aggregate([{$sample:{size:count}}]);
 
         res.json({
             success: true,
