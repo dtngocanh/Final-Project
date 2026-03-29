@@ -34,7 +34,7 @@ export const login = createAsyncThunk("auth/login", async (data, thunkAPI) => {
 
 export const getUser = createAsyncThunk("auth/getUser", async (_, thunkAPI) => {
   try {
-    const res = await axiosInstance.get("auth/me");
+    const res = await axiosInstance.get("/user/is-auth");
     return res.data.user;
   } catch (error) {
     return thunkAPI.rejectWithValue(error.response?.data?.message);
@@ -102,7 +102,7 @@ export const updateProfile = createAsyncThunk("auth/me/update", async (data, thu
 });
 
 // --- Slice ---
-
+const token = localStorage.getItem('token');
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -171,7 +171,10 @@ const authSlice = createSlice({
         state.authUser = action.payload;
       })
       .addCase(updateProfile.rejected, (state) => { state.isUpdatingProfile = false; });
+
+
   },
+
 });
 
 export default authSlice.reducer;

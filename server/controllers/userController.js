@@ -70,7 +70,7 @@ export const login = async (req, res) => {
 //Check auth: api/user/is-auth
 export const isAuth = async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req.user._id;
         const user = await User.findById(userId).select("-password");
         return res.json({ success: true, user })
     } catch (error) {

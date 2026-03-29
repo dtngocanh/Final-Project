@@ -25,6 +25,7 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { fetchCart } from "./store/thunks/cartThunks";
+import { getUser } from "./store/slices/authSlice";
 
 const App = () => {
   const { isTomatoMode } = useSelector((state) => state.ui);
@@ -32,11 +33,16 @@ const App = () => {
   const { authUser } = useSelector((state) => state.auth);
 
   useEffect(() => {
+    // 1. Luôn gọi getUser() ngay khi App load để check Cookie
+    dispatch(getUser());
+  }, [dispatch])
+
+  useEffect(() => {
+    // 2. Chỉ khi đã có authUser (đã đăng nhập thành công) thì mới lấy giỏ hàng
     if (authUser) {
       dispatch(fetchCart());
     }
   }, [authUser, dispatch]);
-
   return (
     <>
       <ThemeProvider>
