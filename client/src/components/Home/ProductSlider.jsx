@@ -124,7 +124,7 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
                     <div className="absolute top-6 left-6 flex items-center gap-1.5 bg-white/60 dark:bg-black/30 backdrop-blur-md px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                       <Star size={14} className="fill-[#77cd3a] text-[#77cd3a]" />
                       <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
-                        {product.ratings || "4.8"}
+                        {product.ratings}
                       </span>
                     </div>
 

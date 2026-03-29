@@ -24,7 +24,7 @@ const ExpandedFilter = ({ filters, setFilters, onClose }) => {
             Max Price: <span className="text-[#77cd3a] font-bold">${filters.maxPrice}</span>
           </p>
           <input
-            type="range" min="10" max="150"
+            type="range" min="1" max="30"
             value={filters.maxPrice}
             onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
             className="w-full accent-[#77cd3a] cursor-pointer"

@@ -1,16 +1,18 @@
 import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { removeFromCart, updateCartQuantity } from "../../store/slices/cartSlice";
 import { removeFromCartAndSync, updateQuantityAndSync } from "../../store/thunks/cartThunks";
 import { toggleCart } from "../../store/slices/popupSlice";
 const CartSidebar = () => {
   const dispatch = useDispatch();
+   const navigate = useNavigate();
   const { isCartOpen } = useSelector((state) => state.popup);
   const { cart } = useSelector((state) => state.cart);
   
-  const { theme } = useSelector((state) => state.auth); // Hoặc từ context theme của má
+  const { theme } = useSelector((state) => state.auth); 
 
-  const activeColor = "#77cd3af2"; // Xanh Neon đặc trưng
+  const activeColor = "#77cd3af2"; 
 
   const handleClose = () => dispatch(toggleCart());
 
@@ -116,9 +118,9 @@ const CartSidebar = () => {
             <p className="text-3xl font-light dark:text-white">${total.toLocaleString()}</p>
           </div>
 
-          <button className="relative w-full group overflow-hidden rounded-2xl bg-black dark:bg-[#77cd3af2] py-5 transition-all hover:scale-[1.02] active:scale-95">
+          <button  onClick={() => navigate("/payment", { state: { subtotal: total } })} className="relative w-full group overflow-hidden rounded-2xl bg-black dark:bg-[#77cd3af2] py-5 transition-all hover:scale-[1.02] active:scale-95">
             <div className="relative z-10 flex items-center justify-center gap-3 text-white dark:text-black font-bold tracking-widest text-xs uppercase">
-              <span>Continue to Checkout</span>
+              <span>Continue to checkout</span>
             </div>
             {/* Hiệu ứng loang cho button */}
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />

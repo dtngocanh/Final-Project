@@ -18,3 +18,16 @@
 img, svg {
   transition: none !important;
 }
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+}
+
+.hover\:glow-on-hover:hover {
+  box-shadow: 0 0 15px rgba(119, 205, 58, 0.4);
+  border-color: #77cd3a;
+}
+
+.animate-smooth {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}

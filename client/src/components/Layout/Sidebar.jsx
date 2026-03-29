@@ -21,7 +21,7 @@ const menuItems = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Package, label: "Products", path: "/products" },
   { icon: ShoppingCart, label: "My Cart", path: "/cart" },
-  { icon: List, label: "Order History", path: "/orders" },
+  { icon: List, label: "Order", path: "/orders" },
   { icon: Info, label: "Our Story", path: "/about" },
   { icon: Phone, label: "Get in Touch", path: "/contact" },
   { icon: HelpCircle, label: "FAQ", path: "/faq" },
@@ -125,7 +125,7 @@ const Sidebar = () => {
             <div className="overflow-hidden">
               <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Member</p>
               <p className="font-medium text-gray-900 dark:text-white truncate">
-                {authUser?.username || "Guest Voyager"}
+                {authUser?.name|| "Guest Voyager"}
               </p>
             </div>
           </div>
