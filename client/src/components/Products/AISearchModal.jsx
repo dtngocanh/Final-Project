@@ -1,17 +1,13 @@
 import React, { useState } from "react";
 import { X, Search, Sparkles, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useDispatch, useSelector } from "react-redux";
-// Giả định bạn có action này trong uiSlice hoặc searchSlice
-// import { toggleAIModal } from "../../store/slices/uiSlice";
+import { useDispatch } from "react-redux";
 
-const AISearchModal = () => {
+// Thêm prop onClose để nhận hàm đóng từ component cha
+const AISearchModal = ({ onClose }) => {
   const [userPrompt, setUserPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
-  
-  // Giả sử modal được quản lý bởi Redux
-  // const { isAIModalOpen } = useSelector((state) => state.ui);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -19,15 +15,9 @@ const AISearchModal = () => {
 
     setIsLoading(true);
     try {
-      // Logic gọi AI của bạn ở đây
       console.log("Searching for:", userPrompt);
-      // const response = await axios.post("/api/ai/search", { prompt: userPrompt });
-      
-      // Giả lập delay AI phản hồi
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Sau khi xong có thể đóng modal hoặc hiển thị kết quả
-      // dispatch(toggleAIModal());
+      // Nếu muốn tìm xong tự đóng modal thì gọi: onClose();
     } catch (error) {
       console.error("AI Search Error:", error);
     } finally {
@@ -36,10 +26,16 @@ const AISearchModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-white/80 dark:bg-black/80 backdrop-blur-xl">
+    // Thêm onClick={onClose} vào div cha để đóng khi click ra ngoài
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-white/80 dark:bg-black/80 backdrop-blur-xl"
+      onClick={onClose} 
+    >
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
+        // Ngăn sự kiện click từ modal lan ra ngoài (không bị đóng khi click vào trong modal)
+        onClick={(e) => e.stopPropagation()} 
         className="w-full max-w-2xl bg-white dark:bg-[#111] rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-white/5 overflow-hidden"
       >
         {/* Header */}
@@ -51,7 +47,7 @@ const AISearchModal = () => {
             <h2 className="text-xl font-medium tracking-tight dark:text-white">AI Personal Assistant</h2>
           </div>
           <button 
-            onClick={() => {/* dispatch(toggleAIModal()) */}}
+            onClick={onClose} // Gọi hàm đóng khi click nút X
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 transition-colors"
           >
             <X size={20} />
@@ -115,12 +111,13 @@ const AISearchModal = () => {
             </AnimatePresence>
           </form>
 
-          {/* Suggested Tags (Minimalist style) */}
+          {/* Suggested Tags */}
           {!isLoading && (
             <div className="mt-8 flex flex-wrap gap-2">
               {["Sweet & Juicy", "High Vitamin C", "Detox Green", "Premium Gifts"].map((tag) => (
                 <button 
                   key={tag}
+                  type="button" // Tránh submit form
                   onClick={() => setUserPrompt(tag)}
                   className="px-4 py-2 text-xs font-medium text-gray-400 dark:text-gray-500 border border-gray-100 dark:border-white/5 rounded-full hover:border-[#77cd3a] hover:text-[#77cd3a] transition-all"
                 >

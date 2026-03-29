@@ -62,7 +62,7 @@ const ProductCard = ({ product }) => {
             <motion.img
               src={product.image}
               alt={product.name}
-              className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)] transition-transform duration-700 group-hover:scale-110 group-hover:-rotate-2"
+              className="w-[80%] h-[80%] object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)] transition-transform duration-700 group-hover:scale-110 group-hover:-rotate-2"
             />
 
             {/* Quick Add Button */}
