@@ -44,7 +44,6 @@ const orderSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
-        required: true
     },
 
     orderItems: {
@@ -70,16 +69,7 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-
-    orderStatus: {
-        type: String,
-        enum: ["Processing", "Shipped", "Delivered", "Cancelled"],
-        default: "Processing"
-    },
-
     paidAt: Date,
-    deliveredAt: Date
-
-}, { timestamps: true });
+}, { });
 const Order = mongoose.models.order || mongoose.model("order", orderSchema);
 export default Order;

@@ -18,7 +18,6 @@ import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
-import Payment from "./pages/Payment";
 import About from "./pages/About";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
@@ -26,6 +25,8 @@ import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { fetchCart } from "./store/thunks/cartThunks";
 import { getUser } from "./store/slices/authSlice";
+import Checkout from "./pages/Checkout";
+import Success from "./pages/Success";
 
 const App = () => {
   const { isTomatoMode } = useSelector((state) => state.ui);
@@ -62,11 +63,12 @@ const App = () => {
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/orders" element={<Orders />} />
-              <Route path="/payment" element={<Payment />} />
+              <Route path="/checkout" element={<Checkout />} />
               <Route path="/about" element={<About />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
+              <Route path="/success" element={<Success />} />
             </Routes>
             <Footer />
           </div>

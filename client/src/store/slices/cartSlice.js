@@ -2,9 +2,9 @@ import { createSlice } from "@reduxjs/toolkit";
 import { fetchCart, syncCartToDB } from "../thunks/cartThunks.js";
 
 const cartSlice = createSlice({
-  name: "cart", 
+  name: "cart",
   initialState: {
-    cart: [],  
+    cart: [],
   },
   reducers: {
     // 1. Thêm sản phẩm vào giỏ
@@ -55,9 +55,16 @@ const cartSlice = createSlice({
   extraReducers: (builder) => {
     builder
 
-      .addCase(fetchCart.fulfilled, (state, action) => {
-        state.cart = action.payload || [];        
+      .addCase(fetchCart.pending, (state) => {
+        state.loading = true;
       })
+      .addCase(fetchCart.fulfilled, (state, action) => {
+        state.cart = action.payload || [];
+      })
+      .addCase(fetchCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   },
 });
 

@@ -21,8 +21,12 @@ export const fetchCart = createAsyncThunk(
 
 // SYNC CART
 export const syncCartToDB = async (cart) => {
+  const formattedCart = cart.map(item => ({
+    product: item.product._id,
+    quantity: item.quantity
+  }));
   return axiosInstance.post("/cart/update", {
-    cartItems: cart,
+    cartItems: formattedCart,
   });
 };
 
@@ -50,12 +54,12 @@ export const updateQuantityAndSync =
 // REMOVE + SYNC
 export const removeFromCartAndSync =
   (payload) => async (dispatch, getState) => {
-    dispatch(removeFromCart(payload));
+    dispatch(removeFromCart(payload)); // 1. Xóa ở Redux (Local) trước
 
     const state = getState();
-    const cart = state.cart.cart;
+    const cart = state.cart.cart; // 2. Lấy giỏ hàng MỚI NHẤT từ state
 
-    await syncCartToDB(cart);
+    await syncCartToDB(cart); // 3. Gửi giỏ hàng đã xóa lên Server
   };
 
 
