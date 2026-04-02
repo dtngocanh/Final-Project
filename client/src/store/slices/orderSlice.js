@@ -7,7 +7,7 @@ export const fetchMyOrders = createAsyncThunk(
   "order/fetchMyOrders",
   async (_, thunkAPI) => {
     try {
-      const res = await axiosInstance.get("/order/myorders");
+      const res = await axiosInstance.get("/order/user");
       return res.data.orders;
     } catch (error) {
       return thunkAPI.rejectWithValue(error.response.data.message);
@@ -32,6 +32,17 @@ export const placeOrder = createAsyncThunk(
     }
   }
 );
+
+export const cancelOrder = createAsyncThunk("order/cancelOrder", async (id, thunkAPI) => {
+  try {
+    const res = await axiosInstance.post("/order/cancel", { orderId: id });
+    if (res.data.success) {
+        return id; 
+    }
+  } catch (error) {
+    return thunkAPI.rejectWithValue(error.response?.data?.message || "Something went wrong");
+  }
+})
 const orderSlice = createSlice({
   name: "order",
   initialState: {
@@ -80,7 +91,17 @@ const orderSlice = createSlice({
       .addCase(placeOrder.rejected, (state, action) => {
         state.placingOrder = false;
         state.error = action.payload;
-      });
+      })
+      // Handle successful order cancellation
+      .addCase(cancelOrder.fulfilled, (state, action) => {
+        //Find the index of the cancelled order in the local state
+        const i = state.myOrders.findIndex(o => o._id === action.payload);
+        // If found, update its status locally to reflect changes immediately
+        if (i !== -1) {
+          state.myOrders[i].orderStatus = "Canceled";
+        }
+      })
+      ;
   },
 });
 

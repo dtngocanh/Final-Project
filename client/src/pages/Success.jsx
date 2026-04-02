@@ -1,9 +1,7 @@
-import React, { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, ArrowRight, ShoppingBag, Package } from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import { clearCart } from '../store/slices/cartSlice';
-import { syncCartToDB } from '../store/thunks/cartThunks';
+
+
 
 const Success = () => {
   const [searchParams] = useSearchParams();
@@ -45,7 +43,7 @@ const Success = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Link
-            to="/orders/me"
+            to="/orders"
             className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-lg shadow-slate-200"
           >
             <Package size={20} />

@@ -23,11 +23,12 @@ import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
-import { fetchCart } from "./store/thunks/cartThunks";
+
 import { getUser } from "./store/slices/authSlice";
 import Checkout from "./pages/Checkout";
 import Success from "./pages/Success";
-
+import ScrollToTop from "./components/ScrollToTop";
+import { fetchCart } from "./store/slices/cartSlice";
 const App = () => {
   const { isTomatoMode } = useSelector((state) => state.ui);
   const dispatch = useDispatch();
@@ -48,6 +49,7 @@ const App = () => {
     <>
       <ThemeProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <div className="min-h-screen bg-white dark:bg-[#121212] transition-colors duration-500 ease-in-out">
             {isTomatoMode && <TomatoRain />}
             <Navbar />

@@ -70,6 +70,13 @@ const orderSchema = new mongoose.Schema({
         required: true
     },
     paidAt: Date,
-}, { });
+    orderStatus: {
+        type: String,
+        required: true,
+        enum: ["Processing", "Shipped", "Delivered", "Canceled"],
+        default: "Processing" // when creating new order
+    },
+    deliveredAt: Date,
+}, {timestamps:true });
 const Order = mongoose.models.order || mongoose.model("order", orderSchema);
 export default Order;

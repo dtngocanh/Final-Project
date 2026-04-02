@@ -4,48 +4,13 @@ import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
-import { addToCartAndSync } from "../../store/thunks/cartThunks";
+import { useCartActions } from "../../hooks/useCartActions";
+
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
+  const {handleCartAction} = useCartActions();
 
-  const handleAddToCart = (e) => {
-    // Ngăn chặn sự kiện click lan ra thẻ Link bao ngoài
-    e.preventDefault();
-    e.stopPropagation();
-
-    dispatch(
-      addToCartAndSync({
-        product: {
-          _id: product._id,
-          name: product.name,
-          price: product.price,
-          images: product.images,
-        },
-        quantity: 1,
-      })
-    );
-
-    // Toast cute đồng bộ với Slider
-    toast.success(
-      <div className="flex items-center gap-3">
-        <img src="/logohaha.png" alt="" className="w-8 h-8 object-contain" />
-        <div>
-          <p className="text-sm font-medium">Yum! Added!</p>
-          <p className="text-xs font-serif italic opacity-80">
-            {product.name} is in your cart
-          </p>
-        </div>
-      </div>,
-      {
-        position: "top-right",
-        autoClose: 2000,
-        icon: false,
-        className: "border-l-4 border-[#77cd3a] rounded-xl shadow-2xl dark:bg-[#1a1a1a] dark:text-white bg-white text-gray-800",
-        progressClassName: "bg-[#77cd3a]",
-      }
-    );
-  };
 
   return (
     <motion.div
@@ -67,7 +32,7 @@ const ProductCard = ({ product }) => {
 
             {/* Quick Add Button */}
             <button
-              onClick={handleAddToCart}
+              onClick={()=>handleCartAction(product, "ADD", 1)}
               className="absolute bottom-4 right-4 w-10 h-10 bg-white dark:bg-[#77cd3a] dark:text-black rounded-xl shadow-md flex items-center justify-center translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 active:scale-90 z-10"
             >
               <ShoppingCart size={16} strokeWidth={2} />
