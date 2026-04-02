@@ -19,7 +19,7 @@ productRouter.post("/add", upload.array(["images"]),authSeller, addProduct);
 productRouter.get("/list", productList);
 
 // get single product
-productRouter.get("/id", productById);
+productRouter.get("/:id", productById);
 
 // change stock
 productRouter.post("/stock", authSeller, changeStock);

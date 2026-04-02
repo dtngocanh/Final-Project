@@ -16,13 +16,13 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
   // Redux state
   const { products, loading } = useSelector((state) => state.product);
 
-  const {handleCartAction} = useCartActions();
+  const { handleCartAction } = useCartActions();
 
   // Load products từ backend
   useEffect(() => {
     dispatch(fetchAllProducts());
   }, [dispatch]);
-  
+
   const scroll = (direction) => {
     if (scrollRef.current) {
       const scrollAmount = 400;
@@ -75,7 +75,9 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
               className="min-w-[280px] md:min-w-[320px] snap-start group relative"
             >
               {/* Card Link - Chuyển đến trang chi tiết */}
-              <Link to={`/product/${product._id}`} className="block">
+              <Link
+                to={`/product/${product._id}`
+                } className="block">
                 <div className="relative overflow-hidden bg-[#fbfbfb] dark:bg-[#111111] rounded-3xl transition-all duration-500 border border-transparent hover:border-[#77cd3a]/20">
 
                   {/* Product Image Area */}
@@ -96,7 +98,11 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
 
                     {/* Add to Cart Button */}
                     <button
-                      onClick={() => handleCartAction(product, "ADD", 1) }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleCartAction(product, "ADD", 1)
+                      }}
                       className="absolute bottom-6 right-6 w-12 h-12 bg-[#77cd3a] text-white rounded-2xl flex items-center justify-center 
                                  opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 
                                  shadow-lg shadow-[#77cd3a]/30 active:scale-90 z-10"
