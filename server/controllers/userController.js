@@ -55,7 +55,7 @@ export const login = async (req, res) => {
         if (!isMatch)
             return res.json({ success: false, message: 'Invalid email or password' })
 
-        sendToken(user, 201, "Login successful!",res);
+        sendToken(user, 201, "Login successful!", res);
         // const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
         // res.cookie('token', token, {
@@ -99,3 +99,21 @@ export const logout = async (req, res) => {
 
     }
 }
+
+
+// api/user/profile/update
+
+export const updateProfile = async (req, res) => {
+    const { name, email } = req.body;
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+
+    await user.save();
+
+    res.status(200).json({ success: true, user });
+};

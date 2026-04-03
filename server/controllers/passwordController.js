@@ -66,28 +66,28 @@ export const resetPassword = async (req, res) => {
 };
 // 3. CẬP NHẬT MẬT KHẨU (Khi đang đăng nhập)
 export const updatePassword = async (req, res) => {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
     const { oldPassword, newPassword, confirmPassword } = req.body;
 
     // 2. Validation: Ensure all required fields are present
     if (!oldPassword || !newPassword || !confirmPassword) {
-        return res.status(400).json({ message: "Please enter all fields." });
+        return res.status(400).json({ message: "Please enter all required fields" });
     }
 
     // 3. Verify identity: Check if the entered old password matches the database
     const isMatched = await user.comparePassword(oldPassword);
     if (!isMatched) {
-        return res.status(400).json({ message: "Old password is incorrect." });
+        return res.status(400).json({ message: "Old password is incorrect" });
     }
 
     // 4. Validation: Check if the new password and confirmation match
     if (newPassword !== confirmPassword) {
-        return res.status(400).json({ message: "New password and confirm password do not match." });
+        return res.status(400).json({ message: "New password and confirm password do not match" });
     }
 
     // 5. Security Check: Prevent user from reusing the current password
     if (oldPassword === newPassword) {
-        return res.status(400).json({ message: "New password must be different from the old one." });
+        return res.status(400).json({ message: "New password must be different from the old one" });
     }
 
     // 6. Update password
@@ -95,5 +95,5 @@ export const updatePassword = async (req, res) => {
     await user.save();
 
     // 7. Re-issue token to maintain session with updated credentials
-    sendToken(user, 200, "Password updated successfully!", res);
+    sendToken(user, 200, "Password updated!", res);
 };

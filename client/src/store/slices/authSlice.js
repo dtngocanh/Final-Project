@@ -58,7 +58,7 @@ export const forgotPassword = createAsyncThunk("auth/forgot/password", async (em
     // console.log(email);   //{email: ''}    
     const res = await axiosInstance.post(`/user/password/forgot?frontendUrl=http://localhost:5173`, email );
     toast.success(res.data.message);
-    return res.data;
+    return res.data.user;
   } catch (error) {
     const message = error.response?.data?.message || "Something went wrong";
     toast.error(message);
@@ -80,20 +80,19 @@ export const resetPassword = createAsyncThunk("auth/password/reset", async ({ to
 
 export const updatePassword = createAsyncThunk("auth/password/update", async (data, thunkAPI) => {
   try {
-    const res = await axiosInstance.put(`/auth/password/update`, data);
+    const res = await axiosInstance.put(`/user/password/update`, data);
     toast.success(res.data.message);
-    return null;
+    return res.data.user;
   } catch (error) {
     const message = error.response?.data?.message;
-    toast.error(message);
     return thunkAPI.rejectWithValue(message);
   }
 });
 
-export const updateProfile = createAsyncThunk("auth/me/update", async (data, thunkAPI) => {
+export const updateProfile = createAsyncThunk("auth/me/update", async (updateData, thunkAPI) => {
   try {
-    const res = await axiosInstance.put(`/auth/profile/update`, data);
-    toast.success(res.data.message);
+    const res = await axiosInstance.patch(`/user/profile/update`, updateData);   
+    toast.success("Profile updated!");
     return res.data.user;
   } catch (error) {
     const message = error.response?.data?.message;
