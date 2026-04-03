@@ -9,13 +9,9 @@ const CartSidebar = () => {
    const navigate = useNavigate();
   const { isCartOpen } = useSelector((state) => state.popup);
   const { cart } = useSelector((state) => state.cart);
-<<<<<<< HEAD
+
   
   const { theme } = useSelector((state) => state.auth); 
-=======
-
-  const { theme } = useSelector((state) => state.auth); // Hoặc từ context theme của má
->>>>>>> 7480ba22863b041e7d57504697229f4d4c61f4b3
 
   const activeColor = "#77cd3af2"; 
 
