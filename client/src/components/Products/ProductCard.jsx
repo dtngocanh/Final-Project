@@ -40,7 +40,6 @@ const ProductCard = ({ product }) => {
               className="absolute bottom-6 right-6 w-12 h-12 bg-[#77cd3a] text-white rounded-2xl flex items-center justify-center 
                                  opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 
                                  shadow-lg shadow-[#77cd3a]/30 active:scale-90 z-10"
-            // className="absolute bottom-4 right-4 w-10 h-10 bg-white dark:bg-[#77cd3a] dark:text-black rounded-xl shadow-md flex items-center justify-center translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 active:scale-90 z-10"
             >
               <ShoppingCart size={16} strokeWidth={2} />
             </button>

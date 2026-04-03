@@ -133,7 +133,7 @@ const ProfilePanel = () => {
           {/* SECURITY SECTION */}
           <div className="space-y-4">
             <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black">Security</p>
-            <button className="w-full flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 hover:border-[#77cd3af2]/30 transition-all group">
+            <button  className="w-full flex items-center justify-between p-4 rounded-xl bg-gray-50/50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 hover:border-[#77cd3af2]/30 transition-all group">
               <div className="flex items-center gap-3">
                 <Lock size={16} className="text-gray-400 group-hover:text-[#77cd3af2]" />
                 <span className="text-sm font-light dark:text-gray-200">Manage Password</span>
@@ -148,7 +148,7 @@ const ProfilePanel = () => {
           <button
             onClick={() => {
               dispatch(logout()); // clear auth
-              dispatch({ type: "RESET_APP" }); // 👈 reset toàn bộ Redux
+              dispatch({ type: "RESET_APP" }); // reset toàn bộ Redux
               localStorage.removeItem("token");
               handleClose();
             }}
