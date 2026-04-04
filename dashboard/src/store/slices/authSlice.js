@@ -35,37 +35,59 @@ export const { authRequest, authSuccess, authFailed, logoutSuccess } = authSlice
 
 // --- Thunk Actions ---
 
+// 1. LOGIN
 export const login = (data) => async (dispatch) => {
   dispatch(authRequest());
   try {
     const res = await axiosInstance.post("/seller/login", data);
-    
-    console.log("Response Data:", res.data);
-
     if (res.data.success) {
-    
       dispatch(authSuccess({ email: data.email, role: "Seller" }));
+      toast.success("Login successful! Welcome back.");
     } else {
       dispatch(authFailed());
-      toast.error(res.data.message || "Login failed");
+      toast.error(res.data.message || "Invalid credentials");
     }
-  } catch (err) { 
+  } catch (err) {
     dispatch(authFailed());
-    
-   
-    console.error("Lỗi kết nối API:", err); 
-    
-    const msg = err.response?.data?.message || "Cannot connect to server";
-    toast.error(msg);
+    toast.error(err.response?.data?.message || "Connection error");
   }
 };
 
+// 2. FORGOT PASSWORD (UI Placeholder)
+export const forgotPassword = (data) => async (dispatch) => {
+  dispatch(authRequest());
+  try {
+    
+    const res = await axiosInstance.post("/seller/password/forgot", data);
+    if (res.data.success) {
+      toast.success("Recovery link sent to your email!");
+    }
+  } catch (err) {
+    dispatch(authFailed());
+    toast.error(err.response?.data?.message || "Failed to send recovery email");
+  }
+};
+
+// 3. RESET PASSWORD (UI Placeholder)
+export const resetPassword = ({ token, password, confirmPassword }) => async (dispatch) => {
+  dispatch(authRequest());
+  try {
+    const res = await axiosInstance.put(`/seller/password/reset/${token}`, { password, confirmPassword });
+    if (res.data.success) {
+      toast.success("Password updated successfully!");
+    }
+  } catch (err) {
+    dispatch(authFailed());
+    toast.error(err.response?.data?.message || "Invalid or expired token");
+  }
+};
+
+// 4. CHECK AUTH
 export const getUser = () => async (dispatch) => {
   dispatch(authRequest());
   try {
     const res = await axiosInstance.get("/seller/is-auth");
     if (res.data.success) {
-      // ĐỔI TẠI ĐÂY: Giả định role Seller nếu token hợp lệ
       dispatch(authSuccess({ role: "Seller" }));
     } else {
       dispatch(authFailed());
@@ -75,12 +97,13 @@ export const getUser = () => async (dispatch) => {
   }
 };
 
+// 5. LOGOUT
 export const logout = () => async (dispatch) => {
   try {
     const res = await axiosInstance.get("/seller/logout");
     if (res.data.success) {
       dispatch(logoutSuccess());
-      toast.success("Logged out");
+      toast.success("Logged out successfully");
     }
   } catch (error) {
     toast.error("Logout failed");

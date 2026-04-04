@@ -1,30 +1,23 @@
 import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { removeFromCart, updateCartQuantity } from "../../store/slices/cartSlice";
-import { removeFromCartAndSync, updateQuantityAndSync } from "../../store/thunks/cartThunks";
 import { toggleCart } from "../../store/slices/popupSlice";
+import { useCartActions } from "../../hooks/useCartActions";
 const CartSidebar = () => {
   const dispatch = useDispatch();
-   const navigate = useNavigate();
+  const navigate = useNavigate();
   const { isCartOpen } = useSelector((state) => state.popup);
-  const { cart } = useSelector((state) => state.cart);
+  const { cart } = useSelector((state) => state.cart);     // 1. Lấy giỏ hàng hiện tại từ Redux
+  // console.log(cart);
 
-  
-  const { theme } = useSelector((state) => state.auth); 
+  const { theme } = useSelector((state) => state.auth);
 
-  const activeColor = "#77cd3af2"; 
+  const activeColor = "#77cd3af2";
 
   const handleClose = () => dispatch(toggleCart());
 
-  const updateQuantity = (id, currentQty, change) => {
-    const newQty = currentQty + change;
-    if (newQty <= 0) {
-      dispatch(removeFromCartAndSync({ id }));
-    } else {
-      dispatch(updateQuantityAndSync({ id, quantity: change }));
-    }
-  };
+  const { handleCartAction } = useCartActions();
+
 
   const total = cart?.reduce(
     (sum, item) => sum + item?.product.price * item?.quantity,
@@ -79,11 +72,11 @@ const CartSidebar = () => {
                   <div className="flex items-center justify-between mt-4">
                     {/* Quantity Selector */}
                     <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-full px-2 py-1 gap-4">
-                      <button onClick={() => updateQuantity(item.product._id, item.quantity, -1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
+                      <button onClick={() => handleCartAction(item.product, "UPDATE_QTY", -1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
                         <Minus size={14} />
                       </button>
                       <span className="text-sm font-medium dark:text-white w-4 text-center">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.product._id, item.quantity, 1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
+                      <button onClick={() => handleCartAction(item.product, "UPDATE_QTY", 1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
                         <Plus size={14} />
                       </button>
                     </div>
@@ -93,7 +86,7 @@ const CartSidebar = () => {
 
                 {/* Remove Button */}
                 <button
-                  onClick={() => dispatch(removeFromCart({ id: item.product._id }))}
+                  onClick={() => handleCartAction(item.product, "REMOVE")}
                   className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all"
                 >
                   <Trash2 size={18} strokeWidth={1.5} />
@@ -120,7 +113,10 @@ const CartSidebar = () => {
             <p className="text-3xl font-light dark:text-white">${total.toLocaleString()}</p>
           </div>
 
-          <button  onClick={() => navigate("/payment", { state: { subtotal: total } })} className="relative w-full group overflow-hidden rounded-2xl bg-black dark:bg-[#77cd3af2] py-5 transition-all hover:scale-[1.02] active:scale-95">
+          <button onClick={() => {
+            handleClose();
+            navigate("/checkout", { state: { subtotal: total } })
+          }} className="relative w-full group overflow-hidden rounded-2xl bg-black dark:bg-[#77cd3af2] py-5 transition-all hover:scale-[1.02] active:scale-95">
             <div className="relative z-10 flex items-center justify-center gap-3 text-white dark:text-black font-bold tracking-widest text-xs uppercase">
               <span>Continue to checkout</span>
             </div>

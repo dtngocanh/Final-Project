@@ -1,50 +1,105 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Filter, Package, Truck, CheckCircle, XCircle, ChevronRight, Calendar, Box, Star, RefreshCw, Trash2, Loader2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import Swal from 'sweetalert2';
 
-// Import component trang trí
 import FloatingDecor from "../components/Fruit/FloatingDecor";
-// Import action từ slice của bạn
-import { fetchMyOrders } from "../store/slices/orderSlice"; 
+import { cancelOrder, fetchMyOrders } from "../store/slices/orderSlice";
 
-const MOCK_ORDERS = [
-  { _id: "ORD-99283741", order_status: "Processing", total_price: 125.50, createdAt: "2023-10-24", order_items: [1, 2] },
-  { _id: "ORD-77341092", order_status: "Delivered", total_price: 210.99, createdAt: "2023-10-15", order_items: [1, 2, 3] },
-  { _id: "ORD-66102293", order_status: "Cancelled", total_price: 89.00, createdAt: "2023-10-10", order_items: [1] }
-];
 
 const Orders = () => {
   const dispatch = useDispatch();
+  // 1. Local State Management - stores the current active filter
   const [statusFilter, setStatusFilter] = useState("all");
-  
-  // Lấy đúng các state từ slice
+  // 2. Redux store selection - Extract order list and loading state from orderSlice
   const { myOrders, fetchingOrders } = useSelector((state) => state.order);
+  //Get auth status to ensure data is only fetched for authenticated users
   const { authUser } = useSelector((state) => state.auth);
-  
-  // Ưu tiên data thực, nếu trống thì dùng Mock
-  const currentOrders = myOrders?.length > 0 ? myOrders : MOCK_ORDERS;
 
+  // Fallback to empty array to empty crashes
+  const currentOrders = myOrders || [];
+  // Automatically trigger the fetchMyOrders when component mounts or users log in
   useEffect(() => {
     if (authUser) {
       dispatch(fetchMyOrders());
     }
   }, [dispatch, authUser]);
 
-  const filterOrders = currentOrders.filter(
-    (order) => statusFilter === "all" || order.order_status === statusFilter
-  );
+  // Re-caculated the displayed list only when currentOrders or statusFilter changes
+  const filterOrders = useMemo(() => {
+    if (!currentOrders) return [];
+
+    return currentOrders.filter((order) => {
+      // Return all if 'all' is selected, otherwise match against orderStatus
+      return statusFilter === "all" || order.orderStatus === statusFilter;
+    });
+  }, [currentOrders, statusFilter]);
 
   // Logic Icon chuẩn màu sắc từ ảnh
+  //Return specific Lucide icons and colors based on the current order status
   const getStatusIcon = (status) => {
     switch (status) {
       case "Processing": return <Package className="w-5 h-5 text-yellow-500" />;
       case "Shipped": return <Truck className="w-5 h-5 text-blue-500" />;
       case "Delivered": return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case "Cancelled": return <XCircle className="w-5 h-5 text-red-500" />;
+      case "Canceled": return <XCircle className="w-5 h-5 text-red-500" />;
       default: return <Package className="w-5 h-5 text-yellow-500" />;
     }
+  };
+  const handleCancelOrder = (orderId) => {
+    console.log(orderId);
+
+    Swal.fire({
+      title: '<span style="font-size: 18px; font-weight: 600; color: #4b5563;">Cancel this order?</span>',
+      html: '<p style="font-size: 13px; color: #9ca3af;">It’s okay, you can always order again later.</p>',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, cancel',
+      cancelButtonText: 'Keep it',
+      background: '#ffffff',
+      width: '320px',
+      padding: '1.5rem',
+      buttonsStyling: false,
+      customClass: {
+        popup: 'shadow-2xl border border-gray-50',
+        confirmButton: 'mx-2 px-4 py-2 text-[11px] font-bold uppercase tracking-tight text-red-400 bg-white border border-red-100 rounded-full hover:bg-red-50 transition-all duration-300',
+        cancelButton: 'mx-2 px-4 py-2 text-[11px] font-bold uppercase tracking-tight text-gray-400 bg-white border border-gray-100 rounded-full hover:bg-gray-50 transition-all duration-300'
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        dispatch(cancelOrder(orderId))
+          .unwrap()
+          .then(() => {
+            Swal.fire({
+              title: '<span style="font-size: 13px; font-weight: 500; color: #6b7280; letter-spacing: 0.05em; text-transform: uppercase;">Success</span>',
+              timer: 1500,
+              showConfirmButton: false,
+              width: '220px', 
+              padding: '1.2rem',
+              background: '#ffffff',
+              borderRadius: '20px',
+              customClass: {
+                popup: 'shadow-sm border border-gray-100' 
+              }
+            });
+          })
+          .catch((error) => {
+            Swal.fire({
+              title: `<span style="font-size: 13px; font-weight: 500; color: #9ca3af; letter-spacing: 0.05em; text-transform: uppercase;">${error || 'Error'}</span>`,
+              timer: 1500,
+              showConfirmButton: false,
+              width: '220px',
+              padding: '1.2rem',
+              background: '#ffffff',
+              borderRadius: '20px',
+              customClass: {
+                popup: 'shadow-sm border border-gray-100'
+              }
+            });
+          });
+      }
+    });
   };
 
   return (
@@ -65,12 +120,12 @@ const Orders = () => {
             </h1>
           </div>
 
+          {/* Filter Navigation */}
           <div className="flex flex-wrap gap-2 bg-gray-50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-gray-100 dark:border-white/5">
-            {["all", "Processing", "Shipped", "Delivered", "Cancelled"].map((s) => (
+            {["all", "Processing", "Shipped", "Delivered", "Canceled"].map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
-                  statusFilter === s ? "bg-[#77cd3a] text-black shadow-lg" : "text-gray-400 hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${statusFilter === s ? "bg-[#77cd3a] text-black shadow-lg" : "text-gray-400 hover:text-white"
+                  }`}
               >
                 {s}
               </button>
@@ -82,10 +137,10 @@ const Orders = () => {
           <AnimatePresence mode="popLayout">
             {filterOrders.length > 0 ? (
               filterOrders.map((order, index) => (
-                <motion.div 
-                  key={order._id} 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }} 
+                <motion.div
+                  key={order._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.1 }}
                   className="group bg-gray-50/50 dark:bg-white/[0.02] backdrop-blur-md rounded-[32px] border border-gray-100 dark:border-white/[0.05] p-6 md:p-8 hover:border-[#77cd3a]/30 transition-all duration-500"
@@ -94,23 +149,23 @@ const Orders = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-4 mb-6">
                         <div className="p-3 bg-white dark:bg-black/40 rounded-2xl border border-white/10 shadow-sm">
-                          {getStatusIcon(order.order_status)}
+                          {getStatusIcon(order.orderStatus)}
                         </div>
                         <div>
-                           <p className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Order ID</p>
-                           <h3 className="text-sm font-bold dark:text-white uppercase tracking-tighter">#{order._id.slice(-8)}</h3>
+                          <p className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Order ID</p>
+                          <h3 className="text-sm font-bold dark:text-white uppercase tracking-tighter">#{order._id.slice(-8)}</h3>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                         <div>
                           <p className="text-[8px] uppercase text-gray-400 mb-1">Total Amount</p>
-                          <p className="text-xl font-light dark:text-white">${order.total_price.toFixed(2)}</p>
+                          <p className="text-xl font-light dark:text-white">${order.totalPrice}</p>
                         </div>
 
                         {/* Logic render nút dựa trên status từ ảnh d221c3 */}
                         <div className="col-span-2 flex flex-wrap gap-3 items-end">
-                          {order.order_status === "Delivered" && (
+                          {order.orderStatus === "Delivered" && (
                             <>
                               <button className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold flex items-center gap-2 dark:text-white border border-white/10 rounded-xl bg-white/5">
                                 <Star size={14} className="text-yellow-500" /> Write Review
@@ -121,8 +176,8 @@ const Orders = () => {
                             </>
                           )}
 
-                          {order.order_status === "Processing" && (
-                            <button className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold text-red-500 flex items-center gap-2 border border-red-500/20 rounded-xl bg-red-500/5">
+                          {order.orderStatus === "Processing" && (
+                            <button onClick={() => handleCancelOrder(order._id)} className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold text-red-500 flex items-center gap-2 border border-red-500/20 rounded-xl bg-red-500/5">
                               <Trash2 size={14} /> Cancel Order
                             </button>
                           )}
@@ -132,8 +187,8 @@ const Orders = () => {
 
                     <div className="flex items-center gap-4">
                       {authUser ? (
-                        <Link 
-                          to={`/order/${order._id}`} 
+                        <Link
+                          to={`/order/${order._id}`}
                           className="w-full lg:w-auto py-4 px-8 bg-black dark:bg-white text-white dark:text-black text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl flex items-center justify-center gap-3 hover:bg-[#77cd3a] hover:text-black transition-all duration-500"
                         >
                           View Details <ChevronRight size={14} />

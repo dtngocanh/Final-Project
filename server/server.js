@@ -1,6 +1,6 @@
+import 'dotenv/config';
 import express from "express";
 import connectDB from "./configs/db.js";
-import 'dotenv/config';
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import userRouter from "./routes/userRoute.js";
@@ -11,15 +11,36 @@ import fileUpload from "express-fileupload";
 import cartRouter from "./routes/cartRoute.js";
 import addressRouter from "./routes/addressRoute.js";
 import orderRouter from "./routes/orderRoute.js";
+import { stripeWebhook } from './controllers/stripeController.js';
+import paymentRouter from './routes/paymentRoute.js';
 
 const app = express();
 const port = process.env.PORT || 4000;
+const allowedOrigins = [
+    process.env.FRONTEND_URL, 
+    process.env.ADMIN_URL
+];
 
-const allowedOrigins = ["http://localhost:5173", , "http://localhost:5174"]
+app.post(
+  '/api/payment/webhook', 
+  express.raw({ type: 'application/json' }), 
+  stripeWebhook
+);
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({origin: allowedOrigins, credentials: true}));
+app.use(cors({
+    origin: function (origin, callback) {
+        // 1. Allow requests with no origin (like mobile apps or Stripe CLI/Postman)
+        // 2. Check if the incoming origin is in our allowed list
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true // Required for cookies/sessions
+}));
 app.use(fileUpload());
 
 await connectDB();
@@ -33,9 +54,8 @@ app.use('/api/product',productRouter);
 app.use('/api/cart',cartRouter);
 app.use('/api/address',addressRouter);
 app.use('/api/order',orderRouter);
-
+app.use('/api/payment',paymentRouter);
 
 app.listen(port, ()=>{
     console.log(`Server is running on http://localhost:${port}`);   
 })
-

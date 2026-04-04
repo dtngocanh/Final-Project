@@ -49,7 +49,7 @@ const Cart = () => {
             <h2 className="text-4xl md:text-5xl font-extralight tracking-tighter dark:text-white">
               My <span className="font-serif italic border-b-2 border-[#77cd3af2]/30">cart</span>
             </h2>
-            <span className="text-[10px] font-mono text-gray-400 uppercase tracking-[0.2em] bg-gray-50 dark:bg-white/5 px-4 py-1.5 rounded-full border border-gray-100 dark:border-white/10">
+            <span className="text-[10px] text-gray-400 uppercase tracking-[0.2em] bg-gray-50 dark:bg-white/5 px-4 py-1.5 rounded-full border border-gray-100 dark:border-white/10">
               {cartItemsCount} Items
             </span>
           </div>
@@ -113,7 +113,7 @@ const Cart = () => {
             <div className="space-y-4">
               {/* Nút thanh toán bay thẳng qua Payment */}
               <button 
-                onClick={() => navigate("/payment", { state: { subtotal: total } })}
+                onClick={() => navigate("/checkout", { state: { subtotal: total } })}
                 className="w-full py-5 md:py-6 bg-black dark:bg-[#77cd3a] text-white dark:text-black font-bold rounded-[20px] md:rounded-[24px] flex items-center justify-center gap-4 shadow-2xl transition-transform active:scale-95"
               >
                 <span className="text-[10px] md:text-[11px] uppercase tracking-[0.4em]">Proceed to Checkout</span>

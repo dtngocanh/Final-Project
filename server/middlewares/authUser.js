@@ -9,6 +9,7 @@ const authUser = async (req, res, next) => {
     try {
         const tokenDecode = jwt.verify(token, process.env.JWT_SECRET)
         if (tokenDecode.id) {
+            // Gán ID từ token vào req.user để các hàm sau sử dụng
             req.user = { _id: tokenDecode.id };
             next();
         } else {

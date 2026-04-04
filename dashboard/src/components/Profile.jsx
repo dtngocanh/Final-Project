@@ -1,50 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import defaultAvatar from "../assets/avatar.jpg";
+import { toast } from "react-toastify";
+import { ArrowLeft, User, Mail, Lock, Camera, CheckCircle } from "lucide-react";
+import { toggleComponent } from "../store/slices/extraSlice";
+import FloatingVegetables from "./Fruit/FloatingVegetables";
 
 const Profile = () => {
-  const { user } = useSelector((state) => state.auth); 
+  const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
-  const HARDCODED_SELLER = {
-    name: "Admin Seller",
-    email: "admin@example.com",
-  };
-
-  // States
   const [loading, setLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
-  
-  const [editData, setEditData] = useState({
-    name: "",
-    email: "",
-    avatar: null,
-  });
+  const [editData, setEditData] = useState({ name: "", email: "", avatar: null });
 
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmNewPassword: "",
-  });
-
-  // ĐỒNG BỘ DỮ LIỆU: Cập nhật form khi thông tin user từ Redux thay đổi
   useEffect(() => {
     setEditData({
-      name: user?.name || HARDCODED_SELLER.name,
-      email: user?.email || HARDCODED_SELLER.email,
+      name: user?.name || "Admin Seller",
+      email: user?.email || "admin@example.com",
       avatar: null,
     });
   }, [user]);
 
-  // Xử lý thay đổi thông tin & Preview ảnh
   const handleProfileChange = (e) => {
     const { name, value, files } = e.target;
-    
     if (name === "avatar" && files && files[0]) {
       const file = files[0];
       setEditData((prev) => ({ ...prev, avatar: file }));
-      
-      // Cleanup URL cũ trước khi tạo URL mới để tránh tốn RAM
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(URL.createObjectURL(file));
     } else {
@@ -52,132 +34,157 @@ const Profile = () => {
     }
   };
 
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordData((prev) => ({ ...prev, [name]: value }));
-  };
-
   const updateProfile = () => {
     setLoading(true);
-    // Sau này thay đoạn này bằng dispatch(updateAdminProfile(formData))
     setTimeout(() => {
-      console.log("Dữ liệu cập nhật:", editData);
-      alert("Cập nhật thông tin thành công!");
-      setLoading(false);
-    }, 800);
-  };
-
-  const updatePassword = () => {
-    if (!passwordData.newPassword) return alert("Vui lòng nhập mật khẩu mới");
-    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
-      return alert("Mật khẩu xác nhận không khớp!");
-    }
-    
-    setLoading(true);
-    setTimeout(() => {
-      alert("Đổi mật khẩu thành công!");
-      setPasswordData({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
+      toast.success("Hệ thống Veganic đã lưu rồi nhé ní! 🌿");
       setLoading(false);
     }, 800);
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-6 animate-in fade-in duration-700">
-      {/* Identity Section */}
-      <section className="flex items-center gap-8 mb-16">
-        <div className="relative group size-24 rounded-full overflow-hidden border border-gray-100 shadow-sm bg-gray-50">
-          <img
-            src={previewUrl || user?.avatar?.url || defaultAvatar}
-            alt="profile"
-            className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500"
-          />
-          <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-             <span className="text-[10px] text-white font-bold uppercase">Change</span>
-          </div>
-          <input 
-            type="file" 
-            name="avatar"
-            accept="image/*"
-            className="absolute inset-0 opacity-0 cursor-pointer" 
-            onChange={handleProfileChange}
-          />
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-2xl font-light tracking-tight text-black">
-            {editData.name || "User"}
-          </h2>
-          <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">
-            {loading ? "Processing..." : "Profile Management"}
-          </p>
-        </div>
-      </section>
+    <div className="relative min-h-screen w-full py-6 md:py-10 px-4 sm:px-6 animate-in fade-in slide-in-from-bottom-4 duration-700 font-['Fredoka']">
+      
+      {/* NỀN RAU CỦ DẬP DÌU */}
+      <FloatingVegetables />
 
-      <div className="space-y-16">
-        <section className="space-y-6">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">Basic Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <input
-              name="name"
-              placeholder="Full Name"
-              value={editData.name}
-              onChange={handleProfileChange}
-              className="w-full bg-gray-50/50 border-none rounded-none px-4 py-3 text-sm focus:ring-1 focus:ring-gray-200 outline-none transition-all"
-            />
-            <input
-              name="email"
-              placeholder="Email Address"
-              value={editData.email}
-              onChange={handleProfileChange}
-              className="w-full bg-gray-50/50 border-none rounded-none px-4 py-3 text-sm focus:ring-1 focus:ring-gray-200 outline-none transition-all"
-            />
-          </div>
+      <div className="max-w-5xl mx-auto relative z-10">
+        
+        {/* HEADER */}
+        <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-6 mb-8 md:mb-12">
           <button 
-            onClick={updateProfile}
-            disabled={loading}
-            className="px-8 py-2.5 bg-black text-white text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-all disabled:opacity-50"
+            onClick={() => dispatch(toggleComponent("Dashboard"))}
+            className="flex items-center gap-2 text-gray-400 hover:text-[#77cd3af2] transition-all group self-start sm:self-auto"
           >
-            Update Profile
+            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Back to Dashboard</span>
           </button>
-        </section>
+          
+          <div className="text-center sm:text-right">
+            <h1 className="text-2xl md:text-3xl font-light text-gray-900 dark:text-white leading-tight">
+              Account <span className="font-serif italic text-[#77cd3af2]">Settings</span>
+            </h1>
+            <p className="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-[0.3em] mt-1 font-bold">Veganic Admin Portal</p>
+          </div>
+        </div>
 
-        <section className="space-y-6">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">Security</h3>
-          <div className="space-y-5">
-            <input
-              type="password"
-              name="currentPassword"
-              value={passwordData.currentPassword}
-              placeholder="Current Password"
-              onChange={handlePasswordChange}
-              className="w-full bg-gray-50/50 border-none rounded-none px-4 py-3 text-sm focus:ring-1 focus:ring-gray-200 outline-none transition-all"
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <input
-                type="password"
-                name="newPassword"
-                value={passwordData.newPassword}
-                placeholder="New Password"
-                onChange={handlePasswordChange}
-                className="w-full bg-gray-50/50 border-none rounded-none px-4 py-3 text-sm focus:ring-1 focus:ring-gray-200 outline-none transition-all"
-              />
-              <input
-                type="password"
-                name="confirmNewPassword"
-                value={passwordData.confirmNewPassword}
-                placeholder="Confirm New Password"
-                onChange={handlePasswordChange}
-                className="w-full bg-gray-50/50 border-none rounded-none px-4 py-3 text-sm focus:ring-1 focus:ring-gray-200 outline-none transition-all"
-              />
+        <div className="space-y-8">
+          
+          {/* CỤM BASIC INFO: GỒM CẢ ẢNH VÀ INPUT */}
+          <div className="bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-10 border border-white/20 dark:border-white/5 shadow-2xl shadow-black/5">
+            <div className="flex items-center gap-3 mb-10">
+              <div className="p-2 rounded-lg bg-[#77cd3af2]/10 text-[#77cd3af2]">
+                <User size={18} />
+              </div>
+              <h3 className="text-xs md:text-sm font-bold uppercase tracking-widest text-gray-400">Basic Information</h3>
+            </div>
+
+            {/* BỐ CỤC FLEX CHO ẢNH VÀ INPUT */}
+            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-10 md:gap-16">
+              
+              {/* PHẦN ẢNH ĐẠI DIỆN */}
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative group size-32 md:size-40">
+                  <div className="w-full h-full rounded-full p-1.5 border-2 border-dashed border-[#77cd3af2]/30 group-hover:border-[#77cd3af2] transition-all duration-500">
+                    <img
+                      src={previewUrl || user?.avatar?.url || "/tmt.jpg"}
+                      alt="profile"
+                      className="w-full h-full rounded-full object-cover bg-gray-50 dark:bg-gray-800 transition-transform duration-500 group-hover:scale-[1.02]"
+                    />
+                  </div>
+                  <label className="absolute bottom-2 right-2 p-3 bg-[#77cd3af2] text-white rounded-full cursor-pointer hover:scale-110 transition-all shadow-lg border-4 border-white dark:border-[#0a0a0a]">
+                    <Camera size={18} />
+                    <input type="file" name="avatar" hidden accept="image/*" onChange={handleProfileChange} />
+                  </label>
+                </div>
+                <div className="text-center">
+                   <p className="text-[10px] text-[#77cd3af2] font-black uppercase tracking-widest">Verified Seller</p>
+                </div>
+              </div>
+
+              {/* PHẦN CÁC Ô NHẬP LIỆU */}
+              <div className="flex-1 w-full space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[9px] uppercase tracking-widest font-black text-gray-400 ml-1">Full Name</label>
+                    <div className="relative group">
+                      <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#77cd3af2] transition-colors" />
+                      <input
+                        name="name"
+                        value={editData.name}
+                        onChange={handleProfileChange}
+                        className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-sm outline-none focus:border-[#77cd3af2]/50 transition-all dark:text-white"
+                        placeholder="Your name"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] uppercase tracking-widest font-black text-gray-400 ml-1">Email Address</label>
+                    <div className="relative group">
+                      <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#77cd3af2] transition-colors" />
+                      <input
+                        name="email"
+                        value={editData.email}
+                        onChange={handleProfileChange}
+                        className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 rounded-2xl pl-12 pr-4 py-4 text-sm outline-none focus:border-[#77cd3af2]/50 transition-all dark:text-white"
+                        placeholder="Email"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-center lg:justify-start">
+                  <button
+                    onClick={updateProfile}
+                    disabled={loading}
+                    className="group flex items-center justify-center gap-3 px-12 py-4 bg-[#77cd3af2] text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#68b432] active:scale-95 transition-all shadow-lg shadow-[#77cd3af2]/20"
+                  >
+                    {loading ? "Saving..." : "Save Profile Details"}
+                    <CheckCircle size={14} className="group-hover:rotate-12 transition-transform" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-          <button 
-            onClick={updatePassword}
-            disabled={loading}
-            className="px-8 py-2.5 bg-gray-200 text-black text-[10px] font-bold uppercase tracking-widest hover:bg-gray-300 transition-all disabled:opacity-50"
-          >
-            Change Password
-          </button>
-        </section>
+
+          {/* CỤM SECURITY - GIỮ RIÊNG 1 CARD PHÍA DƯỚI CHO RÕ RÀNG */}
+          <div className="bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-10 border border-white/20 dark:border-white/5 shadow-2xl shadow-black/5">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
+                <Lock size={18} />
+              </div>
+              <h3 className="text-xs md:text-sm font-bold uppercase tracking-widest text-gray-400">Security & Password</h3>
+            </div>
+
+            <div className="space-y-6">
+              <div className="max-w-md space-y-6">
+                <input
+                  type="password"
+                  placeholder="Current Password"
+                  className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 rounded-2xl px-6 py-4 text-sm outline-none focus:border-red-400/30 transition-all dark:text-white"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="password"
+                    placeholder="New Password"
+                    className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 rounded-2xl px-6 py-4 text-sm outline-none focus:border-red-400/30 transition-all dark:text-white"
+                  />
+                  <input
+                    type="password"
+                    placeholder="Confirm New"
+                    className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 rounded-2xl px-6 py-4 text-sm outline-none focus:border-red-400/30 transition-all dark:text-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button className="mt-8 px-10 py-4 bg-gray-900 dark:bg-white dark:text-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all">
+              Update Password
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   );

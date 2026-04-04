@@ -11,7 +11,7 @@ const Dashboard = () => {
   return (
     <div className="flex-1 min-h-screen bg-white p-4 md:p-8 overflow-y-auto">
       {/* 1. Thanh Header trên cùng */}
-      <Header />
+      
 
       {/* 2. Các con số tổng quan (MiniSummary) */}
        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

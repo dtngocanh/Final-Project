@@ -56,7 +56,8 @@ export const productList = async (req, res) => {
 export const productById = async (req, res) => {
     try {
 
-        const { id } = req.body
+        // const { id } = req.body
+        const id = req.params.id;
 
         const product = await Product.findById(id)
 
@@ -121,7 +122,6 @@ export const importProducts = async (req, res) => {
         const validProducts = [];
         const errors = [];
 
-        // 🔥 helper: lấy public_id
         const getPublicId = (url) => {
             try {
                 const parts = url.split("/");
@@ -134,7 +134,6 @@ export const importProducts = async (req, res) => {
             }
         };
 
-        // 🔥 validate 1 product
         const validateProduct = (p, index) => {
             const err = [];
 
@@ -156,7 +155,6 @@ export const importProducts = async (req, res) => {
         for (let i = 0; i < products.length; i++) {
             let p = products[i];
 
-            // 🔥 parse images
             let images = [];
             if (p.images && typeof p.images === "string") {
                 try {
@@ -217,7 +215,7 @@ export const importProducts = async (req, res) => {
             totalRows: products.length,
             successCount: insertedCount,
             failedCount: errors.length,
-            errors // 🔥 cực quan trọng
+            errors 
         });
 
     } catch (error) {

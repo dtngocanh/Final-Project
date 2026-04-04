@@ -53,6 +53,13 @@ const Products = () => {
         subcategory:subcat,
         category:"All"
       }))
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        subcategory:"",
+        category:"All",
+        search:""
+      }))
     }
   },[search]);
 

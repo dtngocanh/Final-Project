@@ -1,61 +1,27 @@
 import React, { useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllProducts } from "../../store/slices/productSlice";
-import { addToCartAndSync } from "../../store/thunks/cartThunks";
 
 import { ChevronLeft, ChevronRight, Star, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom"; // Import Link để điều hướng
+import { useCartActions } from "../../hooks/useCartActions";
 
 const ProductSlider = ({ title = "Seasonal Picks" }) => {
+
   const scrollRef = useRef(null);
   const dispatch = useDispatch();
 
   // Redux state
   const { products, loading } = useSelector((state) => state.product);
 
+  const { handleCartAction } = useCartActions();
+
   // Load products từ backend
   useEffect(() => {
     dispatch(fetchAllProducts());
   }, [dispatch]);
-
-  // Xử lý thêm vào giỏ hàng
-  const handleAddToCart = (e, product) => {
-    e.preventDefault(); // Ngăn chặn sự kiện click lan ra thẻ Link (tránh nhảy vào trang chi tiết)
-    e.stopPropagation(); 
-    
-    dispatch(
-      addToCartAndSync({
-        product: {
-          _id: product._id,
-          name: product.name,
-          price: product.price,
-          images: product.images, 
-        },
-        quantity: 1,
-      })
-    );
-
-    toast.success(
-      <div className="flex items-center gap-3">
-        <img src="/logohaha.png" alt="" className="w-8 h-8 object-contain" />
-        <div>
-          <p className="text-sm font-bold">Yum! Added!</p>
-          <p className="text-xs font-serif italic text-gray-500 dark:text-gray-400">
-            {product.name} is in your cart
-          </p>
-        </div>
-      </div>,
-      {
-        position: "top-right",
-        autoClose: 2000,
-        icon: false,
-        className: "border-l-4 border-[#77cd3a] rounded-xl shadow-2xl dark:bg-[#1a1a1a] dark:text-white bg-white text-gray-800",
-        progressClassName: "bg-[#77cd3a]",
-      }
-    );
-  };
 
   const scroll = (direction) => {
     if (scrollRef.current) {
@@ -73,7 +39,7 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
   return (
     <section className="py-24 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 relative">
-        
+
         {/* Header Section */}
         <div className="flex items-end justify-between mb-12 border-b border-gray-100 dark:border-white/5 pb-8">
           <div>
@@ -109,9 +75,11 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
               className="min-w-[280px] md:min-w-[320px] snap-start group relative"
             >
               {/* Card Link - Chuyển đến trang chi tiết */}
-              <Link to={`/product/${product._id}`} className="block">
+              <Link
+                to={`/product/${product._id}`
+                } className="block">
                 <div className="relative overflow-hidden bg-[#fbfbfb] dark:bg-[#111111] rounded-3xl transition-all duration-500 border border-transparent hover:border-[#77cd3a]/20">
-                  
+
                   {/* Product Image Area */}
                   <div className="relative aspect-square flex items-center justify-center p-10">
                     <motion.img
@@ -130,7 +98,11 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
 
                     {/* Add to Cart Button */}
                     <button
-                      onClick={(e) => handleAddToCart(e, product)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleCartAction(product, "ADD", 1)
+                      }}
                       className="absolute bottom-6 right-6 w-12 h-12 bg-[#77cd3a] text-white rounded-2xl flex items-center justify-center 
                                  opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 
                                  shadow-lg shadow-[#77cd3a]/30 active:scale-90 z-10"

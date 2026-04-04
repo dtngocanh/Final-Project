@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useLocation } from "react-router-dom";
-import { 
-  X, Mail, Lock, User, ArrowRight, Loader2, 
-  Carrot, Salad, Citrus, Cherry, Leaf 
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  X, Mail, Lock, User, ArrowRight, Loader2,
+  Carrot, Salad, Citrus, Cherry, Leaf
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toggleAuthPopup } from "../../store/slices/popupSlice";
 import { login, register, forgotPassword, resetPassword } from "../../store/slices/authSlice";
+import toast from 'react-hot-toast';
 
 const LoginModal = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const { authUser, isSigningUp, isLoggingIn, isRequestingForToken } = useSelector((state) => state.auth);
   const { isAuthPopupOpen } = useSelector((state) => state.popup);
@@ -59,12 +61,26 @@ const LoginModal = () => {
     }
 
     if (mode === "reset") {
-      const token = location.pathname.split("/").pop();
-      dispatch(resetPassword({ token, password: formData.password, confirmPassword: formData.confirmPassword }));
+      if (formData.password !== formData.confirmPassword) {
+        toast.error("Passwords do not match! Please check again.", {
+          style: { borderRadius: '10px', background: '#333', color: '#fff' }
+        });
+        return;
+      }
+
+      try {
+        const token = location.pathname.split("/").pop();
+        dispatch(resetPassword({ token, password: formData.password, confirmPassword: formData.confirmPassword })).unwrap();
+        dispatch(toggleAuthPopup());
+        navigate("/");
+      } catch (error) {
+        console.error("Reset Failed:", error);
+      }
       return;
     }
     mode === "signup" ? dispatch(register(data)) : dispatch(login(data));
   };
+
 
   if (!isAuthPopupOpen || authUser) return null;
   const isLoading = isSigningUp || isLoggingIn || isRequestingForToken;
@@ -72,7 +88,7 @@ const LoginModal = () => {
   return (
     <AnimatePresence mode="wait">
       <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-        
+
         {/* OVERLAY */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -83,21 +99,21 @@ const LoginModal = () => {
         />
 
         {/* MODAL */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="relative w-full max-w-[480px] bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-[2rem] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.3)] border border-white/40 dark:border-white/5 overflow-hidden pointer-events-auto"
         >
-          
+
           {/* DECOR VEGIES */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             {vegies.map((item, index) => (
               <motion.div
                 key={index}
                 style={{ position: 'absolute', top: item.top, left: item.left, right: item.right, bottom: item.bottom }}
-                animate={{ 
+                animate={{
                   y: [0, 15, 0],
                   rotate: [item.rotate, item.rotate + 10, item.rotate],
                   opacity: [0.15, 0.25, 0.15]
@@ -120,12 +136,12 @@ const LoginModal = () => {
                 <img src="/hahahaha.png" alt="logo" className="w-5 h-5 object-contain" />
                 <span className="uppercase tracking-[0.3em] text-[10px] font-black text-[#025c37] dark:text-[#77cd3af2]">Veganic Mart</span>
               </div>
-              
+
               <h2 className="text-3xl font-light text-gray-900 dark:text-white tracking-tight">
-                {mode === "signin" ? <>Welcome <span className="font-serif italic text-[#77cd3af2]">Back</span></> : 
-                 mode === "signup" ? <>Join the <span className="font-serif italic text-[#77cd3af2]">Green</span></> : 
-                 mode === "forgot" ? <>Recover <span className="font-serif italic text-[#77cd3af2]">Path</span></> :
-                 "Reset Password"}
+                {mode === "signin" ? <>Welcome <span className="font-serif italic text-[#77cd3af2]">Back</span></> :
+                  mode === "signup" ? <>Join the <span className="font-serif italic text-[#77cd3af2]">Green</span></> :
+                    mode === "forgot" ? <>Recover <span className="font-serif italic text-[#77cd3af2]">Path</span></> :
+                      "Reset Password"}
               </h2>
             </div>
 
@@ -141,27 +157,47 @@ const LoginModal = () => {
                   />
                 </div>
               )}
-
-              <div className="relative group border-b border-gray-200 dark:border-white/10 focus-within:border-[#77cd3af2] transition-colors">
-                <Mail className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#77cd3af2] transition-colors" size={18} />
-                <input
-                  type="email" name="email" placeholder="Email Address"
-                  className="w-full bg-transparent py-4 pl-8 outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 font-light"
-                  onChange={handleChange} required
-                />
-              </div>
-
-              {mode !== "forgot" && (
+              {/* 2. TRƯỜNG EMAIL: Hiện khi Đăng nhập, Đăng ký, Quên mật khẩu. ẨN khi Reset */}
+              {mode !== "reset" && (
                 <div className="relative group border-b border-gray-200 dark:border-white/10 focus-within:border-[#77cd3af2] transition-colors">
-                  <Lock className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#77cd3af2] transition-colors" size={18} />
+                  <Mail className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#77cd3af2] transition-colors" size={18} />
                   <input
-                    type="password" name="password" placeholder="Password"
+                    type="email" name="email" placeholder="Email Address"
                     className="w-full bg-transparent py-4 pl-8 outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 font-light"
                     onChange={handleChange} required
                   />
                 </div>
               )}
 
+              {/* 3. CÁC TRƯỜNG PASSWORD: Hiện khi KHÔNG PHẢI mode forgot */}
+              {mode !== "forgot" && (
+                <>
+                  {/* Ô Mật khẩu mới/chính */}
+                  <div className="relative group border-b border-gray-200 dark:border-white/10 focus-within:border-[#77cd3af2] transition-colors">
+                    <Lock className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#77cd3af2] transition-colors" size={18} />
+                    <input
+                      type="password" name="password"
+                      placeholder={mode === "reset" ? "New Password" : "Password"}
+                      className="w-full bg-transparent py-4 pl-8 outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 font-light"
+                      onChange={handleChange} required
+                    />
+                  </div>
+
+                  {/* Ô Xác nhận mật khẩu: Chỉ hiện khi Signup hoặc Reset */}
+                  {(mode === "reset") && (
+                    <div className="relative group border-b border-gray-200 dark:border-white/10 focus-within:border-[#77cd3af2] transition-colors">
+                      <Lock className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#77cd3af2] transition-colors" size={18} />
+                      <input
+                        type="password" name="confirmPassword" placeholder="Confirm Password"
+                        className="w-full bg-transparent py-4 pl-8 outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 font-light"
+                        onChange={handleChange} required
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Quên mật khẩu: Chỉ hiện khi Signin */}
               {mode === "signin" && (
                 <div className="text-right">
                   <button type="button" onClick={() => setMode("forgot")} className="text-[10px] uppercase tracking-widest text-gray-400 hover:text-[#77cd3af2] transition-colors">
@@ -177,9 +213,9 @@ const LoginModal = () => {
                 {isLoading ? <Loader2 className="animate-spin" size={18} /> : (
                   <>
                     <span>
-                      {mode === "signin" ? "Sign In" : 
-                       mode === "signup" ? "Get Started" : 
-                       mode === "forgot" ? "Send Link" : "Confirm"}
+                      {mode === "signin" ? "Sign In" :
+                        mode === "signup" ? "Get Started" :
+                          mode === "forgot" ? "Send Email" : "Confirm"}
                     </span>
                     <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </>

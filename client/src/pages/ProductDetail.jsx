@@ -10,8 +10,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useDispatch } from "react-redux";
-import { addToCart } from "../store/slices/cartSlice";
+import { useDispatch, useSelector } from "react-redux";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ProductGallery from "../components/ProductDetail/ProductGallery";
@@ -19,29 +18,31 @@ import ReviewsContainer from "../components/Products/ReviewsContainer";
 
 // 1. Import component trang trí đã tách
 import FloatingDecor from "../components/Fruit/FloatingDecor";
+import { useCartActions } from "../hooks/useCartActions";
+import { fetchProductDetails } from "../store/slices/productSlice";
 
-const ALL_MOCK_PRODUCTS = [
-  {
-    _id: "69c75b8d1fe9cc301c63d919",
-    name: "Mango",
-    price: 14.99,
-    category: "Premium Fruits",
-    images: ["/mango.png", "/mango.png", "/cheri1.png"],
-    stock: 12,
-    description:
-      "Experience the exotic sweetness of our naturally grown dragon fruit. Hand-picked at peak ripeness.",
-  },
-  {
-    _id: "2",
-    name: "Wild Mountain Blueberry",
-    price: 8.5,
-    category: "Berries",
-    images: ["/cheri1.png"],
-    stock: 0,
-    description:
-      "Tiny bursts of antioxidant-rich flavor, harvested from high-altitude wild bushes.",
-  },
-];
+// const ALL_MOCK_PRODUCTS = [
+//   {
+//     _id: "69c75b8d1fe9cc301c63d919",
+//     name: "Mango",
+//     price: 14.99,
+//     category: "Premium Fruits",
+//     images: ["/mango.png", "/mango.png", "/cheri1.png"],
+//     stock: 12,
+//     description:
+//       "Experience the exotic sweetness of our naturally grown dragon fruit. Hand-picked at peak ripeness.",
+//   },
+//   {
+//     _id: "2",
+//     name: "Wild Mountain Blueberry",
+//     price: 8.5,
+//     category: "Berries",
+//     images: ["/cheri1.png"],
+//     stock: 0,
+//     description:
+//       "Tiny bursts of antioxidant-rich flavor, harvested from high-altitude wild bushes.",
+//   },
+// ];
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -49,40 +50,22 @@ const ProductDetail = () => {
   const dispatch = useDispatch();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
-
-  const product = useMemo(
-    () => ALL_MOCK_PRODUCTS.find((p) => p._id === id),
-    [id]
-  );
+  const { handleCartAction } = useCartActions();
+  // Destructuring + rename
+  const { productDetails: product, loading } = useSelector((state) => state.product);
+  // console.log(product);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [id]);
-
-  const handleAddToCart = () => {
-    if (product) {
-      dispatch(
-        addToCart({
-          product: {
-            id: product._id,
-            name: product.name,
-            price: product.price,
-            image: product.images[0],
-          },
-          quantity,
-        })
-      );
-      toast.success(
-        <div className="flex flex-col gap-0.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#77cd3a]">
-            Success!
-          </p>
-          <p className="text-[11px] opacity-70 italic">{product.name} added.</p>
-        </div>,
-        { position: "top-center", theme: "light" }
-      );
+    if (id) {
+      dispatch(fetchProductDetails(id));
     }
-  };
+  }, [id, dispatch]);
+
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [product]);
+
+  if (loading) return <p>Loading...</p>;
 
   if (!product)
     return (
@@ -123,7 +106,7 @@ const ProductDetail = () => {
             />
           </div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-6 flex flex-col justify-start"
@@ -178,7 +161,7 @@ const ProductDetail = () => {
                   >
                     <Minus size={12} />
                   </button>
-                  <span className="text-xs font-mono w-4 text-center">
+                  <span className="text-xs w-4 text-center">
                     {quantity}
                   </span>
                   <button
@@ -193,9 +176,9 @@ const ProductDetail = () => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={handleAddToCart}
+                onClick={() => handleCartAction(product, "ADD", quantity)}
                 disabled={product.stock === 0}
-                className="w-full py-4 bg-black dark:bg-[#77cd3a] text-white dark:text-black font-bold rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-[#77cd3a]/10 disabled:opacity-20 transition-all"
+                className="w-full py-4 bg-[#77cd3a] text-white dark:text-black font-bold rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-[#77cd3a]/10 disabled:opacity-20 transition-all"
               >
                 <ShoppingCart size={15} />
                 <span className="uppercase tracking-[0.2em] text-[10px]">

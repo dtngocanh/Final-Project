@@ -6,8 +6,17 @@ export const updateCart = async (req, res) => {
     try {
         const userId = req.user._id;  //token
         const { cartItems } = req.body;
-
-        await User.findByIdAndUpdate(userId, { cartItems })
+        if (!cartItems || !Array.isArray(cartItems)) {
+            return res.status(400).json({ success: false, message: "Invalid cart data!" });
+        }
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { cartItems },
+            { returnDocument: 'after' }
+        );
+        if (!updatedUser) {
+            return res.status(404).json({ success: false, message: "User not found!" });
+        }
         res.json({ success: true, message: "Cart Updated" })
     } catch (error) {
         console.log(error.message);

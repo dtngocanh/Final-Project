@@ -1,10 +1,15 @@
 import { useState } from "react";
-import { Mail, Phone, MapPin, Send, Leaf, Carrot, Salad, Citrus, Cherry } from "lucide-react";
+import { useNavigate } from "react-router-dom"; 
+import { 
+  Mail, Phone, MapPin, Send, Leaf, Carrot, 
+  Salad, Citrus, Cherry, ChevronLeft 
+} from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 import { motion } from "framer-motion";
 
 const Contact = () => {
   const { theme } = useTheme();
+  const navigate = useNavigate(); 
   const activeColor = theme === "dark" ? "#77cd3af2" : "#025c37";
   
   const [formData, setFormData] = useState({
@@ -33,11 +38,9 @@ const Contact = () => {
       
       {/* BACKGROUND DECOR: Rau củ & Glow mờ ảo */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Glow loang màu chuẩn Search Modal */}
         <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#77cd3af2]/10 blur-[130px] rounded-full" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[700px] h-[700px] bg-[#025c37]/5 dark:bg-[#77cd3af2]/5 blur-[150px] rounded-full" />
 
-        {/* Rau củ trôi nổi dập dìu */}
         {vegies.map((item, index) => (
           <motion.div
             key={index}
@@ -55,6 +58,16 @@ const Contact = () => {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6">
+        
+        {/* NÚT BACK: Đồng bộ style với OrderDetail */}
+        <button 
+          onClick={() => navigate(-1)} 
+          className="group flex items-center gap-2 text-gray-400 hover:text-[#77cd3a] mb-12 transition-colors"
+        >
+          <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Back</span>
+        </button>
+
         {/* HEADER */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -62,8 +75,7 @@ const Contact = () => {
           className="text-center mb-16"
         >
           <div className="flex items-center justify-center gap-2 mb-4">
-            {/* <Leaf size={20} style={{ color: activeColor }} /> */}
-            <img src="/hahahaha.png" alt="" style={{ color: activeColor }}/>
+            <img src="/hahahaha.png" alt="" className="w-5 h-5 object-contain" />
             <span className="uppercase tracking-[0.3em] text-[10px] font-bold opacity-60 dark:text-gray-400">Get in touch</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-light tracking-tighter text-gray-900 dark:text-white">
@@ -73,7 +85,7 @@ const Contact = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
           
-          {/* CONTACT INFO: Style tối giản, mờ ảo */}
+          {/* CONTACT INFO */}
           <div className="space-y-12">
             {[
               { icon: Mail, label: "Email", value: "hello@veganic.com" },
@@ -98,7 +110,7 @@ const Contact = () => {
             ))}
           </div>
 
-          {/* CONTACT FORM: Lớp kính Backdrop Blur cực mạnh */}
+          {/* CONTACT FORM */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}

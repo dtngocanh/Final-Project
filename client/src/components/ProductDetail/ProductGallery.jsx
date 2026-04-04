@@ -14,7 +14,7 @@ const ProductGallery = ({ images, selectedIndex, setSelectedIndex, isOutOfStock 
         <AnimatePresence mode="wait">
           <motion.img
             key={selectedIndex}
-            src={images[selectedIndex]}
+            src={images[selectedIndex].url}
             initial={{ opacity: 0, scale: 0.92, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 1.05, y: -10 }}
@@ -53,7 +53,7 @@ const ProductGallery = ({ images, selectedIndex, setSelectedIndex, isOutOfStock 
                 : "border-transparent bg-gray-50 dark:bg-white/[0.02] opacity-40 hover:opacity-100 hover:scale-105"
             }`}
           >
-            <img src={img} className="w-full h-full object-contain" alt={`Thumbnail ${i}`} />
+            <img src={img.url} className="w-full h-full object-contain" alt={`Thumbnail ${i}`} />
             
             {/* Thanh indicator nhỏ khi active */}
             {i === selectedIndex && (

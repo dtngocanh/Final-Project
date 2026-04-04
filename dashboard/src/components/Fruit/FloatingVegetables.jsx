@@ -19,7 +19,7 @@ const FloatingVegetables = ({ activeColor = "#77cd3af2" }) => {
     { Icon: Flower2, size: 50, top: '40%', left: '10%', delay: 5, rotate: 0 },
     { Icon: Grape, size: 65, bottom: '40%', left: '15%', delay: 3.5, rotate: -10 },
     { Icon: Apple, size: 55, top: '60%', right: '20%', delay: 2, rotate: 15 },
-    { Icon: Wind, size: 120, top: '2%', right: '30%', delay: 6, rotate: 0, opacity: 0.05 },
+    // { Icon: Wind, size: 120, top: '2%', right: '30%', delay: 6, rotate: 0, opacity: 0.05 },
   ];
 
   return (
