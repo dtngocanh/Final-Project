@@ -37,6 +37,7 @@ const App = () => {
 
   useEffect(() => {
     // 1. Luôn gọi getUser() ngay khi App load để check Cookie
+
     dispatch(getUser());
   }, [dispatch])
 
