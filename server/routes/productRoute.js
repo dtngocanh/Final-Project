@@ -13,7 +13,7 @@ import authSeller from "../middlewares/authSeller.js";
 const productRouter = express.Router();
 
 // add product
-productRouter.post("/add", upload.array(["images"]),authSeller, addProduct);
+productRouter.post("/add", upload.array("images",10),authSeller, addProduct);
 
 // get all products
 productRouter.get("/list", productList);

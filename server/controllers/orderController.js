@@ -1,4 +1,7 @@
+import { model } from "mongoose";
 import Order from "../models/Order.js";
+
+import ErrorHandler from "../utils/errorHandler.js";
 // export const placeOrderCOD = async (req, res) => {
 //     try {
 //         const userId = req.user._id;
@@ -81,81 +84,76 @@ import Order from "../models/Order.js";
 //     }
 // };
 
-// get orders for user 
+// get orders for user
 export const getUserOrders = async (req, res) => {
-    try {
-        const userId = req.user._id; // Middleware truyền vào
-        // console.log(userId);
+  try {
+    const userId = req.user._id; // Middleware truyền vào
+    // console.log(userId);
 
+    const orders = await Order.find({ user: userId }).sort({ created_at: -1 }); // mới nhất trước
 
-        const orders = await Order.find({ user: userId })
-            .sort({ created_at: -1 }); // mới nhất trước
-
-        res.status(200).json({
-            success: true,
-            count: orders.length,
-            orders
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 export const cancelOrder = async (req, res) => {
-    try {
+  try {
+    const { orderId } = req.body;
+    const userId = req.user._id;
 
-        const { orderId } = req.body;
-        const userId = req.user._id;
+    const order = await Order.findById(orderId);
 
-        const order = await Order.findById(orderId);
-
-        if (!order) {
-            return res.status(404).json({ success: false, message: "Order not found" });
-        }
-        if (order.user.toString() !== userId.toString()) {
-            return res.status(401).json({ success: false, message: "Unauthorized" });
-        }
-        if (order.orderStatus !== "Processing") {
-            return res.status(400).json({
-                success: false,
-                message: "Cannot cancel this order"
-            });
-        }
-        order.orderStatus = "Canceled";
-        await order.save();
-        res.status(200).json({ success: true, message: "Order canceled" });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
-}
-
-// get all product for seller: api/order/seller
-export const getAllOrders = async (req, res) => {
-    try {
-
-        const orders = await Order.find({
-            $or: [
-                { "paymentInfo.paymentType": "COD" },
-                { "paymentInfo.paymentStatus": "Paid" }
-            ]
-        })
-            .populate("orderItems.product")
-            .sort({ created_at: -1 });
-
-        res.json({
-            success: true,
-            orders
-        });
-
-    } catch (error) {
-        res.json({
-            success: false,
-            message: error.message
-        });
+    if (order.user.toString() !== userId.toString()) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
+    if (order.orderStatus !== "Processing") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot cancel this order",
+      });
+    }
+    order.orderStatus = "Canceled";
+    await order.save();
+    res.status(200).json({ success: true, message: "Order canceled" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// [GET] api/orders
+export const getAllOrders = async (req, res, next) => {
+  try {
+    const orders = await Order.find()
+      .populate("user", "name email")
+      .populate("orderItems.product")
+      .sort({ createdAt: -1 });
+
+    if (!orders || orders.length === 0) {
+      return next(new ErrorHandler("No orders found!", 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders,
+      message: "Fetched orders successfully!",
+    });
+  } catch (error) {
+    next(error);
+  }
 };

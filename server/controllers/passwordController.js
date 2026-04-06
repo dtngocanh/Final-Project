@@ -30,7 +30,7 @@ export const forgotPassword = async (req, res) => {
             message,
         });
 
-        res.status(200).json({ success: true, message: `Sent an email to: ${user.email}` });
+        res.status(200).json({ success: true, message: "Verification email sent! Check your inbox." });
     } catch (error) {
         user.resetPasswordToken = undefined;
         user.resetPasswordExpire = undefined;
@@ -62,7 +62,7 @@ export const resetPassword = async (req, res) => {
     await user.save();
 
     // Reset xong cho đăng nhập luôn
-    sendToken(user, 200, "Reset password successful!", res);
+    sendToken(user, 200, "Password reset successfully!", res);
 };
 // 3. CẬP NHẬT MẬT KHẨU (Khi đang đăng nhập)
 export const updatePassword = async (req, res) => {
@@ -77,7 +77,7 @@ export const updatePassword = async (req, res) => {
     // 3. Verify identity: Check if the entered old password matches the database
     const isMatched = await user.comparePassword(oldPassword);
     if (!isMatched) {
-        return res.status(400).json({ message: "Old password is incorrect" });
+        return res.status(400).json({ message: "Current password is incorrect" });
     }
 
     // 4. Validation: Check if the new password and confirmation match
@@ -95,5 +95,5 @@ export const updatePassword = async (req, res) => {
     await user.save();
 
     // 7. Re-issue token to maintain session with updated credentials
-    sendToken(user, 200, "Password updated!", res);
+    sendToken(user, 200, "Your Password is updated.", res);
 };
