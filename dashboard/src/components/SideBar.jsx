@@ -1,10 +1,10 @@
 import React from 'react';
-import { 
-  LayoutDashboard, ListOrdered, Package, 
-  Users, User, LogOut, ShieldCheck, X 
+import {
+  LayoutDashboard, ListOrdered, Package,
+  Users, User, LogOut, ShieldCheck, X
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { toggleComponent, toggleNavbar } from "../store/slices/extraSlice"; 
+import { toggleComponent, toggleNavbar } from "../store/slices/extraSlice";
 import { logout } from "../store/slices/authSlice";
 
 const SideBar = () => {
@@ -30,7 +30,7 @@ const SideBar = () => {
     <>
       {/* OVERLAY: Sử dụng isNavbarOpened */}
       {isNavbarOpened && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-[105] lg:hidden animate-in fade-in duration-300"
           onClick={() => dispatch(toggleNavbar())}
         />
@@ -46,8 +46,8 @@ const SideBar = () => {
         transition-all duration-500 ease-in-out font-['Fredoka']
         ${isNavbarOpened ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
-        
-        <button 
+
+        <button
           onClick={() => dispatch(toggleNavbar())}
           className="lg:hidden absolute top-6 right-6 p-2 text-gray-400 hover:text-red-500 transition-colors"
         >
@@ -67,18 +67,17 @@ const SideBar = () => {
 
         <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
           <p className="px-4 mb-4 text-[9px] uppercase tracking-[0.3em] text-gray-300 dark:text-gray-600 font-black">Main Menu</p>
-          
+
           {menuItems.map((item) => {
             const isActive = openedComponent === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group ${
-                  isActive 
-                    ? "bg-[#77cd3af2]/10 text-[#77cd3af2]" 
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group ${isActive
+                    ? "bg-[#77cd3af2]/10 text-[#77cd3af2]"
                     : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/[0.02] hover:text-gray-900 dark:hover:text-white"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-4">
                   <span className={`transition-all duration-300 ${isActive ? "scale-110" : "group-hover:text-[#77cd3af2]"}`}>
@@ -96,8 +95,8 @@ const SideBar = () => {
 
         <div className="p-6 mt-auto border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
           <div className="flex items-center gap-3 mb-6 px-2 p-3 rounded-2xl bg-white dark:bg-black/20 border border-gray-100 dark:border-white/5">
-            <img 
-              src={user?.avatar?.url || "/tmt.jpg"} 
+            <img
+              src={user?.avatar?.url || "/tmt.jpg"}
               className="size-10 rounded-full object-cover border border-[#77cd3af2]/20"
               alt="Admin"
             />

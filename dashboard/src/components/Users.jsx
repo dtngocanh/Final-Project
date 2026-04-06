@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from "react-redux";
-import { fetchAllUsers } from "../store/slices/adminSlice"; 
-import { 
-  Trash2, UserPlus, Eye, Search, Filter 
+import { deleteUser, fetchAllUsers } from "../store/slices/adminSlice";
+import {
+  Trash2, UserPlus, Eye, Search, Filter
 } from "lucide-react";
-import FloatingVegetables from "./Fruit/FloatingVegetables"; 
-import UserDetailsModal from "./UserDetailsModal"; 
+import FloatingVegetables from "./Fruit/FloatingVegetables";
+import UserDetailsModal from "./UserDetailsModal";
 
 const MOCK_USERS = [
   {
@@ -32,31 +32,37 @@ const MOCK_USERS = [
 
 const Users = () => {
   const dispatch = useDispatch();
-  const { loading, users = [], totalUsers } = useSelector((state) => state.admin || {});
-  
+  // const { loading, users = [], totalUsers } = useSelector((state) => state.admin || {});
+  const { loading, users, totalUsers } = useSelector((state) => state.admin);
+
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("All");
   const [selectedUser, setSelectedUser] = useState(null);
 
-  // Gọi API khi component mount
+
+  // 1. Page, searchTerm, filterRole changed -> Call API
   useEffect(() => {
-    if (typeof fetchAllUsers === 'function') {
-      dispatch(fetchAllUsers());
-    }
-  }, [dispatch]);
+    const delayDebounce = setTimeout(() => {
+      dispatch(fetchAllUsers({
+        page,
+        search: searchTerm,
+        role: filterRole === "All" ? "" : filterRole
+      }));
+    }, 500);
 
-  const displayUsers = (users && users.length > 0) ? users : MOCK_USERS;
+    return () => clearTimeout(delayDebounce);
+  }, [dispatch, page, searchTerm, filterRole]);
 
-  const filteredUsers = displayUsers.filter(u => {
-    const matchesRole = filterRole === "All" || u.role === filterRole;
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          u.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesRole && matchesSearch;
-  });
+  const maxPage = Math.ceil(totalUsers / 10) || 1;
 
-  const maxPage = Math.ceil(filteredUsers.length / 10) || 1;
+  const displayUsers = users;
 
+  const filteredUsers = displayUsers;
+
+  const handleDeleteUser = (id) => {
+    dispatch(deleteUser(id));
+  }
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#fcfdfd] font-['Fredoka']">
       <FloatingVegetables activeColor="#77cd3af2" />
@@ -79,20 +85,20 @@ const Users = () => {
         <div className="flex flex-wrap gap-4 mb-8">
           <div className="relative flex-1 min-w-[300px] group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#77cd3af2] transition-colors" size={18} />
-            <input 
+            <input
               type="text" placeholder="Search by name or email..."
               className="w-full pl-12 pr-6 py-4 bg-white/80 backdrop-blur-md border-none rounded-[25px] shadow-sm focus:ring-4 focus:ring-[#77cd3a15] transition-all text-sm"
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
             />
           </div>
           <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-5 rounded-[25px] shadow-sm border border-white">
             <Filter size={16} className="text-[#77cd3af2]" />
-            <select 
+            <select
               className="border-none bg-transparent py-4 text-xs font-black text-gray-500 focus:ring-0 cursor-pointer uppercase tracking-widest"
-              onChange={(e) => setFilterRole(e.target.value)}
+              onChange={(e) => { setFilterRole(e.target.value); setPage(1) }}
             >
               <option value="All">All Roles</option>
-              <option value="Admin">Sellers</option>
+              <option value="Admin">Admin</option>
               <option value="User">Users</option>
             </select>
           </div>
@@ -124,9 +130,8 @@ const Users = () => {
                     </div>
                   </td>
                   <td className="px-6 py-8">
-                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border tracking-widest ${
-                      user.role === 'Admin' ? 'bg-purple-50 text-purple-500 border-purple-100' : 'bg-blue-50 text-blue-500 border-blue-100'
-                    }`}>
+                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border tracking-widest ${user.role === 'Admin' ? 'bg-purple-50 text-purple-500 border-purple-100' : 'bg-blue-50 text-blue-500 border-blue-100'
+                      }`}>
                       {user.role}
                     </span>
                   </td>
@@ -136,10 +141,12 @@ const Users = () => {
                   <td className="px-6 py-8">
                     <div className="flex justify-center gap-3">
                       <button onClick={() => setSelectedUser(user)} className="p-3.5 bg-gray-50 text-gray-400 rounded-2xl hover:bg-gray-800 hover:text-white transition-all shadow-sm">
-                        <Eye size={18}/>
+                        <Eye size={18} />
                       </button>
-                      <button className="p-3.5 bg-red-50 text-red-400 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
-                        <Trash2 size={18}/>
+                      <button onClick={() => {
+                        handleDeleteUser(user._id);
+                      }} className="p-3.5 bg-red-50 text-red-400 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>
@@ -153,9 +160,9 @@ const Users = () => {
         {maxPage > 1 && (
           <div className="mt-10 flex justify-center gap-2">
             {[...Array(maxPage)].map((_, i) => (
-              <button 
+              <button
                 key={i} onClick={() => setPage(i + 1)}
-                className={`h-2 rounded-full transition-all duration-300 ${page === i + 1 ? 'w-10 bg-[#77cd3af2]' : 'w-2 bg-gray-200'}`} 
+                className={`h-2 rounded-full transition-all duration-300 ${page === i + 1 ? 'w-10 bg-[#77cd3af2]' : 'w-2 bg-gray-200'}`}
               />
             ))}
           </div>

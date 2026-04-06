@@ -1,15 +1,19 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { axiosInstance } from "../../lib/axios";
+import { toast } from "react-toastify";
 
-// Fetch all orders for Seller
+// FETCH ALL ORDERS
 export const fetchAllOrders = createAsyncThunk(
   "orders/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.get("/order/seller");
-      return data.orders; // API returns { success: true, orders: [...] }
+      const res = await axiosInstance.get("/admin/orders");
+      // toast.success(res.data.message);
+      return res.data.orders; // API returns { success: true, orders: [...] }
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch orders");
+      const message = error.response?.data?.message;
+      toast.error(message);
+      return rejectWithValue(message);
     }
   }
 );
