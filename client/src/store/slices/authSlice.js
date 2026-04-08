@@ -23,6 +23,8 @@ export const register = createAsyncThunk(
 
 export const login = createAsyncThunk("auth/login", async (data, thunkAPI) => {
   try {
+    console.log(data);
+    
     const res = await axiosInstance.post("/user/login", data);
     toast.success(res.data.message);
     thunkAPI.dispatch(toggleAuthPopup());
