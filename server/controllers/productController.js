@@ -1,229 +1,248 @@
 import { v2 as cloudinary } from "cloudinary";
 import Product from "../models/Product.js";
 import XLSX from "xlsx";
+import ErrorHandler from "../utils/errorHandler.js";
 
-//add product: api/product/add
-export const addProduct = async (req, res) => {
-    try {
+//[POST] api/product/add
+export const addProduct = async (req, res, next) => {
+  try {
+    const productData = JSON.parse(req.body.productData);
+    const images = req.files;
 
-        let productData = JSON.parse(req.body.productData)
-        const images = req.files
+    let imagesUrl = await Promise.all(
+      images.map(async (item) => {
+        let result = await cloudinary.uploader.upload(item.path, {
+          resource_type: "image",
+          folder: "GroceryImg/Product",
+        });
+        return {
+          public_id: result.public_id,
+          url: result.secure_url,
+        };
+      }),
+    );
 
-        let imagesUrl = await Promise.all(
-            images.map(async (item) => {
-                let result = await cloudinary.uploader.upload(item.path, {
-                    resource_type: "image"
-                })
-                return result.secure_url
-            })
-        )
+    const newProduct = await Product.create({
+      ...productData,
+      images: imagesUrl,
+    });
 
-        await Product.create({
-            ...productData,
-            image: imagesUrl
-        })
+    res
+      .status(201)
+      .json({ success: true, message: "Product Added", newProduct });
+  } catch (error) {
+    next(error);
+  }
+};
 
-        res.json({ success: true, message: "Product Added" })
-
-    } catch (error) {
-        console.log(error.message)
-        res.json({ success: false, message: error.message })
-    }
-}
-
-
-//get product list: api/product/list
+//[GET] api/product/list
 export const productList = async (req, res) => {
-    try {
+  try {
+    const count = await Product.countDocuments();
+    const products = await Product.aggregate([{ $sample: { size: count } }]);
 
-        // const products = await Product.find({})
-        const count = await Product.countDocuments();
-        const products = await Product.aggregate([{$sample:{size:count}}]);
+    res.json({
+      success: true,
+      products,
+    });
+  } catch (error) {
+    console.log(error.message);
+    res.json({ success: false, message: error.message });
+  }
+};
 
-        res.json({
-            success: true,
-            products
-        })
-
-    } catch (error) {
-        console.log(error.message)
-        res.json({ success: false, message: error.message })
-    }
-}
-
-
-//get single product: api/product/id
+//[GET] api/product/id
 export const productById = async (req, res) => {
-    try {
+  try {
+    const id = req.params.id;
 
-        // const { id } = req.body
-        const id = req.params.id;
+    const product = await Product.findById(id);
 
-        const product = await Product.findById(id)
-
-        if (!product) {
-            return res.json({
-                success: false,
-                message: "Product not found"
-            })
-        }
-
-        res.json({
-            success: true,
-            product
-        })
-
-    } catch (error) {
-        console.log(error.message)
-        res.json({ success: false, message: error.message })
+    if (!product) {
+      return res.json({
+        success: false,
+        message: "Product not found",
+      });
     }
-}
 
+    res.json({
+      success: true,
+      product,
+    });
+  } catch (error) {
+    console.log(error.message);
+    res.json({ success: false, message: error.message });
+  }
+};
 
-//change product stock: api/product/stock
+//[DELETE] api/product/delete/:id
+export const deleteProduct = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return next(new ErrorHandler("Product not found", 404));
+    }
+    if (product.images && product.images.length > 0) {
+      await Promise.all(
+        product.images.map(async (img) => {
+          await cloudinary.uploader.destroy(img.public_id);
+        }),
+      );
+    }
+
+    await Product.findByIdAndDelete(id);
+    res.status(200).json({
+      success: true,
+      message: "Product and associated images deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+//[PATCH] api/product/stock
 export const changeStock = async (req, res) => {
-    try {
+  try {
+    const { id, inStock } = req.body;
 
-        const { id, inStock } = req.body
+    const product = await Product.findByIdAndUpdate(id, { inStock });
 
-        const product = await Product.findByIdAndUpdate(
-            id,
-            { inStock },
-            // { new: true }
-        )
+    res.json({
+      success: true,
+      message: "Stock Updated",
+      product,
+    });
+  } catch (error) {
+    console.log(error.message);
+    res.json({ success: false, message: error.message });
+  }
+};
 
-        res.json({
-            success: true,
-            message: "Stock Updated",
-            product
-        })
-
-    } catch (error) {
-        console.log(error.message)
-        res.json({ success: false, message: error.message })
-    }
-}
-
+//[POST] api/product/import
 export const importProducts = async (req, res) => {
-    try {
-        if (!req.files || !req.files.file) {
-            return res.json({
-                success: false,
-                message: "Please upload an Excel file"
-            });
-        }
-
-        const file = req.files.file;
-
-        const workbook = XLSX.read(file.data, { type: "buffer" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        let products = XLSX.utils.sheet_to_json(sheet);
-
-        const validProducts = [];
-        const errors = [];
-
-        const getPublicId = (url) => {
-            try {
-                const parts = url.split("/");
-                const fileName = parts.pop();
-                const uploadIndex = parts.findIndex(p => p === "upload");
-                const pathParts = parts.slice(uploadIndex + 2);
-                return [...pathParts, fileName.split(".")[0]].join("/");
-            } catch {
-                return "";
-            }
-        };
-
-        const validateProduct = (p, index) => {
-            const err = [];
-
-            if (!p.name || p.name.length < 2) {
-                err.push("Name is required (>=2 chars)");
-            }
-
-            if (!p.price || isNaN(p.price) || Number(p.price) <= 0) {
-                err.push("Invalid price");
-            }
-
-            if (p.stock === undefined || isNaN(p.stock) || Number(p.stock) < 0) {
-                err.push("Invalid stock");
-            }
-
-            return err;
-        };
-
-        for (let i = 0; i < products.length; i++) {
-            let p = products[i];
-
-            let images = [];
-            if (p.images && typeof p.images === "string") {
-                try {
-                    const parsed = JSON.parse(p.images);
-
-                    if (Array.isArray(parsed)) {
-                        images = parsed.map(url => {
-                            if (!url.includes("res.cloudinary.com")) {
-                                return null;
-                            }
-                            return {
-                                url,
-                                public_id: getPublicId(url)
-                            };
-                        }).filter(Boolean);
-                    }
-                } catch {
-                    images = [];
-                }
-            }
-
-            const price = Number(p.price);
-            const stock = Number(p.stock);
-
-            const validationErrors = validateProduct(p, i);
-
-            if (validationErrors.length > 0) {
-                errors.push({
-                    row: i + 2, // vì excel bắt đầu từ dòng 2
-                    errors: validationErrors
-                });
-                continue;
-            }
-
-            validProducts.push({
-                name: p.name,
-                category: p.category || "",
-                subcategory: p.subcategory || "",
-                description: p.description || "",
-                images,
-                price,
-                stock
-            });
-        }
-
-        let insertedCount = 0;
-
-        if (validProducts.length > 0) {
-            const result = await Product.insertMany(validProducts, {
-                ordered: false
-            });
-            insertedCount = result.length;
-        }
-
-        return res.json({
-            success: true,
-            message: "Import completed",
-            totalRows: products.length,
-            successCount: insertedCount,
-            failedCount: errors.length,
-            errors 
-        });
-
-    } catch (error) {
-        console.log(error);
-
-        res.json({
-            success: false,
-            message: error.message
-        });
+  try {
+    if (!req.files || !req.files.file) {
+      return res.json({
+        success: false,
+        message: "Please upload an Excel file",
+      });
     }
+
+    const file = req.files.file;
+
+    const workbook = XLSX.read(file.data, { type: "buffer" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    let products = XLSX.utils.sheet_to_json(sheet);
+
+    const validProducts = [];
+    const errors = [];
+
+    const getPublicId = (url) => {
+      try {
+        const parts = url.split("/");
+        const fileName = parts.pop();
+        const uploadIndex = parts.findIndex((p) => p === "upload");
+        const pathParts = parts.slice(uploadIndex + 2);
+        return [...pathParts, fileName.split(".")[0]].join("/");
+      } catch {
+        return "";
+      }
+    };
+
+    const validateProduct = (p, index) => {
+      const err = [];
+
+      if (!p.name || p.name.length < 2) {
+        err.push("Name is required (>=2 chars)");
+      }
+
+      if (!p.price || isNaN(p.price) || Number(p.price) <= 0) {
+        err.push("Invalid price");
+      }
+
+      if (p.stock === undefined || isNaN(p.stock) || Number(p.stock) < 0) {
+        err.push("Invalid stock");
+      }
+
+      return err;
+    };
+
+    for (let i = 0; i < products.length; i++) {
+      let p = products[i];
+
+      let images = [];
+      if (p.images && typeof p.images === "string") {
+        try {
+          const parsed = JSON.parse(p.images);
+
+          if (Array.isArray(parsed)) {
+            images = parsed
+              .map((url) => {
+                if (!url.includes("res.cloudinary.com")) {
+                  return null;
+                }
+                return {
+                  url,
+                  public_id: getPublicId(url),
+                };
+              })
+              .filter(Boolean);
+          }
+        } catch {
+          images = [];
+        }
+      }
+
+      const price = Number(p.price);
+      const stock = Number(p.stock);
+
+      const validationErrors = validateProduct(p, i);
+
+      if (validationErrors.length > 0) {
+        errors.push({
+          row: i + 2,
+          errors: validationErrors,
+        });
+        continue;
+      }
+
+      validProducts.push({
+        name: p.name,
+        category: p.category || "",
+        subcategory: p.subcategory || "",
+        description: p.description || "",
+        images,
+        price,
+        stock,
+      });
+    }
+
+    let insertedCount = 0;
+
+    if (validProducts.length > 0) {
+      const result = await Product.insertMany(validProducts, {
+        ordered: false,
+      });
+      insertedCount = result.length;
+    }
+
+    return res.json({
+      success: true,
+      message: "Import completed",
+      totalRows: products.length,
+      successCount: insertedCount,
+      failedCount: errors.length,
+      errors,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
 };

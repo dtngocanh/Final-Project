@@ -7,28 +7,16 @@ export const register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
         if (!name || !email || !password) {
-            return res.json({ success: false, message: "Missing details" })
+            return res.status(404).json({message: "Missing credentials." })
         }
         const existingUser = await User.findOne({ email })
 
         if (existingUser)
-            return res.json({ success: false, message: 'User already exists' })
-
-        // const hashedPassword = await bcrypt.hash(password, 10)
+            return res.status(404).json({ message: 'Email already exists.' })
 
         const user = await User.create({ name, email, password });
 
-        sendToken(user, 201, "Register successful", res);
-
-        // const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-        // res.cookie('token', token, {
-        //     httpOnly: true, // prevent js to access cookie
-        //     secure: process.env.NODE_ENV === 'production', // use secure cookies in production
-        //     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', // CSRF protection 
-        // })
-
-        // return res.json({ success: true, user: { email: user.email, name: user.name } })
+        sendToken(user, 201, "Account created! Welcome to the family!", res);
 
     } catch (error) {
         console.log(error.message);
@@ -43,28 +31,18 @@ export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password)
-            return res.json({ success: false, message: 'Email and password are required' });
+            return res.status(404).json({ message: 'Email and password are required' });
 
         const user = await User.findOne({ email });
         if (!user) {
-            return res.json({ success: false, message: 'Invalid email or password' })
+            return res.status(404).json({ message: 'Invalid email or password' })
         }
 
-        // const isMatch = await bcrypt.compare(password, user.password)
         const isMatch = await user.comparePassword(password);
         if (!isMatch)
-            return res.json({ success: false, message: 'Invalid email or password' })
+            return res.status(404).json({ message: 'Invalid email or password' })
 
-        sendToken(user, 201, "Login successful!", res);
-        // const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-        // res.cookie('token', token, {
-        //     httpOnly: true,
-        //     secure: process.env.NODE_ENV === 'production',
-        //     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',   
-        //     });
-
-        // return res.json({ success: true, user: { email: user.email, name: user.name } })
+        sendToken(user, 201, "Welcome back! Happy shopping.", res);
 
     } catch (error) {
         console.log(error.message);
@@ -83,8 +61,8 @@ export const isAuth = async (req, res) => {
         res.json({ success: false, message: error.message })
     }
 }
-// api/user/logout 
 
+// api/user/logout 
 export const logout = async (req, res) => {
     try {
         res.clearCookie('token', {
@@ -92,7 +70,7 @@ export const logout = async (req, res) => {
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
         })
-        return res.json({ success: true, message: "Logged out" })
+        return res.json({ success: true, message: "Logged out. See you soon!" })
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: error.message })
@@ -102,7 +80,6 @@ export const logout = async (req, res) => {
 
 
 // api/user/profile/update
-
 export const updateProfile = async (req, res) => {
     const { name, email } = req.body;
 
@@ -115,5 +92,5 @@ export const updateProfile = async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({ success: true, user });
+    res.status(200).json({ success: true, user, message: `Your profile is updated.` });
 };

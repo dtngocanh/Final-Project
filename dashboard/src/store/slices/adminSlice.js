@@ -2,20 +2,22 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-// --- API URL (Thay đổi theo backend của ní) ---
-const API_URL = "http://localhost:5000/api/admin";
+const API_URL = "http://localhost:4000/api/admin";
 
 // 1. Thunk: Lấy tất cả người dùng (Có phân trang)
 export const fetchAllUsers = createAsyncThunk(
   "admin/fetchAllUsers",
-  async (page = 1, { rejectWithValue }) => {
+  async ({ page = 1, search = "", role = "" }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/users?page=${page}`, { withCredentials: true });
-      return response.data; // Giả sử trả về { users: [], totalUsers: 100 }
+      const response = await axios.get(
+        `${API_URL}/users?page=${page}&search=${search}&role=${role}`,
+        { withCredentials: true },
+      ); //?page=${page}
+      return response.data; // { success, message, count, data: [...] }
     } catch (error) {
       return rejectWithValue(error.response.data.message);
     }
-  }
+  },
 );
 
 // 2. Thunk: Xóa người dùng
@@ -23,12 +25,16 @@ export const deleteUser = createAsyncThunk(
   "admin/deleteUser",
   async (id, { rejectWithValue }) => {
     try {
-      await axios.delete(`${API_URL}/user/${id}`, { withCredentials: true });
-      return id;
+      const res = await axios.delete(`${API_URL}/users/delete/${id}`, {
+        withCredentials: true,
+      });
+      toast.success(res.data.message)
+      return res.data;
     } catch (error) {
+      toast.error(error.response.data.message);
       return rejectWithValue(error.response.data.message);
     }
-  }
+  },
 );
 
 // 3. Thunk: Lấy thống kê Dashboard (Revenue, Growth, etc.)
@@ -36,12 +42,14 @@ export const fetchAdminDashboard = createAsyncThunk(
   "admin/fetchDashboard",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/dashboard`, { withCredentials: true });
+      const response = await axios.get(`${API_URL}/dashboard`, {
+        withCredentials: true,
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data.message);
     }
-  }
+  },
 );
 
 export const adminSlice = createSlice({
@@ -76,8 +84,8 @@ export const adminSlice = createSlice({
       })
       .addCase(fetchAllUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload.users;
-        state.totalUsers = action.payload.totalUsers;
+        state.users = action.payload.data;
+        state.totalUsers = action.payload.count;
       })
       .addCase(fetchAllUsers.rejected, (state) => {
         state.loading = false;
@@ -85,8 +93,9 @@ export const adminSlice = createSlice({
 
       // --- Xử lý Delete User ---
       .addCase(deleteUser.fulfilled, (state, action) => {
-        state.users = state.users.filter((user) => user._id !== action.payload);
-        toast.success("Member removed successfully!");
+        state.users = state.users.filter(
+          (user) => user._id !== action.payload.id,
+        );
       })
 
       // --- Xử lý Dashboard Data ---

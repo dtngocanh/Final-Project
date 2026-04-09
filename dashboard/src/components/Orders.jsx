@@ -8,7 +8,7 @@ import OrderDetailsModal from "./OrderDetailsModal";
 
 const Orders = () => {
   const dispatch = useDispatch();
-  const { orders: reduxOrders = [], loading, error, success } = useSelector((state) => state.order);
+  const { orders, loading, error, success } = useSelector((state) => state.order);
   const [filterStatus, setFilterStatus] = useState("All");
   const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -29,11 +29,10 @@ const Orders = () => {
       orderStatus: "Delivered"
     }
   ];
-
-  // Nếu reduxOrders trống, dùng mockData để hiển thị cho đẹp
-  const displayOrders = reduxOrders.length > 0 ? reduxOrders : mockData;
-
   useEffect(() => { dispatch(fetchAllOrders()); }, [dispatch]);
+
+  const displayOrders = orders; //reduxOrders.length > 0 ? reduxOrders : mockData;
+
 
   const handleDelete = (id) => {
     if(window.confirm("Do you want to delete this order?")) {
@@ -74,7 +73,7 @@ const Orders = () => {
                 filteredOrders.map((order) => (
                   <tr key={order._id} className="hover:bg-white group transition-all duration-300">
                     <td className="px-8 py-7 font-bold text-gray-400 text-xs italic">#{order._id?.slice(-6).toUpperCase()}</td>
-                    <td className="px-6 py-7 font-bold text-gray-800">{order.shippingInfo?.name}</td>
+                    <td className="px-6 py-7 font-bold text-gray-800">{order.shippingInfo.fullName}</td>
                     <td className="px-6 py-7 text-center font-black text-[#77cd3af2] text-base">${order.totalPrice?.toFixed(2)}</td>
                     <td className="px-6 py-7">
                       <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase border bg-orange-50 text-orange-500 border-orange-100">

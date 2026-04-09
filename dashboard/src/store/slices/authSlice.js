@@ -1,113 +1,207 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { axiosInstance } from "../../lib/axios";
 import { toast } from "react-toastify";
 
+// =======================
+// LOGIN
+export const login = createAsyncThunk(
+  "auth/adminLogin",
+  async (data, thunkAPI) => {
+    try {
+      const res = await axiosInstance.post("/admin/login", data);
+
+      toast.success(res.data.message);
+      return res.data.user;
+    } catch (error) {
+      const message = error.response?.data?.message || "Login failed";
+      toast.error(message);
+      return thunkAPI.rejectWithValue(message);
+    }
+  },
+);
+
+// =======================
+// CHECK AUTH
+export const getUser = createAsyncThunk(
+  "auth/adminGetUser",
+  async (_, thunkAPI) => {
+    try {
+      const res = await axiosInstance.get("/admin/is-auth");
+      toast.success("Welcome back!");
+      return res.data.user;
+    } catch (error) {
+      toast.error(error.response?.data?.message);
+      return thunkAPI.rejectWithValue(error.response?.data?.message);
+    }
+  },
+);
+
+// =======================
+// LOGOUT
+export const logout = createAsyncThunk(
+  "auth/adminLogout",
+  async (_, thunkAPI) => {
+    try {
+      const res = await axiosInstance.get("/admin/logout", {
+        withCredentials: true,
+      });
+
+      toast.success(res.data.message);
+      return true;
+    } catch (error) {
+      const message = error.response?.data?.message || "Logout failed";
+      toast.error(message);
+      return thunkAPI.rejectWithValue(message);
+    }
+  },
+);
+
+// =======================
+//  FORGOT PASSWORD
+export const forgotPassword = createAsyncThunk(
+  "auth/adminForgotPassword",
+  async (data, thunkAPI) => {
+    try {
+      const res = await axiosInstance.post("/admin/password/forgot", data);
+      toast.success("Recovery link sent to your email!");
+      return true;
+    } catch (error) {
+      const message = error.response?.data?.message || "Failed to send email";
+      toast.error(message);
+      return thunkAPI.rejectWithValue(message);
+    }
+  },
+);
+
+// =======================
+// RESET PASSWORD
+export const resetPassword = createAsyncThunk(
+  "auth/adminResetPassword",
+  async ({ token, password, confirmPassword }, thunkAPI) => {
+    try {
+      const res = await axiosInstance.put(`/admin/password/reset/${token}`, {
+        password,
+        confirmPassword,
+      });
+
+      toast.success("Password updated successfully!");
+      return true;
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Invalid or expired token";
+      toast.error(message);
+      return thunkAPI.rejectWithValue(message);
+    }
+  },
+);
+
+// =======================
+// UPDATE PASSWORD
+
+export const updatePassword = createAsyncThunk(
+  "auth/password/update",
+  async (data, thunkAPI) => {
+    try {
+      const res = await axiosInstance.put(`/admin/password/update`, data);
+      toast.success(res.data.message);
+      return res.data;
+    } catch (error) {
+      const message = error.response?.data?.message;
+      toast.error(message);
+      return thunkAPI.rejectWithValue(message);
+    }
+  },
+);
+
+// =======================
+// SLICE
 const authSlice = createSlice({
   name: "auth",
   initialState: {
-    loading: false,
-    isAuthenticated: false,
     user: null,
+    isAuthenticated: false,
+    isLoggingIn: false,
+    isCheckingAuth: true,
+    isLoading: false,
+
+    isRequestingPassword: false,
+    isResettingPassword: false,
+    isUpdatingPassword: false,
   },
-  reducers: {
-    authRequest: (state) => {
-      state.loading = true;
-    },
-    authSuccess: (state, action) => {
-      state.loading = false;
-      state.isAuthenticated = true;
-      state.user = action.payload;
-    },
-    authFailed: (state) => {
-      state.loading = false;
-      state.isAuthenticated = false;
-      state.user = null;
-    },
-    logoutSuccess: (state) => {
-      state.loading = false;
-      state.isAuthenticated = false;
-      state.user = null;
-    },
+  reducers: {},
+
+  extraReducers: (builder) => {
+    builder
+
+      // LOGIN
+      .addCase(login.pending, (state) => {
+        state.isLoggingIn = true;
+      })
+      .addCase(login.fulfilled, (state, action) => {
+        state.isLoggingIn = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(login.rejected, (state) => {
+        state.isLoggingIn = false;
+        state.isAuthenticated = false;
+      })
+
+      // GET USER
+      .addCase(getUser.pending, (state) => {
+        state.isCheckingAuth = true;
+      })
+      .addCase(getUser.fulfilled, (state, action) => {
+        state.isCheckingAuth = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(getUser.rejected, (state) => {
+        state.isCheckingAuth = false;
+        state.user = null;
+        state.isAuthenticated = false;
+      })
+
+      // LOGOUT
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+      })
+
+      // FORGOT PASSWORD
+      .addCase(forgotPassword.pending, (state) => {
+        state.isRequestingPassword = true;
+      })
+      .addCase(forgotPassword.fulfilled, (state) => {
+        state.isRequestingPassword = false;
+      })
+      .addCase(forgotPassword.rejected, (state) => {
+        state.isRequestingPassword = false;
+      })
+
+      // RESET PASSWORD
+      .addCase(resetPassword.pending, (state) => {
+        state.isResettingPassword = true;
+      })
+      .addCase(resetPassword.fulfilled, (state) => {
+        state.isResettingPassword = false;
+      })
+      .addCase(resetPassword.rejected, (state) => {
+        state.isResettingPassword = false;
+      })
+
+      // UPDATE PASSWORD
+      .addCase(updatePassword.pending, (state) => {
+        state.isUpdatingPassword = true;
+      })
+      .addCase(updatePassword.fulfilled, (state, action) => {
+        state.isUpdatingPassword = false;
+        // state.user = action.payload.user;
+      })
+      .addCase(updatePassword.rejected, (state, action) => {
+        state.isUpdatingPassword = false;
+      });
   },
 });
-
-export const { authRequest, authSuccess, authFailed, logoutSuccess } = authSlice.actions;
-
-// --- Thunk Actions ---
-
-// 1. LOGIN
-export const login = (data) => async (dispatch) => {
-  dispatch(authRequest());
-  try {
-    const res = await axiosInstance.post("/seller/login", data);
-    if (res.data.success) {
-      dispatch(authSuccess({ email: data.email, role: "Seller" }));
-      toast.success("Login successful! Welcome back.");
-    } else {
-      dispatch(authFailed());
-      toast.error(res.data.message || "Invalid credentials");
-    }
-  } catch (err) {
-    dispatch(authFailed());
-    toast.error(err.response?.data?.message || "Connection error");
-  }
-};
-
-// 2. FORGOT PASSWORD (UI Placeholder)
-export const forgotPassword = (data) => async (dispatch) => {
-  dispatch(authRequest());
-  try {
-    
-    const res = await axiosInstance.post("/seller/password/forgot", data);
-    if (res.data.success) {
-      toast.success("Recovery link sent to your email!");
-    }
-  } catch (err) {
-    dispatch(authFailed());
-    toast.error(err.response?.data?.message || "Failed to send recovery email");
-  }
-};
-
-// 3. RESET PASSWORD (UI Placeholder)
-export const resetPassword = ({ token, password, confirmPassword }) => async (dispatch) => {
-  dispatch(authRequest());
-  try {
-    const res = await axiosInstance.put(`/seller/password/reset/${token}`, { password, confirmPassword });
-    if (res.data.success) {
-      toast.success("Password updated successfully!");
-    }
-  } catch (err) {
-    dispatch(authFailed());
-    toast.error(err.response?.data?.message || "Invalid or expired token");
-  }
-};
-
-// 4. CHECK AUTH
-export const getUser = () => async (dispatch) => {
-  dispatch(authRequest());
-  try {
-    const res = await axiosInstance.get("/seller/is-auth");
-    if (res.data.success) {
-      dispatch(authSuccess({ role: "Seller" }));
-    } else {
-      dispatch(authFailed());
-    }
-  } catch (error) {
-    dispatch(authFailed());
-  }
-};
-
-// 5. LOGOUT
-export const logout = () => async (dispatch) => {
-  try {
-    const res = await axiosInstance.get("/seller/logout");
-    if (res.data.success) {
-      dispatch(logoutSuccess());
-      toast.success("Logged out successfully");
-    }
-  } catch (error) {
-    toast.error("Logout failed");
-  }
-};
 
 export default authSlice.reducer;

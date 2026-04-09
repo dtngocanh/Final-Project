@@ -1,5 +1,10 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -19,7 +24,7 @@ import { getUser } from "./store/slices/authSlice";
 function App() {
   const dispatch = useDispatch();
   const { openedComponent } = useSelector((state) => state.extra);
-  const { user, isAuthenticated, loading } = useSelector((state) => state.auth);
+  const { user, isAuthenticated, isCheckingAuth, isLoading } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(getUser());
@@ -27,28 +32,36 @@ function App() {
 
   const renderDashboardContent = () => {
     switch (openedComponent) {
-      case "Dashboard": return <Dashboard />;
-      case "Orders": return <Orders />;
-      case "Users": return <Users />;
-      case "Profile": return <Profile />;
-      case "Products": return <Products />;
-      default: return <Dashboard />;
+      case "Dashboard":
+        return <Dashboard />;
+      case "Orders":
+        return <Orders />;
+      case "Users":
+        return <Users />;
+      case "Profile":
+        return <Profile />;
+      case "Products":
+        return <Products />;
+      default:
+        return <Dashboard />;
     }
   };
 
-  if (loading) return null;
+  if (isCheckingAuth) return <div className="h-screen flex items-center justify-center">Loading...</div>;
 
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={
+           isAuthenticated ? <Navigate to="/" replace /> : <Login />
+        } />
         <Route path="/password/forgot" element={<ForgotPassword />} />
         <Route path="/password/reset/:token" element={<ResetPassword />} />
 
         <Route
           path="/"
           element={
-            isAuthenticated && user?.role === "Seller" ? (
+            isAuthenticated ? (
               <div className="flex min-h-screen w-full bg-[#f8faf9] dark:bg-[#050505]">
                 <SideBar />
                 <main className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
@@ -68,5 +81,4 @@ function App() {
     </Router>
   );
 }
-
 export default App;

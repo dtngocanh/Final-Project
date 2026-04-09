@@ -2,17 +2,24 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import defaultAvatar from "../assets/avatar.jpg";
 import { toast } from "react-toastify";
-import { ArrowLeft, User, Mail, Lock, Camera, CheckCircle } from "lucide-react";
+import { ArrowLeft, User, Mail, Lock, Camera, CheckCircle, Loader2 } from "lucide-react";
 import { toggleComponent } from "../store/slices/extraSlice";
 import FloatingVegetables from "./Fruit/FloatingVegetables";
+import { updatePassword } from "../store/slices/authSlice";
 
 const Profile = () => {
-  const { user } = useSelector((state) => state.auth);
+  const { user, isUpdatingPassword } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
 
   const [loading, setLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [editData, setEditData] = useState({ name: "", email: "", avatar: null });
+
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
 
   useEffect(() => {
     setEditData({
@@ -42,24 +49,38 @@ const Profile = () => {
     }, 800);
   };
 
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      return toast.error("New passwords do not match!");
+    }
+    try {
+      await dispatch(updatePassword(passwordData)).unwrap();
+      setView("overview");
+      setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error) {
+      toast.error(error || "Failed to update password");
+    }
+  };
+
   return (
     <div className="relative min-h-screen w-full py-6 md:py-10 px-4 sm:px-6 animate-in fade-in slide-in-from-bottom-4 duration-700 font-['Fredoka']">
-      
+
       {/* NỀN RAU CỦ DẬP DÌU */}
       <FloatingVegetables />
 
       <div className="max-w-5xl mx-auto relative z-10">
-        
+
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-6 mb-8 md:mb-12">
-          <button 
+          <button
             onClick={() => dispatch(toggleComponent("Dashboard"))}
             className="flex items-center gap-2 text-gray-400 hover:text-[#77cd3af2] transition-all group self-start sm:self-auto"
           >
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Back to Dashboard</span>
           </button>
-          
+
           <div className="text-center sm:text-right">
             <h1 className="text-2xl md:text-3xl font-light text-gray-900 dark:text-white leading-tight">
               Account <span className="font-serif italic text-[#77cd3af2]">Settings</span>
@@ -69,7 +90,7 @@ const Profile = () => {
         </div>
 
         <div className="space-y-8">
-          
+
           {/* CỤM BASIC INFO: GỒM CẢ ẢNH VÀ INPUT */}
           <div className="bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-10 border border-white/20 dark:border-white/5 shadow-2xl shadow-black/5">
             <div className="flex items-center gap-3 mb-10">
@@ -81,7 +102,7 @@ const Profile = () => {
 
             {/* BỐ CỤC FLEX CHO ẢNH VÀ INPUT */}
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-10 md:gap-16">
-              
+
               {/* PHẦN ẢNH ĐẠI DIỆN */}
               <div className="flex flex-col items-center space-y-4">
                 <div className="relative group size-32 md:size-40">
@@ -98,7 +119,7 @@ const Profile = () => {
                   </label>
                 </div>
                 <div className="text-center">
-                   <p className="text-[10px] text-[#77cd3af2] font-black uppercase tracking-widest">Verified Seller</p>
+                  <p className="text-[10px] text-[#77cd3af2] font-black uppercase tracking-widest">Verified Seller</p>
                 </div>
               </div>
 
@@ -157,7 +178,7 @@ const Profile = () => {
               <h3 className="text-xs md:text-sm font-bold uppercase tracking-widest text-gray-400">Security & Password</h3>
             </div>
 
-            <div className="space-y-6">
+            {/* <div className="space-y-6">
               <div className="max-w-md space-y-6">
                 <input
                   type="password"
@@ -181,8 +202,54 @@ const Profile = () => {
 
             <button className="mt-8 px-10 py-4 bg-gray-900 dark:bg-white dark:text-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all">
               Update Password
-            </button>
+            </button> */}
+            <form onSubmit={handleUpdatePassword} className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="space-y-8">
+                <div className="group relative border-b border-gray-100 dark:border-white/5 pb-2">
+                  <label className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black">Current Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter your current password"
+                    className="w-full bg-transparent outline-none py-2 dark:text-white font-light placeholder:opacity-20"
+                    onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+                  />
+                </div>
+
+                <div className="group relative border-b border-gray-100 dark:border-white/5 pb-2">
+                  <label className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black">New Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter your new password"
+                    className="w-full bg-transparent outline-none py-2 dark:text-white font-light placeholder:opacity-20"
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  />
+                </div>
+
+                <div className="group relative border-b border-gray-100 dark:border-white/5 pb-2">
+                  <label className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-black">Confirm New Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter your new password"
+                    className="w-full bg-transparent outline-none py-2 dark:text-white font-light placeholder:opacity-20"
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isUpdatingPassword}
+                className="w-full py-4 rounded-xl bg-[#77cd3af2] text-gray-950 font-bold text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2"
+              >
+                {isUpdatingPassword ? <Loader2 className="animate-spin" size={16} /> : "Update Password"}
+              </button>
+            </form>
           </div>
+
+
 
         </div>
       </div>
