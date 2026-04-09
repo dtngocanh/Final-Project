@@ -21,28 +21,6 @@ import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { useCartActions } from "../hooks/useCartActions";
 import { fetchProductDetails } from "../store/slices/productSlice";
 
-// const ALL_MOCK_PRODUCTS = [
-//   {
-//     _id: "69c75b8d1fe9cc301c63d919",
-//     name: "Mango",
-//     price: 14.99,
-//     category: "Premium Fruits",
-//     images: ["/mango.png", "/mango.png", "/cheri1.png"],
-//     stock: 12,
-//     description:
-//       "Experience the exotic sweetness of our naturally grown dragon fruit. Hand-picked at peak ripeness.",
-//   },
-//   {
-//     _id: "2",
-//     name: "Wild Mountain Blueberry",
-//     price: 8.5,
-//     category: "Berries",
-//     images: ["/cheri1.png"],
-//     stock: 0,
-//     description:
-//       "Tiny bursts of antioxidant-rich flavor, harvested from high-altitude wild bushes.",
-//   },
-// ];
 
 const ProductDetail = () => {
   const { id } = useParams();

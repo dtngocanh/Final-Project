@@ -5,6 +5,7 @@ import cartReducer from "./slices/cartSlice";
 import productReducer from "./slices/productSlice";
 import orderReducer from "./slices/orderSlice";
 import uiReducer from "./slices/uiSlice";
+import aiReducer from "./slices/aiSlice";
 
 const appReducer = combineReducers({
   auth: authReducer,
@@ -13,6 +14,7 @@ const appReducer = combineReducers({
   product: productReducer,
   order: orderReducer,
   ui: uiReducer,
+  ai: aiReducer,
 });
 
 const rootReducer = (state, action) => {

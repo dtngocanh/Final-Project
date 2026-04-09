@@ -30,6 +30,7 @@ import Success from "./pages/Success";
 import ScrollToTop from "./components/ScrollToTop";
 import { fetchCart } from "./store/slices/cartSlice";
 import OrderDetail from "./pages/OrdersDetails";
+import ChatBot from "./components/Chat/Chatbot";
 const App = () => {
   const { isTomatoMode } = useSelector((state) => state.ui);
   const dispatch = useDispatch();
@@ -38,7 +39,7 @@ const App = () => {
   useEffect(() => {
     // 1. Luôn gọi getUser() ngay khi App load để check Cookie
     dispatch(getUser());
-  }, [dispatch])
+  }, [dispatch]);
 
   useEffect(() => {
     // 2. Chỉ khi đã có authUser (đã đăng nhập thành công) thì mới lấy giỏ hàng
@@ -71,9 +72,10 @@ const App = () => {
               <Route path="/faq" element={<FAQ />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
-              <Route path="/order/:id" element={<OrderDetail/>}/>
+              <Route path="/order/:id" element={<OrderDetail />} />
               <Route path="/success" element={<Success />} />
             </Routes>
+            <ChatBot />
             <Footer />
           </div>
           <ToastContainer
