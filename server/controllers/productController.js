@@ -2,7 +2,8 @@ import { v2 as cloudinary } from "cloudinary";
 import Product from "../models/Product.js";
 import XLSX from "xlsx";
 import ErrorHandler from "../utils/errorHandler.js";
-
+import axios from "axios";
+import Interaction from "../models/Interaction.js";
 //[POST] api/product/add
 export const addProduct = async (req, res, next) => {
   try {
@@ -51,27 +52,73 @@ export const productList = async (req, res) => {
   }
 };
 
-//[GET] api/product/id
-export const productById = async (req, res) => {
+/**
+ * @description Get product details along with AI-based similar products and recipe suggestions
+ * @route [GET] api/product/:id
+ */
+export const productById = async (req, res, next) => {
   try {
     const id = req.params.id;
 
+    // 1. Fetch the primary product details from MongoDB
     const product = await Product.findById(id);
 
     if (!product) {
-      return res.json({
-        success: false,
-        message: "Product not found",
-      });
+      return next(new ErrorHandler("Product not found", 404));
     }
 
+    let relatedProducts = [];
+    let recipeRelatedProducts = [];
+
+    try {
+      // 2. Call the AI service to get recommendation IDs
+      // The Python server now returns { recommendations: [], recipe_related: [] }
+      const aiResponse = await axios.get(
+        `http://127.0.0.1:8000/recommend/${id}`,
+      );
+      const { recommendations, recipe_related } = aiResponse.data;
+
+      // 3. Hydrate Similar Products (Content-based)
+      if (recommendations && recommendations.length > 0) {
+        const simDb = await Product.find({
+          _id: { $in: recommendations },
+        });
+        //.select("name price images category");
+
+        // Maintain the AI's ranking order
+        relatedProducts = recommendations
+          .map((recId) => simDb.find((p) => p._id.toString() === recId))
+          .filter((p) => p !== undefined);
+      }
+
+      // 4. Hydrate Recipe-related Products (Usage-based)
+      if (recipe_related && recipe_related.length > 0) {
+        const recipeDb = await Product.find({
+          _id: { $in: recipe_related },
+        });
+        //.select("name price images category");
+
+        // Maintain the AI's ranking order
+        recipeRelatedProducts = recipe_related
+          .map((recId) => recipeDb.find((p) => p._id.toString() === recId))
+          .filter((p) => p !== undefined);
+      }
+    } catch (err) {
+      // Log AI error but keep the main product page functional
+      // console.error("AI Service Error:", err.message);
+      relatedProducts = [];
+      recipeRelatedProducts = [];
+    }
+
+    // 5. Send unified response back to the client
     res.json({
       success: true,
-      product,
+      product: product,
+      related: relatedProducts, // For "Similar Selections"
+      recipes: recipeRelatedProducts, // For "Cook This With..." or "Recipe Ideas"
     });
   } catch (error) {
-    console.log(error.message);
-    res.json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -244,5 +291,20 @@ export const importProducts = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+export const handleInteraction = async (req, res, next) => {
+  const { userId, productId } = req.body;
+  try {
+    const newInteraction = new Interaction({
+      userId,
+      productId,
+      type: "click",
+    });
+    await newInteraction.save();
+    res.status(200).send("Click tracked");
+  } catch (err) {
+    next(err);
   }
 };

@@ -1,16 +1,29 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Filter, Package, Truck, CheckCircle, XCircle, ChevronRight, Calendar, Box, Star, RefreshCw, Trash2, Loader2 } from "lucide-react";
+import {
+  Filter,
+  Package,
+  Truck,
+  CheckCircle,
+  XCircle,
+  ChevronRight,
+  Calendar,
+  Box,
+  Star,
+  RefreshCw,
+  Trash2,
+  Loader2,
+} from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { cancelOrder, fetchMyOrders } from "../store/slices/orderSlice";
 
-
 const Orders = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   // 1. Local State Management - stores the current active filter
   const [statusFilter, setStatusFilter] = useState("all");
   // 2. Redux store selection - Extract order list and loading state from orderSlice
@@ -41,30 +54,38 @@ const Orders = () => {
   //Return specific Lucide icons and colors based on the current order status
   const getStatusIcon = (status) => {
     switch (status) {
-      case "Processing": return <Package className="w-5 h-5 text-yellow-500" />;
-      case "Shipped": return <Truck className="w-5 h-5 text-blue-500" />;
-      case "Delivered": return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case "Canceled": return <XCircle className="w-5 h-5 text-red-500" />;
-      default: return <Package className="w-5 h-5 text-yellow-500" />;
+      case "Processing":
+        return <Package className="w-5 h-5 text-yellow-500" />;
+      case "Shipped":
+        return <Truck className="w-5 h-5 text-blue-500" />;
+      case "Delivered":
+        return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case "Canceled":
+        return <XCircle className="w-5 h-5 text-red-500" />;
+      default:
+        return <Package className="w-5 h-5 text-yellow-500" />;
     }
   };
   const handleCancelOrder = (orderId) => {
     console.log(orderId);
 
     Swal.fire({
-      title: '<span style="font-size: 18px; font-weight: 600; color: #4b5563;">Cancel this order?</span>',
+      title:
+        '<span style="font-size: 18px; font-weight: 600; color: #4b5563;">Cancel this order?</span>',
       html: '<p style="font-size: 13px; color: #9ca3af;">It’s okay, you can always order again later.</p>',
       showCancelButton: true,
-      confirmButtonText: 'Yes, cancel',
-      cancelButtonText: 'Keep it',
-      background: '#ffffff',
-      width: '320px',
-      padding: '1.5rem',
+      confirmButtonText: "Yes, cancel",
+      cancelButtonText: "Keep it",
+      background: "#ffffff",
+      width: "320px",
+      padding: "1.5rem",
       buttonsStyling: false,
       customClass: {
-        popup: 'shadow-2xl border border-gray-50',
-        confirmButton: 'mx-2 px-4 py-2 text-[11px] font-bold uppercase tracking-tight text-red-400 bg-white border border-red-100 rounded-full hover:bg-red-50 transition-all duration-300',
-        cancelButton: 'mx-2 px-4 py-2 text-[11px] font-bold uppercase tracking-tight text-gray-400 bg-white border border-gray-100 rounded-full hover:bg-gray-50 transition-all duration-300'
+        popup: "shadow-2xl border border-gray-50",
+        confirmButton:
+          "mx-2 px-4 py-2 text-[11px] font-bold uppercase tracking-tight text-red-400 bg-white border border-red-100 rounded-full hover:bg-red-50 transition-all duration-300",
+        cancelButton:
+          "mx-2 px-4 py-2 text-[11px] font-bold uppercase tracking-tight text-gray-400 bg-white border border-gray-100 rounded-full hover:bg-gray-50 transition-all duration-300",
       },
     }).then((result) => {
       if (result.isConfirmed) {
@@ -72,30 +93,31 @@ const Orders = () => {
           .unwrap()
           .then(() => {
             Swal.fire({
-              title: '<span style="font-size: 13px; font-weight: 500; color: #6b7280; letter-spacing: 0.05em; text-transform: uppercase;">Success</span>',
+              title:
+                '<span style="font-size: 13px; font-weight: 500; color: #6b7280; letter-spacing: 0.05em; text-transform: uppercase;">Success</span>',
               timer: 1500,
               showConfirmButton: false,
-              width: '220px', 
-              padding: '1.2rem',
-              background: '#ffffff',
-              borderRadius: '20px',
+              width: "220px",
+              padding: "1.2rem",
+              background: "#ffffff",
+              borderRadius: "20px",
               customClass: {
-                popup: 'shadow-sm border border-gray-100' 
-              }
+                popup: "shadow-sm border border-gray-100",
+              },
             });
           })
           .catch((error) => {
             Swal.fire({
-              title: `<span style="font-size: 13px; font-weight: 500; color: #9ca3af; letter-spacing: 0.05em; text-transform: uppercase;">${error || 'Error'}</span>`,
+              title: `<span style="font-size: 13px; font-weight: 500; color: #9ca3af; letter-spacing: 0.05em; text-transform: uppercase;">${error || "Error"}</span>`,
               timer: 1500,
               showConfirmButton: false,
-              width: '220px',
-              padding: '1.2rem',
-              background: '#ffffff',
-              borderRadius: '20px',
+              width: "220px",
+              padding: "1.2rem",
+              background: "#ffffff",
+              borderRadius: "20px",
               customClass: {
-                popup: 'shadow-sm border border-gray-100'
-              }
+                popup: "shadow-sm border border-gray-100",
+              },
             });
           });
       }
@@ -110,7 +132,10 @@ const Orders = () => {
         <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 text-[#77cd3a] mb-3">
-              <Box size={16} className={fetchingOrders ? "animate-spin" : "animate-pulse"} />
+              <Box
+                size={16}
+                className={fetchingOrders ? "animate-spin" : "animate-pulse"}
+              />
               <span className="text-[10px] font-black uppercase tracking-[0.5em]">
                 {fetchingOrders ? "Harvesting Data..." : "Order History"}
               </span>
@@ -122,14 +147,21 @@ const Orders = () => {
 
           {/* Filter Navigation */}
           <div className="flex flex-wrap gap-2 bg-gray-50 dark:bg-white/[0.03] p-1.5 rounded-2xl border border-gray-100 dark:border-white/5">
-            {["all", "Processing", "Shipped", "Delivered", "Canceled"].map((s) => (
-              <button key={s} onClick={() => setStatusFilter(s)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${statusFilter === s ? "bg-[#77cd3a] text-black shadow-lg" : "text-gray-400 hover:text-white"
+            {["all", "Processing", "Shipped", "Delivered", "Canceled"].map(
+              (s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    statusFilter === s
+                      ? "bg-[#77cd3a] text-black shadow-lg"
+                      : "text-gray-400 hover:text-white"
                   }`}
-              >
-                {s}
-              </button>
-            ))}
+                >
+                  {s}
+                </button>
+              ),
+            )}
           </div>
         </header>
 
@@ -152,23 +184,39 @@ const Orders = () => {
                           {getStatusIcon(order.orderStatus)}
                         </div>
                         <div>
-                          <p className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Order ID</p>
-                          <h3 className="text-sm font-bold dark:text-white uppercase tracking-tighter">#{order._id.slice(-8)}</h3>
+                          <p className="text-[10px] font-mono text-gray-400 uppercase tracking-widest">
+                            Order ID
+                          </p>
+                          <h3 className="text-sm font-bold dark:text-white uppercase tracking-tighter">
+                            #{order._id.slice(-8)}
+                          </h3>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                         <div>
-                          <p className="text-[8px] uppercase text-gray-400 mb-1">Total Amount</p>
-                          <p className="text-xl font-light dark:text-white">${order.totalPrice}</p>
+                          <p className="text-[8px] uppercase text-gray-400 mb-1">
+                            Total Amount
+                          </p>
+                          <p className="text-xl font-light dark:text-white">
+                            ${order.totalPrice}
+                          </p>
                         </div>
 
                         {/* Logic render nút dựa trên status từ ảnh d221c3 */}
                         <div className="col-span-2 flex flex-wrap gap-3 items-end">
                           {order.orderStatus === "Delivered" && (
                             <>
-                              <button className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold flex items-center gap-2 dark:text-white border border-white/10 rounded-xl bg-white/5">
-                                <Star size={14} className="text-yellow-500" /> Write Review
+                              <button
+                                onClick={() =>
+                                  navigate(
+                                    `/product/${order.orderItems[0].product}`,
+                                  )
+                                }
+                                className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold flex items-center gap-2 dark:text-white border border-white/10 rounded-xl bg-white/5"
+                              >
+                                <Star size={14} className="text-yellow-500" />{" "}
+                                Write Review
                               </button>
                               <button className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold flex items-center gap-2 dark:text-white border border-white/10 rounded-xl bg-white/5">
                                 <RefreshCw size={14} /> Reorder
@@ -177,7 +225,10 @@ const Orders = () => {
                           )}
 
                           {order.orderStatus === "Processing" && (
-                            <button onClick={() => handleCancelOrder(order._id)} className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold text-red-500 flex items-center gap-2 border border-red-500/20 rounded-xl bg-red-500/5">
+                            <button
+                              onClick={() => handleCancelOrder(order._id)}
+                              className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold text-red-500 flex items-center gap-2 border border-red-500/20 rounded-xl bg-red-500/5"
+                            >
                               <Trash2 size={14} /> Cancel Order
                             </button>
                           )}
@@ -194,7 +245,9 @@ const Orders = () => {
                           View Details <ChevronRight size={14} />
                         </Link>
                       ) : (
-                        <span className="text-[9px] text-gray-400 uppercase tracking-widest italic">Login to see full info</span>
+                        <span className="text-[9px] text-gray-400 uppercase tracking-widest italic">
+                          Login to see full info
+                        </span>
                       )}
                     </div>
                   </div>
@@ -202,7 +255,9 @@ const Orders = () => {
               ))
             ) : (
               <div className="text-center py-20">
-                <p className="text-gray-400 uppercase tracking-[0.3em] text-xs italic">No orders found in this category.</p>
+                <p className="text-gray-400 uppercase tracking-[0.3em] text-xs italic">
+                  No orders found in this category.
+                </p>
               </div>
             )}
           </AnimatePresence>

@@ -2,6 +2,7 @@ import express from "express";
 import { isAuth, login, logout, register, updateProfile } from "../controllers/userController.js";
 import authUser from "../middlewares/authUser.js";
 import { forgotPassword, resetPassword, updatePassword } from "../controllers/passwordController.js";
+import { getAllShopReviews, postReview, updateReview } from "../controllers/reviewController.js";
 
 const userRouter = express.Router();
 
@@ -15,6 +16,10 @@ userRouter.put('/password/reset/:token',resetPassword);
 
 userRouter.put('/password/update',authUser,updatePassword);
 userRouter.patch('/profile/update',authUser,updateProfile);
+
+userRouter.post('/review',authUser,postReview);
+userRouter.put('/review',authUser,updateReview);
+userRouter.get('/review',getAllShopReviews);
 
 
 export default userRouter;

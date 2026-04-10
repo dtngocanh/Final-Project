@@ -24,7 +24,7 @@ import { getUser } from "./store/slices/authSlice";
 function App() {
   const dispatch = useDispatch();
   const { openedComponent } = useSelector((state) => state.extra);
-  const { user, isAuthenticated, isCheckingAuth, isLoading } = useSelector((state) => state.auth);
+  const { isAuthenticated, isCheckingAuth } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(getUser());

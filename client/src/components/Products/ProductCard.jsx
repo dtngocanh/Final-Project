@@ -5,23 +5,26 @@ import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import { useCartActions } from "../../hooks/useCartActions";
-
+import { handleProductClick } from "../../store/slices/productSlice";
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
   const { handleCartAction } = useCartActions();
 
+  const onClickCard = () => {
+    dispatch(handleProductClick({ productId: product._id }));
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="group relative"
+      className="group relative cursor-pointer"
+      onClick={onClickCard}
     >
       <Link to={`/product/${product._id}`}>
         <div className="relative overflow-hidden bg-[#fbfbfb] dark:bg-[#111111] rounded-2xl transition-all duration-500 border border-transparent dark:border-white/[0.03]">
-
           {/* Product Image Area */}
           <div className="relative aspect-square flex items-center justify-center p-8">
             <motion.img
@@ -35,7 +38,7 @@ const ProductCard = ({ product }) => {
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                handleCartAction(product, "ADD", 1)
+                handleCartAction(product, "ADD", 1);
               }}
               className="absolute bottom-6 right-6 w-12 h-12 bg-[#77cd3a] text-white rounded-2xl flex items-center justify-center 
                                  opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 
