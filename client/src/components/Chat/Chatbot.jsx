@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  MessageCircle, X, Send, Loader2, 
-  ShoppingCart, ArrowUpRight, CheckCircle2, Cherry
-} from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, ShoppingCart, Leaf } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-
 import { sendMessage, addUserMessage } from '../../store/slices/aiSlice';
 import { useCartActions } from "../../hooks/useCartActions";
 
@@ -14,21 +10,22 @@ const ChatBot = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const scrollRef = useRef(null);
-  
   const [input, setInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [addedItems, setAddedItems] = useState({});
-
-  const { authUser } = useSelector((state) => state.auth);
+  
+  // LẤY DỮ LIỆU TỪ REDUX GIỐNG PROFILE PANEL
   const { messages, isAsking } = useSelector((state) => state.ai);
+  const { authUser } = useSelector((state) => state.auth); 
   const { handleCartAction } = useCartActions();
 
-  // Tự động cuộn xuống khi có tin nhắn mới
+  // Lấy tên, nếu chưa đăng nhập thì để là "Guest"
+  const displayName = authUser?.name || "Guest";
+
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth'
+      scrollRef.current.scrollTo({ 
+        top: scrollRef.current.scrollHeight, 
+        behavior: 'smooth' 
       });
     }
   }, [messages, isAsking]);
@@ -36,175 +33,127 @@ const ChatBot = () => {
   const handleSend = (e) => {
     e.preventDefault();
     if (!input.trim() || isAsking) return;
-    const userText = input;
+    dispatch(addUserMessage(input));
+    dispatch(sendMessage(input));
     setInput('');
-    dispatch(addUserMessage(userText));
-    dispatch(sendMessage(userText));
   };
-
-  const onAddToCart = async (p) => {
-    const pId = p.id || p._id || p.slug;
-    handleCartAction({ ...p, _id: pId }, "ADD", 1);
-    setAddedItems(prev => ({ ...prev, [pId]: true }));
-    setTimeout(() => setAddedItems(prev => ({ ...prev, [pId]: false })), 2000);
-  };
-
-  const goToDetail = (p) => {
-    const target = p.slug || p.id || p._id;
-    if (target) {
-      navigate(`/product/${target}`);
-      setIsOpen(false); 
-    }
-  };
-
-  const firstName = authUser?.fullName ? authUser.fullName.split(' ')[0] : 'there';
 
   return (
-    <div className="fixed bottom-8 right-8 z-[1000] font-fredoka">
-      {/* Nút bấm nổi bật/tắt Chatbot */}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all duration-500 z-[1001] relative ${
-          isOpen ? 'bg-white text-red-500 rotate-90' : 'bg-[#025c37] text-white'
-        } border-4 border-white dark:border-[#1a1a1a]`}
+    <div className="fixed bottom-6 right-6 z-[1000] font-fredoka">
+      {/* Floating Toggle Button */}
+      <motion.button 
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setIsOpen(!isOpen)} 
+        className="w-16 h-16 rounded-full bg-gradient-to-br from-[#025c37] to-[#038550] text-white flex items-center justify-center shadow-[0_10px_25px_rgba(2,92,55,0.3)]"
       >
-        {isOpen ? <X size={32} /> : <MessageCircle size={32} fill="currentColor" />}
-        {!isOpen && (
-           <span className="absolute -top-1 -right-1 flex h-4 w-4">
-             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#77cd3a] opacity-75"></span>
-             <span className="relative inline-flex rounded-full h-4 w-4 bg-[#77cd3a]"></span>
-           </span>
-        )}
+        {isOpen ? <X size={30} /> : <MessageCircle size={30} />}
       </motion.button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            initial={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(10px)' }}
-          
-            className="absolute bottom-20 right-0 w-[calc(100vw-2rem)] md:w-[420px] h-[75vh] max-h-[620px] bg-white/95 dark:bg-[#0b0b0bc7] backdrop-blur-xl rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col border border-white/20 overflow-hidden ring-1 ring-black/5"
+            initial={{ opacity: 0, y: 50, scale: 0.9, transformOrigin: 'bottom right' }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="absolute bottom-20 right-0 w-[380px] h-[550px] bg-white rounded-[35px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden border border-gray-100"
           >
-            {/* Header: shrink-0 để không bị co khi chat dài */}
-            <header className="bg-[#025c37] p-6 text-white relative overflow-hidden shrink-0">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Cherry size={40} />
+            {/* Header with Veganic Logo */}
+            <header className="bg-[#025c37] p-5 text-white flex items-center gap-3">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner">
+                 <img src='/hahahaha.png' className='size-[24px]'/>
               </div>
-              <div className="flex items-center gap-4 relative z-10">
-                <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md p-2 border border-white/20 flex items-center justify-center">
-                  <img src="/hahahaha.png" alt="Logo" className="w-full h-full object-contain brightness-110" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg tracking-tight leading-none mb-1">Veganic AI</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-[#77cd3a] rounded-full animate-pulse"></span>
-                    <p className="text-[10px] text-green-100/80 uppercase font-medium tracking-[0.2em]">Always Fresh</p>
-                  </div>
-                </div>
+              <div>
+                <h3 className="font-bold text-base leading-tight">Veganic Mart</h3>
+                <p className="text-[10px] text-green-200 flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  Online Support
+                </p>
               </div>
             </header>
 
-            {/* Chat Content: flex-1 để tự động giãn nở */}
-            <div 
-              ref={scrollRef} 
-              className="flex-1 p-6 overflow-y-auto space-y-6 scroll-smooth no-scrollbar bg-[#fcfdfc]/50 dark:bg-transparent"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {/* Chào hỏi */}
-              <div className="flex flex-col items-start max-w-[85%]">
-                <div className="bg-white dark:bg-white/5 p-4 rounded-[24px] rounded-tl-none border border-green-50 shadow-sm">
-                  <p className="font-bold text-[#025c37] dark:text-[#77cd3a] mb-1 text-[15px]">Hi {firstName}! 🌿</p>
-                  <p className="text-[13.5px] leading-relaxed text-gray-600 dark:text-gray-300">
-                    I'm your organic expert. Ready to find something healthy and delicious?
-                  </p>
+            {/* Chat Content */}
+            <div ref={scrollRef} className="flex-1 p-5 overflow-y-auto space-y-6 bg-[#f8faf9] no-scrollbar">
+              
+              {/* English Greeting using authUser Name */}
+              <div className="flex flex-col items-start">
+                <div className="p-4 rounded-[22px] rounded-tl-none text-sm bg-white border border-green-100 text-gray-700 shadow-sm leading-relaxed">
+                  Hi <b>{displayName}</b>! 👋 <br/> 
+                  Welcome to Veganic Mart. How can I help you find fresh products today? 
                 </div>
               </div>
 
-              {/* Danh sách tin nhắn */}
               {messages.map((msg, idx) => (
-                <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} space-y-3`}>
-                  <div className={`p-4 px-5 rounded-[24px] text-[13.5px] leading-relaxed max-w-[85%] shadow-sm ${
-                    msg.role === 'user' 
-                    ? 'bg-[#025c37] text-white rounded-tr-none' 
-                    : 'bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/5 rounded-tl-none text-gray-700 dark:text-gray-200'
-                  }`}>
+                <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                  <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className={`p-3.5 rounded-[22px] text-sm max-w-[85%] shadow-sm ${
+                      msg.role === 'user' 
+                        ? 'bg-[#025c37] text-white rounded-tr-none' 
+                        : 'bg-white border border-gray-100 text-gray-700 rounded-tl-none'
+                    }`}
+                  >
                     {msg.content}
-                  </div>
+                  </motion.div>
 
-                  {/* Hiển thị sản phẩm gợi ý */}
+                  {/* Product Carousel Cards */}
                   {msg.role === 'bot' && msg.products?.length > 0 && (
-                    <div className="flex gap-4 overflow-x-auto w-full pb-4 px-1 no-scrollbar snap-x">
-                      {msg.products.map((p) => {
-                        const pId = p.id || p._id || p.slug;
-                        const isAdded = addedItems[pId];
-
-                        return (
-                          <motion.div 
-                            key={pId}
-                            whileHover={{ y: -5 }}
-                            className="min-w-[220px] bg-white dark:bg-[#161616] border border-gray-100 dark:border-white/10 rounded-[32px] overflow-hidden shadow-lg snap-center"
-                          >
-                            <div className="relative h-36 bg-gray-50/50 dark:bg-white/5 p-4 cursor-pointer group" onClick={() => goToDetail(p)}>
-                              <img src={p.image} className="w-full h-full object-contain group-hover:scale-110 transition-all duration-700" alt={p.name} />
-                              <div className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
-                                <ArrowUpRight size={14} className="text-[#025c37]" />
-                              </div>
-                            </div>
-
-                            <div className="p-4 space-y-3">
-                              <h4 className="text-[10px] font-black uppercase tracking-wider text-gray-500 truncate">{p.name}</h4>
-                              <div className="flex justify-between items-end">
-                                <p className="text-xl font-serif text-[#025c37] dark:text-[#77cd3a]">${p.price}</p>
-                                <span className="text-[8px] bg-green-50 dark:bg-green-900/20 text-[#025c37] dark:text-[#77cd3a] px-2 py-1 rounded-full font-bold uppercase">Organic</span>
-                              </div>
-
-                              <button 
-                                onClick={() => onAddToCart(p)}
-                                className={`w-full py-2.5 rounded-[14px] flex items-center justify-center gap-2 transition-all active:scale-95 font-bold uppercase text-[10px] tracking-widest ${
-                                  isAdded ? 'bg-green-600 text-white shadow-md' : 'bg-[#77cd3a] text-black hover:bg-[#66b32f]'
-                                }`}
-                              >
-                                {isAdded ? <CheckCircle2 size={14} /> : <ShoppingCart size={14} />}
-                                <span>{isAdded ? "In Cart" : "Add to Cart"}</span>
-                              </button>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
+                    <div className="flex gap-4 overflow-x-auto w-full py-4 no-scrollbar snap-x mt-2">
+                      {msg.products.map((p) => (
+                        <motion.div 
+                          key={p.id} 
+                          whileHover={{ y: -5 }}
+                          className="min-w-[200px] bg-white border border-gray-100 rounded-[30px] overflow-hidden shadow-lg snap-center"
+                        >
+                          <div className="h-32 bg-white p-3 flex items-center justify-center cursor-pointer" onClick={() => navigate(`/product/${p.id}`)}>
+                            <img 
+                              src={p.image} 
+                              alt={p.name}
+                              className="w-full h-full object-contain mix-blend-multiply"
+                              onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=Veganic"; }}
+                            />
+                          </div>
+                          <div className="p-4 bg-gray-50/50 border-t border-gray-50">
+                            <h4 className="text-[10px] font-bold uppercase truncate text-gray-400 mb-1">{p.name}</h4>
+                            <p className="text-xl font-black text-[#025c37] mb-3">${p.price}</p>
+                            <button 
+                              onClick={() => handleCartAction({ ...p, _id: p.id }, "ADD", 1)}
+                              className="w-full py-2.5 rounded-2xl bg-[#77cd3a] text-[#025c37] text-[10px] font-bold flex items-center justify-center gap-2 hover:bg-[#66b132] transition-all shadow-sm active:scale-95"
+                            >
+                              <ShoppingCart size={14}/> ADD TO CART
+                            </button>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
                   )}
                 </div>
               ))}
-
-              {/* Hiệu ứng loading */}
+              
               {isAsking && (
-                <div className="flex items-center gap-3 bg-white/80 dark:bg-white/5 p-4 rounded-[20px] border border-green-50 w-fit shadow-sm">
-                  <Loader2 size={18} className="animate-spin text-[#77cd3a]" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#025c37] dark:text-gray-400">Harvesting data...</span>
+                <div className="flex items-center gap-2 text-[#025c37] bg-white border border-green-50 w-fit px-4 py-2 rounded-full text-xs font-medium shadow-sm">
+                  <Loader2 className="animate-spin w-4 h-4" /> Waiting a min...
                 </div>
               )}
             </div>
 
-            {/* Input Footer: shrink-0 để cố định vị trí */}
-            <footer className="p-5 bg-white dark:bg-[#0b0b0b] border-t border-gray-100 dark:border-white/5 shrink-0">
-              <form onSubmit={handleSend} className="flex items-center gap-3 bg-gray-100/50 dark:bg-white/5 rounded-[22px] px-5 py-1.5 ring-1 ring-black/5 focus-within:ring-[#77cd3a]/40 transition-all shadow-inner">
-                <input
-                  type="text"
-                  placeholder="Ask about organic food..."
-                  className="flex-1 bg-transparent py-3 text-[14px] outline-none text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  disabled={isAsking}
+            {/* Input Footer */}
+            <footer className="p-4 bg-white border-t border-gray-100">
+              <form onSubmit={handleSend} className="flex items-center gap-2 bg-gray-100 rounded-2xl px-4 py-1.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#025c37]/10 transition-all">
+                <input 
+                  type="text" 
+                  value={input} 
+                  onChange={(e) => setInput(e.target.value)} 
+                  placeholder="Ask me about organic food..." 
+                  className="flex-1 bg-transparent py-2.5 text-sm outline-none text-gray-700" 
                 />
                 <button 
                   type="submit" 
-                  disabled={isAsking || !input.trim()} 
-                  className="w-10 h-10 rounded-full bg-[#025c37] text-white flex items-center justify-center disabled:opacity-20 hover:scale-105 active:scale-90 transition-all shadow-md"
+                  disabled={!input.trim() || isAsking}
+                  className="text-[#025c37] p-2 hover:bg-green-50 rounded-full transition-colors disabled:opacity-30"
                 >
-                  <Send size={18} />
+                  <Send size={20}/>
                 </button>
               </form>
             </footer>

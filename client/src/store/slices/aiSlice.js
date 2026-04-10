@@ -4,19 +4,27 @@ import { axiosInstance } from "../../lib/axios";
 export const sendMessage = createAsyncThunk("ai/sendMessage", async (message, thunkAPI) => {
   try {
     const state = thunkAPI.getState();
-    // Use auth ID or a stored guest session ID
+    
+    // 1. Đồng bộ Session ID
     const sessionId = state.auth.authUser?._id || state.ai.currentSessionId || "guest";
     
-    // Match the payload expected by your Node.js/Python backend
     const res = await axiosInstance.post("/ai/chat", { 
       message, 
-      session_id: sessionId 
+      session_id: sessionId // Node.js sẽ nhận cái này và forward sang FastAPI
     });
     
-    return res.data; // Expected: { answer, products, session_id }
+    // Backend trả về: { answer, products, session_id }
+    return res.data; 
   } catch (error) {
-    // Return specific error message from server or a default English fallback
-    const errorMessage = error.response?.data?.answer || "System is a bit slow. Please try again later. 🌿";
+    // 2. Bắt lỗi cụ thể hơn để UI hiển thị thân thiện
+    let errorMessage = "System is a bit slow. Please try again later. 🌿";
+    
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = "AI is thinking too long. Try a shorter question! 🐢";
+    } else if (error.response?.data?.answer) {
+      errorMessage = error.response.data.answer;
+    }
+    
     return thunkAPI.rejectWithValue(errorMessage);
   }
 });
@@ -27,7 +35,7 @@ const aiSlice = createSlice({
     messages: [], 
     isAsking: false, 
     error: null,
-    currentSessionId: null // Track session returned by server
+    currentSessionId: null 
   },
   reducers: {
     clearChat: (state) => { 
@@ -35,6 +43,7 @@ const aiSlice = createSlice({
       state.error = null;
     },
     addUserMessage: (state, action) => {
+      // Khi user bấm gửi, push tin nhắn user vào list ngay để tạo cảm giác mượt mà
       state.messages.push({ 
         role: 'user', 
         content: action.payload, 
@@ -51,29 +60,30 @@ const aiSlice = createSlice({
       .addCase(sendMessage.fulfilled, (state, action) => {
         state.isAsking = false;
         
-        // Update session ID if provided by backend
+        // Cập nhật session_id nếu server trả về (quan trọng để giữ context)
         if (action.payload.session_id) {
           state.currentSessionId = action.payload.session_id;
         }
 
-        // Push Bot Response
+        // Push Bot Response vào chat bubble
         state.messages.push({ 
           role: 'bot', 
-          content: action.payload.answer || "I've analyzed your request.", 
-          // Ensure products is always an array to prevent .map() crashes on UI
-          products: Array.isArray(action.payload.products) ? action.payload.products : [] 
+          content: action.payload.answer, 
+          // Cực kỳ quan trọng: products này đã được Node.js/FastAPI làm sạch
+          // Mỗi sản phẩm đã có sẵn { id, name, price, image, slug: id }
+          products: action.payload.products || [] 
         });
       })
       .addCase(sendMessage.rejected, (state, action) => {
         state.isAsking = false;
         state.error = action.payload;
 
-        // Add an error message to the chat bubble so the user sees what happened
+        // Hiển thị thông báo lỗi ngay trong giao diện chat để user biết
         state.messages.push({ 
           role: 'bot', 
           content: typeof action.payload === 'string' 
             ? action.payload 
-            : "Connection error... Please check your AI server. 🌿", 
+            : "Connection error... Check your AI server. 🔌", 
           products: [] 
         });
       });
