@@ -51,12 +51,12 @@ const ReviewsContainer = () => {
     return allShopReviews?.find((rev) => {
       // Đúng User ID
       const isCorrectUser =
-        (rev.userId?._id || rev.userId)?.toString() ===
+        rev.user?._id?.toString() ===
         authUser?._id?.toString();
 
       // Đúng Product ID
       const isCorrectProduct =
-        rev.productId?.toString() === productId?.toString();
+        rev.product?._id?.toString() === productId?.toString();
 
       return isCorrectUser && isCorrectProduct;
     });
@@ -84,10 +84,6 @@ const ReviewsContainer = () => {
   };
 
   const updateHandler = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
     if (existingReview) {
       setComment(existingReview.comment);
       setRating(existingReview.rating);
@@ -178,19 +174,19 @@ const ReviewsContainer = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <img
-                      src={`https://ui-avatars.com/api/?name=${rev.userName}&background=77cd3a&color=fff&rounded=true`}
+                      src={`https://ui-avatars.com/api/?name=${rev.user.name}&background=77cd3a&color=fff&rounded=true`}
                       className="w-10 h-10 rounded-xl object-cover grayscale group-hover:grayscale-0 transition-all duration-500 shadow-sm"
                       alt="avatar"
                     />
                     <div>
                       <h5 className="text-sm font-bold dark:text-white tracking-tight">
-                        {rev.userName}
+                        {rev.user.name}
                       </h5>
                       <p className="text-[10px] text-gray-400 uppercase tracking-widest">
-                        {rev.userId === authUser?._id && "Your Review"}
+                        {rev.user._id === authUser?._id && "Your Review"}
                       </p>
-                      {rev.userId === authUser?._id &&
-                        rev.productId === productId && (
+                      {rev.user._id === authUser?._id &&
+                        rev.product._id === productId && (
                           <button
                             onClick={() => updateHandler()}
                             className="text-[10px] text-[#77cd3a] font-bold uppercase hover:underline flex items-center gap-1"
