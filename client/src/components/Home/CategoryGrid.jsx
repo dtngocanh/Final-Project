@@ -1,27 +1,51 @@
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-// import { categories } from "../../data/products"; 
+import { useDispatch, useSelector } from "react-redux";
+import { fetchCategories } from "../../store/slices/categorySlice";
 
 const CategoryGrid = () => {
-  // Mock data tiếng Anh nếu bạn chưa đổi trong file data
-  const categories = [
-    { id: 1, name: "Apple", image: "/apple.png" },
-    { id: 2, name: "Melon", image: "/melon.png" },
-    { id: 3, name: "Meat", image: "/meat.png" },
-    { id: 4, name: "Pear", image: "/pear.png" },
-  ];
+  
+  const categoryImages = {
+    Apple: "/apple.png",
+    Melon: "/melon.png",
+    Meat: "/meat.png",
+    Pear: "/pear.png",
+    Fruits: "/berry.png",
+    Seafood: "/seafood.png",
+    Juice: "/juice.png",
+    Milk: "/milk.png"
+  };
+
+  const dispatch = useDispatch();
+  const { products } = useSelector((state) => state.product);
+  const { categories } = useSelector((state) => state.category);
+
+  useEffect(() => {
+    dispatch(fetchCategories());
+  }, [dispatch]);
+
+  const displayCat = useMemo(() => {
+    if (!categories || !products) return [];
+    return categories
+      .filter((cat) => {
+        const count = products.filter(
+          (p) => String(p.category?._id).trim() === String(cat._id).trim(),
+        ).length;
+        return count > 2;
+      })
+      .slice(0, 8);
+  }, [categories, products]);
+  if (displayCat.length === 0) return null;
 
   return (
     <section className="relative py-24 bg-white dark:bg-[#0a0a0a] transition-colors duration-700 overflow-hidden">
-
       {/* Glow Orbs */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
         <div className="absolute top-[10%] left-[5%] w-64 h-64 bg-[#77cd3a]/10 rounded-full blur-[120px] dark:opacity-20" />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
-
         {/* HEADER: MINIMAL ENGLISH STYLE */}
         <div className="flex flex-col items-center mb-20 text-center">
           <motion.div
@@ -50,26 +74,25 @@ const CategoryGrid = () => {
 
         {/* GRID LAYOUT */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {categories.map((category, index) => (
+          {displayCat.map((cat, index) => (
             <motion.div
-              key={category.id}
+              key={cat._id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1, duration: 0.6 }}
               viewport={{ once: true }}
             >
               <Link
-                to={`/products?subcategory=${category.name}`}
+                to={`/products?subCatId=${cat._id}`}
                 className="group relative block"
               >
                 {/* CARD BOX */}
                 <div className="relative aspect-square overflow-hidden bg-white dark:bg-[#111] border border-gray-100 dark:border-white/5 rounded-2xl p-8 transition-all duration-500 group-hover:border-[#77cd3af2]/40 group-hover:shadow-[0_0_50px_rgba(119,205,58,0.1)]">
-
                   {/* Image Container */}
                   <div className="relative h-[85%] w-full flex items-center justify-center">
                     <motion.img
-                      src={category.image}
-                      alt={category.name}
+                      src={cat.image || categoryImages[cat.name] || "image"}
+                      alt={cat.name}
                       className="max-h-full max-w-full object-contain drop-shadow-2xl"
                       whileHover={{ scale: 1.12, rotate: 5 }}
                       transition={{ type: "spring", stiffness: 200 }}
@@ -79,7 +102,7 @@ const CategoryGrid = () => {
                   {/* Label & Line */}
                   <div className="absolute bottom-8 left-8 right-8 flex items-center justify-between">
                     <span className="text-lg font-light tracking-wide text-gray-800 dark:text-gray-200 group-hover:text-[#77cd3a] transition-colors duration-300">
-                      {category.name}
+                      {cat.name}
                     </span>
 
                     {/* Animated Line */}
@@ -108,8 +131,19 @@ const CategoryGrid = () => {
               View All Categories
             </span>
             <div className="w-6 h-6 rounded-full bg-white dark:bg-[#0a0a0a] flex items-center justify-center group-hover:translate-x-2 transition-transform duration-500">
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className="stroke-black dark:stroke-white">
-                <path d="M1 11L11 1M11 1H1M11 1V11" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 12 12"
+                fill="none"
+                className="stroke-black dark:stroke-white"
+              >
+                <path
+                  d="M1 11L11 1M11 1H1M11 1V11"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </div>
           </Link>

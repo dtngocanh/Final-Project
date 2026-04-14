@@ -1,31 +1,27 @@
 import mongoose from "mongoose";
-
-const reviewSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
-    },
-    name: String,
-    rating: Number,
-    comment: String,
-  },
-  { timestamps: true },
-);
-
 const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
+      trim: true,
     },
     description: String,
     price: {
       type: Number,
       required: true,
     },
-    category: String,
-    subcategory: String,
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "category",
+      required: true,
+    },
+    images: [
+      {
+        public_id: String,
+        url: String,
+      },
+    ],
 
     ratings: {
       type: Number,
@@ -35,34 +31,19 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-
-    images: [
-      {
-        public_id: String,
-        url: String,
-      },
-    ],
-
     stock: {
       type: Number,
       required: true,
     },
 
-    reviews: [reviewSchema],
-
-    details: {
-      selection: String, 
-      availability: String, 
-      storage: String, 
-      preparation: String, 
-      waysToEat: String, 
-      cookingMethods: [String], //  ["Boil", "Roast"]
-      nutritionSummary: String,
-      fullDescription: String, 
-    },
+    tags: [{ type: String, index: true }],
+    salesCount: { type: Number, default: 0 },
+    viewCount: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
+
+productSchema.index({ name: "text", description: "text", tags: "text" });
 
 const Product =
   mongoose.models.product || mongoose.model("product", productSchema);

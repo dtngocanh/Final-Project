@@ -14,6 +14,7 @@ import addressRouter from "./routes/addressRoute.js";
 import orderRouter from "./routes/orderRoute.js";
 import paymentRouter from './routes/paymentRoute.js';
 import aiRouter from "./routes/aiRoute.js";
+import categoryRouter from "./routes/categoryRoute.js";
 
 // Import Controllers & Middlewares
 import { stripeWebhook } from './controllers/stripeController.js';
@@ -63,6 +64,7 @@ app.use("/api/cart", cartRouter);
 app.use("/api/address", addressRouter);
 app.use("/api/order", orderRouter);
 app.use("/api/payment", paymentRouter);
+app.use("/api/category",categoryRouter);
 app.use("/api/ai", aiRouter);
 
 // 6. Xử lý lỗi tập trung

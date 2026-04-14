@@ -6,9 +6,11 @@ import { toast } from "react-toastify";
 // Connected API
 export const fetchAllProducts = createAsyncThunk(
   "product/fetchAllProducts",
-  async (_, thunkAPI) => {
+  async (fileterParams, thunkAPI) => {
     try {
-      const res = await axiosInstance.get("/product/list");
+      const res = await axiosInstance.get("/product/list", {
+        params: fileterParams,
+      });
       return res.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(

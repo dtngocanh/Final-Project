@@ -6,7 +6,7 @@ import {
   productById,
   changeStock,
   importProducts,
-  handleInteraction,
+
 } from "../controllers/productController.js";
 
 import authSeller from "../middlewares/authSeller.js";
@@ -28,6 +28,6 @@ productRouter.post("/stock", authSeller, changeStock);
 //upload product list
 productRouter.post("/import", authSeller, importProducts);
 
-productRouter.post("/track-click", handleInteraction);
+// productRouter.post("/track-click", handleInteraction);
 
 export default productRouter;

@@ -1,10 +1,12 @@
 import { v2 as cloudinary } from "cloudinary";
 import Product from "../models/Product.js";
+import Category from "../models/Category.js";
 import XLSX from "xlsx";
 import ErrorHandler from "../utils/errorHandler.js";
 import axios from "axios";
-import Interaction from "../models/Interaction.js";
-//[POST] api/product/add
+/**
+ * @route [POST] api/product/add
+ */
 export const addProduct = async (req, res, next) => {
   try {
     const productData = JSON.parse(req.body.productData);
@@ -36,24 +38,52 @@ export const addProduct = async (req, res, next) => {
   }
 };
 
-//[GET] api/product/list
-export const productList = async (req, res) => {
+/**
+ * @route [GET] api/product/list
+ */
+export const productList = async (req, res, next) => {
   try {
-    const count = await Product.countDocuments();
-    const products = await Product.aggregate([{ $sample: { size: count } }]);
+    // Extract query parameters from the request
+    const { categoryId, search } = req.query;
+    let query = {};
 
+    // Handle text-based search filtering
+    if (search) {
+      // Use $regex for partial match and "i" for case-insensitive search
+      query.name = { $regex: search, $options: "i" };
+    }
+
+    // Handle category-based filtering (including subcategories)
+    if (categoryId) {
+      // Find the selected category and all its descendants using the path field
+      const subCategories = await Category.find({
+        $or: [{ _id: categoryId }, { path: new RegExp(`,${categoryId},`) }],
+      }).select("_id");
+
+      // Extract only the IDs into an array for the query
+      const categoryIds = subCategories.map((cat) => cat._id);
+
+      // Filter products that belong to any of the found category IDs
+      query.category = { $in: categoryIds };
+    }
+
+    // Execute the database query with population and sorting
+    const products = await Product.find(query)
+      .populate("category", "name parent level")
+      .sort({ createdAt: -1 });
+
+    // Return the response to the client
     res.json({
       success: true,
+      count: products.length,
       products,
     });
   } catch (error) {
-    console.log(error.message);
-    res.json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 /**
- * @description Get product details along with AI-based similar products and recipe suggestions
  * @route [GET] api/product/:id
  */
 export const productById = async (req, res, next) => {
@@ -294,17 +324,17 @@ export const importProducts = async (req, res) => {
   }
 };
 
-export const handleInteraction = async (req, res, next) => {
-  const { userId, productId } = req.body;
-  try {
-    const newInteraction = new Interaction({
-      userId,
-      productId,
-      type: "click",
-    });
-    await newInteraction.save();
-    res.status(200).send("Click tracked");
-  } catch (err) {
-    next(err);
-  }
-};
+// export const handleInteraction = async (req, res, next) => {
+//   const { userId, productId } = req.body;
+//   try {
+//     const newInteraction = new Interaction({
+//       userId,
+//       productId,
+//       type: "click",
+//     });
+//     await newInteraction.save();
+//     res.status(200).send("Click tracked");
+//   } catch (err) {
+//     next(err);
+//   }
+// };
