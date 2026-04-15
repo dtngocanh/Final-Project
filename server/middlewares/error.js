@@ -6,7 +6,7 @@ export const errorMiddleware = (err, req, res, next) => {
 
     // 1. Handle Mongoose Bad Object ID
     if (err.name === "CastError") {
-        err = new ErrorHandler(`Resourse not found. Invalid: $ {err.path}`, 400);
+        err = new ErrorHandler(`Resourse not found. Invalid: ${err.path}`, 400);
     }
 
     // 2. Handle Mongoose Duplicate Key Error

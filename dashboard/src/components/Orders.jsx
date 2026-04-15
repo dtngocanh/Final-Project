@@ -68,7 +68,7 @@ const Orders = () => {
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
               {loading ? (
-                <tr><td colSpan="5" className="text-center py-20 text-[#77cd3af2] animate-pulse font-bold">Syncing...</td></tr>
+                <tr><td colSpan="5" className="text-center py-20 text-[#77cd3af2] animate-pulse font-bold">LOADING ORDERS...</td></tr>
               ) : filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
                   <tr key={order._id} className="hover:bg-white group transition-all duration-300">

@@ -1,5 +1,5 @@
 import React from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toggleViewProductModal } from "../store/slices/extraSlice";
 import { 
   X, Calendar, Tag, Box, Star, 
@@ -10,7 +10,6 @@ import FloatingVegetables from "../components/Fruit/FloatingVegetables";
 
 const ViewProductModal = ({ selectedProduct }) => {
   const dispatch = useDispatch();
-
   if (!selectedProduct) return null;
 
   return (
@@ -106,7 +105,7 @@ const ViewProductModal = ({ selectedProduct }) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50/50 p-4 rounded-[25px] flex items-center gap-3">
                     <Tag className="text-[#77cd3af2]" size={18} />
-                    <span className="text-xs font-bold text-gray-600 uppercase tracking-tight">{selectedProduct.category}</span>
+                    <span className="text-xs font-bold text-gray-600 uppercase tracking-tight">{selectedProduct.category?.name}</span>
                   </div>
                   <div className="bg-gray-50/50 p-4 rounded-[25px] flex items-center gap-3">
                     <Star className="text-yellow-400 fill-yellow-400" size={18} />
@@ -131,7 +130,7 @@ const ViewProductModal = ({ selectedProduct }) => {
                     <span className="flex items-center gap-2"><Box size={14}/> ID: {selectedProduct._id || selectedProduct.id}</span>
                     <span className="flex items-center gap-2">
                       <Calendar size={14}/> 
-                      Added: {selectedProduct.created_at ? new Date(selectedProduct.created_at).toLocaleDateString() : 'N/A'}
+                      Added: {selectedProduct.createdAt ? new Date(selectedProduct.createdAt).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 </div>

@@ -6,7 +6,8 @@ import {
   productById,
   changeStock,
   importProducts,
-
+  deleteProduct,
+  updateProduct,
 } from "../controllers/productController.js";
 
 import authSeller from "../middlewares/authSeller.js";
@@ -27,6 +28,17 @@ productRouter.post("/stock", authSeller, changeStock);
 
 //upload product list
 productRouter.post("/import", authSeller, importProducts);
+
+//delete a product
+productRouter.delete("/delete/:id", authSeller, deleteProduct);
+
+//update a product
+productRouter.patch(
+  "/:id",
+  upload.array("images", 3),
+  authSeller,
+  updateProduct,
+);
 
 // productRouter.post("/track-click", handleInteraction);
 
