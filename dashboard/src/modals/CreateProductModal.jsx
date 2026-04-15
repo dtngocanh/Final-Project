@@ -19,31 +19,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import FloatingVegetables from "../components/Fruit/FloatingVegetables";
 
 const CreateProductModal = () => {
-  const { loading } = useSelector((state) => state.product);
   const dispatch = useDispatch();
+  const { loading } = useSelector((state) => state.product);
+  const { categories, selectedCategory } = useSelector(
+    (state) => state.category,
+  );
+
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
-    category: "Fruits",
+    category: "",
     stock: "",
   });
 
-  // Quản lý file ảnh và link xem trước
   const [images, setImages] = useState([]);
   const [previews, setPreviews] = useState([]);
 
-  const categoryOptions = [
-    "Fruits",
-    "Vegetables",
-    "Packages",
-    "Meats",
-    "Seafoods",
-  ];
-
-  // Xử lý khi chọn ảnh (tối đa 3 ảnh)
   const handleImageChange = (e) => {
     const newFiles = Array.from(e.target.files);
     setImages((prevImages) => {
@@ -193,7 +187,7 @@ const CreateProductModal = () => {
             />
           </div>
 
-          <div className="relative">
+          <div className="relative text-gray-500">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#77cd3af2]">
               {getCategoryIcon(formData.category)}
             </div>
@@ -204,9 +198,10 @@ const CreateProductModal = () => {
                 setFormData({ ...formData, category: e.target.value })
               }
             >
-              {categoryOptions.map((cat, idx) => (
-                <option key={idx} value={cat}>
-                  {cat}
+              <option value="">Select Category</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>
+                  {cat.name}
                 </option>
               ))}
             </select>

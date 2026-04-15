@@ -152,7 +152,9 @@ export const productById = async (req, res, next) => {
   }
 };
 
-//[DELETE] api/product/delete/:id
+/**
+ * @route [DELETE] api/product/delete/:id
+ */
 export const deleteProduct = async (req, res, next) => {
   try {
     const id = req.params.id;
@@ -174,6 +176,70 @@ export const deleteProduct = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Product and associated images deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ *
+ * @route [PATCH] api/product/:id
+ */
+export const updateProduct = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    let product = await Product.findById(id);
+
+    if (!product) {
+      return next(new ErrorHandler("Product not found", 404));
+    }
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!req.body.productData) {
+      return next(new ErrorHandler("Missing product data", 400));
+    }
+
+    const data = JSON.parse(req.body.productData);
+    const images = req.files;
+
+    if (images && images.length > 0) {
+      // 1. Xóa ảnh cũ trên Cloudinary
+      if (product.images && product.images.length > 0) {
+        await Promise.all(
+          product.images.map((img) =>
+            cloudinary.uploader.destroy(img.public_id),
+          ),
+        );
+      }
+
+      // 2. Upload ảnh mới
+      const newImagesUrl = await Promise.all(
+        images.map(async (i) => {
+          const rs = await cloudinary.uploader.upload(i.path, {
+            resource_type: "image",
+            folder: "GroceryImg/Product",
+          });
+          return {
+            public_id: rs.public_id,
+            url: rs.secure_url,
+          };
+        }),
+      );
+      data.images = newImagesUrl;
+    }
+
+    // 3. Cập nhật Database
+    product = await Product.findByIdAndUpdate(
+      id,
+      { $set: data },
+      { new: true, runValidators: true },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Product Updated Successfully",
+      product,
     });
   } catch (error) {
     next(error);
@@ -323,18 +389,3 @@ export const importProducts = async (req, res) => {
     });
   }
 };
-
-// export const handleInteraction = async (req, res, next) => {
-//   const { userId, productId } = req.body;
-//   try {
-//     const newInteraction = new Interaction({
-//       userId,
-//       productId,
-//       type: "click",
-//     });
-//     await newInteraction.save();
-//     res.status(200).send("Click tracked");
-//   } catch (err) {
-//     next(err);
-//   }
-// };
