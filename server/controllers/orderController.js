@@ -1,88 +1,47 @@
-import { model } from "mongoose";
 import Order from "../models/Order.js";
+import User from "../models/User.js";
 
 import ErrorHandler from "../utils/errorHandler.js";
-// export const placeOrderCOD = async (req, res) => {
-//     try {
-//         const userId = req.user._id;
-//         const { selectedItems, shippingInfo } = req.body;
 
-//         // 1. Lấy cart
-//         const cart = await Cart.findOne({ user: userId });
+export const placeOrderCOD = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
 
-//         if (!cart) {
-//             return res.status(404).json({
-//                 success: false,
-//                 message: "Cart not found"
-//             });
-//         }
+    const { orderItems, shippingInfo, itemsPrice, shippingPrice, totalPrice } =
+      req.body;
 
-//         // 2. Lọc item được chọn
-//         const selectedCartItems = cart.cartItems.filter(item =>
-//             selectedItems.includes(item._id.toString())
-//         );
+    if (!orderItems || orderItems.length === 0) {
+      return next(new ErrorHandler("No items found in your order", 400));
+    }
 
-//         if (selectedCartItems.length === 0) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "No items selected"
-//             });
-//         }
+    const order = await Order.create({
+      user: userId,
+      orderItems,
+      shippingInfo,
+      paymentInfo: {
+        method: "COD",
+        status: "Pending",
+        // paidAt: bỏ trống, sẽ cập nhật khi giao hàng thành công
+      },
+      itemsPrice,
+      shippingPrice,
+      totalPrice,
+      orderStatus: "Processing",
+    });
 
-//         // 3. Convert sang orderItems
-//         const orderItems = selectedCartItems.map(item => ({
-//             product: item.product,
-//             name: item.name,
-//             price: item.price,
-//             quantity: item.quantity,
-//             image: item.image
-//         }));
+    if (userId && userId !== "GUEST_USER") {
+      await User.findByIdAndUpdate(userId, { $set: { cartItems: [] } });
+    }
 
-//         // 4. Tính giá
-//         const itemsPrice = orderItems.reduce(
-//             (acc, item) => acc + item.price * item.quantity,
-//             0
-//         );
-
-//         const shippingPrice = itemsPrice > 500000 ? 0 : 30000;
-//         const totalPrice = itemsPrice + shippingPrice;
-
-//         // 5. Tạo order
-//         const order = await Order.create({
-//             buyer: userId,
-//             orderItems,
-//             shippingInfo,
-//             paymentInfo: {
-//                 paymentType: "COD",
-//                 paymentStatus: "Pending"
-//             },
-//             itemsPrice,
-//             shippingPrice,
-//             totalPrice,
-//             orderStatus: "Pending"
-//         });
-
-//         // 6. XÓA CHỈ NHỮNG ITEM ĐÃ ORDER
-//         cart.cartItems = cart.cartItems.filter(item =>
-//             !selectedItems.includes(item._id.toString())
-//         );
-
-//         await cart.save();
-
-//         res.status(201).json({
-//             success: true,
-//             message: "Order placed with selected items",
-//             order
-//         });
-
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({
-//             success: false,
-//             message: error.message
-//         });
-//     }
-// };
+    res.status(201).json({
+      success: true,
+      message: "Order placed successfully with Cash on Delivery",
+      order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // get orders for user
 export const getUserOrders = async (req, res) => {

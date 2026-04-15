@@ -2,7 +2,6 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { axiosInstance } from "../../lib/axios";
 import { toast } from "react-hot-toast";
 
-
 export const fetchMyOrders = createAsyncThunk(
   "order/fetchMyOrders",
   async (_, thunkAPI) => {
@@ -12,17 +11,23 @@ export const fetchMyOrders = createAsyncThunk(
     } catch (error) {
       return thunkAPI.rejectWithValue(error.response.data.message);
     }
-  }
+  },
 );
 
 export const placeOrder = createAsyncThunk(
   "order/placeOrder",
   async (orderData, thunkAPI) => {
     try {
-      const res = await axiosInstance.post("/payment/create-session", orderData);
+      const isCOD = orderData.paymentMethod === "COD";
 
-      if (res.data.url) {
+      const endpoint = isCOD ? "/order/new" : "/payment/create-session";
+
+      const res = await axiosInstance.post(endpoint, orderData);
+
+      if (!isCOD && res.data.url) {
         window.location.href = res.data.url;
+      } else if (isCOD) {
+        return res.data;
       }
       return res.data;
     } catch (error) {
@@ -30,19 +35,24 @@ export const placeOrder = createAsyncThunk(
       toast.error(errorMsg);
       return thunkAPI.rejectWithValue(errorMsg);
     }
-  }
+  },
 );
 
-export const cancelOrder = createAsyncThunk("order/cancelOrder", async (id, thunkAPI) => {
-  try {
-    const res = await axiosInstance.post("/order/cancel", { orderId: id });
-    if (res.data.success) {
-        return id; 
+export const cancelOrder = createAsyncThunk(
+  "order/cancelOrder",
+  async (id, thunkAPI) => {
+    try {
+      const res = await axiosInstance.post("/order/cancel", { orderId: id });
+      if (res.data.success) {
+        return id;
+      }
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Something went wrong",
+      );
     }
-  } catch (error) {
-    return thunkAPI.rejectWithValue(error.response?.data?.message || "Something went wrong");
-  }
-})
+  },
+);
 const orderSlice = createSlice({
   name: "order",
   initialState: {
@@ -50,8 +60,8 @@ const orderSlice = createSlice({
     fetchingOrders: false,
     placingOrder: false, // USE FOR BUTTON
     activeStep: 0,
-    shippingInfo: localStorage.getItem('shippingInfo')
-      ? JSON.parse(localStorage.getItem('shippingInfo'))
+    shippingInfo: localStorage.getItem("shippingInfo")
+      ? JSON.parse(localStorage.getItem("shippingInfo"))
       : {},
     error: null,
   },
@@ -61,14 +71,14 @@ const orderSlice = createSlice({
     },
     saveShippingInfo: (state, action) => {
       state.shippingInfo = action.payload;
-      localStorage.setItem('shippingInfo', JSON.stringify(action.payload));
+      localStorage.setItem("shippingInfo", JSON.stringify(action.payload));
     },
     clearErrors: (state) => {
       state.error = null;
     },
     resetOrder: (state) => {
       state.activeStep = 0;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -95,15 +105,15 @@ const orderSlice = createSlice({
       // Handle successful order cancellation
       .addCase(cancelOrder.fulfilled, (state, action) => {
         //Find the index of the cancelled order in the local state
-        const i = state.myOrders.findIndex(o => o._id === action.payload);
+        const i = state.myOrders.findIndex((o) => o._id === action.payload);
         // If found, update its status locally to reflect changes immediately
         if (i !== -1) {
           state.myOrders[i].orderStatus = "Canceled";
         }
-      })
-      ;
+      });
   },
 });
 
-export const { setOrderStep, saveShippingInfo, clearErrors, resetOrder } = orderSlice.actions;
+export const { setOrderStep, saveShippingInfo, clearErrors, resetOrder } =
+  orderSlice.actions;
 export default orderSlice.reducer;

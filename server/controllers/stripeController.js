@@ -69,11 +69,13 @@ const processOrder = async (session) => {
             shippingInfo: parsedShipping,
             paymentInfo: {
                 id: session.payment_intent || session.id,
-                status: "Paid"
+                status: "Paid",
+                paidAt: new Date(),
+                method: "Stripe"
             },
             itemsPrice: session.amount_subtotal / 100,
             totalPrice: session.amount_total / 100,
-            paidAt: new Date(),
+            // paidAt: new Date(),
         };
 
         // --- LƯU DATABASE ---
