@@ -34,7 +34,7 @@ const Products = () => {
   const [filters, setFilters] = useState(initialFilters);
 
   // Redux Store
-  const { products, isLoading } = useSelector((state) => state.product);
+  const { products, loading } = useSelector((state) => state.product);
   const { categories, selectedCategory } = useSelector(
     (state) => state.category,
   );
@@ -186,25 +186,38 @@ const Products = () => {
         <section className="min-h-[500px]">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
             <AnimatePresence mode="popLayout">
-              {filteredProducts.map((product) => (
+              {loading ? (
                 <motion.div
-                  key={product._id}
-                  layout
+                  key="loader"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
+                  className="flex justify-center items-center py-40 text-center col-span-full"
                 >
-                  <ProductCard product={product} />
+                  <p className="text-[11px] font-bold uppercase tracking-[0.5em] text-[#77cd3a] animate-pulse">
+                    Harvesting{" "}
+                    <span className="italic lowercase text-gray-400">
+                      our products
+                    </span>
+                    ...
+                  </p>
                 </motion.div>
-              ))}
+              ) : (
+                filteredProducts.map((product) => (
+                  <motion.div
+                    key={product._id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <ProductCard product={product} />
+                  </motion.div>
+                ))
+              )}
             </AnimatePresence>
           </div>
-          {filteredProducts.length === 0 && (
-            <p className="text-center py-20 font-serif italic text-gray-500 text-xl">
-              Quietness... No products found.
-            </p>
-          )}
         </section>
 
         <Pagination currentPage={1} totalPages={3} onPageChange={() => {}} />

@@ -8,13 +8,25 @@ export const useCartActions = () => {
   const handleCartAction = (product, type, change = 1) => {
     let newCart = [...cart];
 
-    if (type === 'ADD') {
-      const existingItem = newCart.find(item => item.product._id === product._id);
+    const stockAvailable = Number(product.stock) || 0;
+
+    if (type === "ADD") {
+      const existingItem = newCart.find(
+        (item) => item.product._id === product._id,
+      );
+      const currentQty = existingItem ? existingItem.quantity : 0;
+      const nextQty = currentQty + change;
+
+      if (nextQty > stockAvailable) {
+        toast.error(`Sorry, we only have ${stockAvailable} items in stock.`);
+        return;
+      }
+
       if (existingItem) {
-        newCart = newCart.map(item =>
+        newCart = newCart.map((item) =>
           item.product._id === product._id
-            ? { ...item, quantity: item.quantity + change }
-            : item
+            ? { ...item, quantity: nextQty }
+            : item,
         );
       } else {
         newCart.push({ product, quantity: change });
@@ -34,22 +46,38 @@ export const useCartActions = () => {
           position: "top-right",
           autoClose: 2000,
           icon: false,
-          className: "border-l-4 border-[#77cd3a] rounded-xl shadow-2xl dark:bg-[#1a1a1a] dark:text-white bg-white text-gray-800",
+          className:
+            "border-l-4 border-[#77cd3a] rounded-xl shadow-2xl dark:bg-[#1a1a1a] dark:text-white bg-white text-gray-800",
           progressClassName: "bg-[#77cd3a]",
-        }
+        },
       );
     }
 
-    if (type === 'REMOVE') {
-      newCart = newCart.filter(item => item.product._id !== product._id);
+    if (type === "REMOVE") {
+      newCart = newCart.filter((item) => item.product._id !== product._id);
     }
 
-    if (type === 'UPDATE_QTY') {
-      newCart = newCart.map(item =>
-        item.product._id === product._id
-          ? { ...item, quantity: item.quantity + change }
-          : item
-      ).filter(item => item.quantity > 0);
+    if (type === "UPDATE_QTY") {
+      const targetItem = newCart.find(
+        (item) => item.product._id === product._id,
+      );
+
+      if (targetItem) {
+        const nextQty = targetItem.quantity + change;
+
+        if (change > 0 && nextQty > stockAvailable) {
+          toast.error(`Sorry, we only have ${stockAvailable} items in stock.`);
+          return;
+        }
+
+        newCart = newCart
+          .map((item) =>
+            item.product._id === product._id
+              ? { ...item, quantity: nextQty }
+              : item,
+          )
+          .filter((item) => item.quantity > 0);
+      }
     }
 
     dispatch(updateCart(newCart));

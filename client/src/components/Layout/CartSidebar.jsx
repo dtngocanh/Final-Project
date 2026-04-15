@@ -8,7 +8,6 @@ const CartSidebar = () => {
   const navigate = useNavigate();
   const { isCartOpen } = useSelector((state) => state.popup);
   const { cart } = useSelector((state) => state.cart);     // 1. Lấy giỏ hàng hiện tại từ Redux
-  // console.log(cart);
 
   const { theme } = useSelector((state) => state.auth);
 

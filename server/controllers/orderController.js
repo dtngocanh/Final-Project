@@ -1,4 +1,5 @@
 import Order from "../models/Order.js";
+import Product from "../models/Product.js";
 import User from "../models/User.js";
 
 import ErrorHandler from "../utils/errorHandler.js";
@@ -28,6 +29,20 @@ export const placeOrderCOD = async (req, res, next) => {
       totalPrice,
       orderStatus: "Processing",
     });
+
+    const updateProductOps = orderItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product }, 
+        update: {
+          $inc: { 
+            stock: -item.quantity,    
+            salesCount: item.quantity 
+          },
+        },
+      },
+    }));
+
+    await Product.bulkWrite(updateProductOps);
 
     if (userId && userId !== "GUEST_USER") {
       await User.findByIdAndUpdate(userId, { $set: { cartItems: [] } });
