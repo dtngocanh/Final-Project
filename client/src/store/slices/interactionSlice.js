@@ -4,11 +4,11 @@ import { toast } from "react-toastify";
 
 export const trackClickThunk = createAsyncThunk(
   "interaction/trackClick",
-  async ({ productId }, { rejectWithValue }) => {
+  async ({ productId, action }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post("/interaction/track", {
         productId,
-        action: "click",
+        action,
       });
       return response.data;
     } catch (error) {

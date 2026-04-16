@@ -196,7 +196,7 @@ const OrderDetail = () => {
                   className="flex flex-col sm:flex-row sm:items-center gap-6 bg-gray-50/40 dark:bg-white/[0.01] backdrop-blur-sm rounded-[30px] p-5 border border-gray-100 dark:border-white/5 group transition-all"
                 >
                   <Link
-                    to={`/product/${item.product}`}
+                    to={`/product/${item.product._id}`}
                     className="w-24 h-24 rounded-2xl bg-white dark:bg-black overflow-hidden shadow-inner border border-gray-100 dark:border-white/5 flex-shrink-0"
                   >
                     <img
@@ -208,7 +208,7 @@ const OrderDetail = () => {
 
                   <div className="flex-1">
                     <Link
-                      to={`/product/${item.product}`}
+                      to={`/product/${item.product._id}`}
                       className="text-md font-bold dark:text-white uppercase tracking-tight hover:text-[#77cd3a] transition-colors"
                     >
                       {item.name}

@@ -1,6 +1,8 @@
 import { useDispatch, useSelector } from "react-redux";
 import { updateCart } from "../store/slices/cartSlice";
 import { toast } from "react-toastify";
+import { trackClickThunk } from "../store/slices/interactionSlice";
+
 export const useCartActions = () => {
   const dispatch = useDispatch();
   const { cart } = useSelector((state) => state.cart);
@@ -11,6 +13,12 @@ export const useCartActions = () => {
     const stockAvailable = Number(product.stock) || 0;
 
     if (type === "ADD") {
+      dispatch(
+        trackClickThunk({
+          productId: product._id,
+          action: "add_to_cart",
+        }),
+      );
       const existingItem = newCart.find(
         (item) => item.product._id === product._id,
       );
