@@ -13,6 +13,8 @@ import {
   Phone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { clearCart } from "../store/slices/cartSlice";
+import Swal from "sweetalert2";
 
 const Checkout = () => {
   const dispatch = useDispatch();
@@ -36,6 +38,7 @@ const Checkout = () => {
   });
 
   const [paymentMethod, setPaymentMethod] = useState("Stripe");
+  const [errors, setErrors] = useState({});
 
   const subtotal =
     cart?.reduce((acc, item) => acc + item.product.price * item.quantity, 0) ||
@@ -49,13 +52,24 @@ const Checkout = () => {
 
   const handleNext = () => {
     if (activeStep === 0) {
-      if (
-        !shippingDetails.address ||
-        !shippingDetails.city ||
-        !shippingDetails.phone
-      ) {
-        return alert("Please fill all shipping details");
+      const newErrors = {};
+      const { fullName, email, address, city, phone, country } =
+        shippingDetails;
+
+      if (!fullName?.trim()) newErrors.fullName = "Full name is required";
+      if (!email?.trim()) newErrors.email = "Email is required";
+      if (!address?.trim()) newErrors.address = "Address is required";
+      if (!city?.trim()) newErrors.city = "City is required";
+      if (!phone?.trim()) newErrors.phone = "Phone number is required";
+      if (!country?.trim()) newErrors.country = "Phone number is required";
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
       }
+
+      setErrors({});
+
       dispatch(setOrderStep(1));
     } else {
       const orderData = {
@@ -75,6 +89,7 @@ const Checkout = () => {
       dispatch(placeOrder(orderData))
         .unwrap() // "Mở gói" để lấy payload trực tiếp hoặc nhảy vào .catch nếu lỗi
         .then(() => {
+          dispatch(clearCart());
           // Nếu là COD, backend trả về success: true, chúng ta navigate
           if (orderData.paymentMethod === "COD") {
             navigate("/success");
@@ -133,9 +148,22 @@ const Checkout = () => {
                       <input
                         name="fullName"
                         value={shippingDetails.fullName}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-[#77cd3a] transition-all"
+                        onChange={(e) => {
+                          handleInputChange(e);
+                          if (errors.fullName)
+                            setErrors({ ...errors, fullName: null });
+                        }}
+                        className={`w-full p-4 bg-slate-50 rounded-2xl outline-none transition-all border ${
+                          errors.fullName
+                            ? "border-red-300 ring-1 ring-red-100"
+                            : "border-transparent focus:ring-2 focus:ring-[#77cd3a]"
+                        }`}
                       />
+                      {errors.fullName && (
+                        <p className="text-[9px] text-red-400 ml-3 font-medium flex items-center gap-1 animate-pulse italic">
+                          * {errors.fullName}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
@@ -144,9 +172,22 @@ const Checkout = () => {
                       <input
                         name="email"
                         value={shippingDetails.email}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-[#77cd3a] transition-all"
+                        onChange={(e) => {
+                          handleInputChange(e);
+                          if (errors.email)
+                            setErrors({ ...errors, email: null });
+                        }}
+                        className={`w-full p-4 bg-slate-50 rounded-2xl outline-none transition-all border ${
+                          errors.email
+                            ? "border-red-300 ring-1 ring-red-100"
+                            : "border-transparent focus:ring-2 focus:ring-[#77cd3a]"
+                        }`}
                       />
+                      {errors.email && (
+                        <p className="text-[9px] text-red-400 ml-3 font-medium flex items-center gap-1 animate-pulse italic">
+                          * {errors.email}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
@@ -154,11 +195,24 @@ const Checkout = () => {
                       </label>
                       <input
                         name="phone"
+                        // required
                         value={shippingDetails.phone}
-                        onChange={handleInputChange}
-                        placeholder="Required"
-                        className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-[#77cd3a] transition-all"
+                        onChange={(e) => {
+                          handleInputChange(e);
+                          if (errors.phone)
+                            setErrors({ ...errors, phone: null });
+                        }}
+                        className={`w-full p-4 bg-slate-50 rounded-2xl outline-none transition-all border ${
+                          errors.phone
+                            ? "border-red-300 ring-1 ring-red-100"
+                            : "border-transparent focus:ring-2 focus:ring-[#77cd3a]"
+                        }`}
                       />
+                      {errors.phone && (
+                        <p className="text-[9px] text-red-400 ml-3 font-medium flex items-center gap-1 animate-pulse italic">
+                          * {errors.phone}
+                        </p>
+                      )}
                     </div>
                     <div className="md:col-span-2">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
@@ -166,10 +220,24 @@ const Checkout = () => {
                       </label>
                       <input
                         name="address"
+                        // required
                         value={shippingDetails.address}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-[#77cd3a] transition-all"
+                        onChange={(e) => {
+                          handleInputChange(e);
+                          if (errors.address)
+                            setErrors({ ...errors, address: null });
+                        }}
+                        className={`w-full p-4 bg-slate-50 rounded-2xl outline-none transition-all border ${
+                          errors.address
+                            ? "border-red-300 ring-1 ring-red-100"
+                            : "border-transparent focus:ring-2 focus:ring-[#77cd3a]"
+                        }`}
                       />
+                      {errors.address && (
+                        <p className="text-[9px] text-red-400 ml-3 font-medium flex items-center gap-1 animate-pulse italic">
+                          * {errors.address}
+                        </p>
+                      )}
                     </div>
                     <div className="md:col-span-2">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
@@ -178,9 +246,21 @@ const Checkout = () => {
                       <input
                         name="city"
                         value={shippingDetails.city}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-[#77cd3a] transition-all"
+                        onChange={(e) => {
+                          handleInputChange(e);
+                          if (errors.city) setErrors({ ...errors, city: null });
+                        }}
+                        className={`w-full p-4 bg-slate-50 rounded-2xl outline-none transition-all border ${
+                          errors.city
+                            ? "border-red-300 ring-1 ring-red-100"
+                            : "border-transparent focus:ring-2 focus:ring-[#77cd3a]"
+                        }`}
                       />
+                      {errors.city && (
+                        <p className="text-[9px] text-red-400 ml-3 font-medium flex items-center gap-1 animate-pulse italic">
+                          * {errors.city}
+                        </p>
+                      )}
                     </div>
                     <div className="md:col-span-2">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
@@ -188,10 +268,24 @@ const Checkout = () => {
                       </label>
                       <input
                         name="country"
+                        // required
                         value={shippingDetails.country}
-                        onChange={handleInputChange}
-                        className="w-full p-4 bg-slate-50 rounded-2xl outline-none focus:ring-2 focus:ring-[#77cd3a] transition-all"
+                        onChange={(e) => {
+                          handleInputChange(e);
+                          if (errors.country)
+                            setErrors({ ...errors, country: null });
+                        }}
+                        className={`w-full p-4 bg-slate-50 rounded-2xl outline-none transition-all border ${
+                          errors.country
+                            ? "border-red-300 ring-1 ring-red-100"
+                            : "border-transparent focus:ring-2 focus:ring-[#77cd3a]"
+                        }`}
                       />
+                      {errors.country && (
+                        <p className="text-[9px] text-red-400 ml-3 font-medium flex items-center gap-1 animate-pulse italic">
+                          * {errors.country}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </motion.div>

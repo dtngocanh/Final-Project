@@ -70,22 +70,30 @@ const Orders = () => {
     console.log(orderId);
 
     Swal.fire({
-      title:
-        '<span style="font-size: 18px; font-weight: 600; color: #4b5563;">Cancel this order?</span>',
-      html: '<p style="font-size: 13px; color: #9ca3af;">It’s okay, you can always order again later.</p>',
+      title: "Cancel Order?",
+      text: "This action cannot be undone. Are you sure you want to cancel?",
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Yes, cancel",
-      cancelButtonText: "Keep it",
-      background: "#ffffff",
-      width: "320px",
-      padding: "1.5rem",
-      buttonsStyling: false,
+      confirmButtonText: "Yes, Cancel it",
+      cancelButtonText: "Keep Order",
+      reverseButtons: true,
+      background: "#fff",
+      color: "#1f2937",
       customClass: {
-        popup: "shadow-2xl border border-gray-50",
+        popup: "rounded-3xl shadow-xl border border-gray-100",
+        title: "text-xl font-bold text-gray-800",
+        htmlContainer: "text-sm text-gray-500",
         confirmButton:
-          "mx-2 px-4 py-2 text-[11px] font-bold uppercase tracking-tight text-red-400 bg-white border border-red-100 rounded-full hover:bg-red-50 transition-all duration-300",
+          "px-6 py-2.5 mx-2 text-sm font-semibold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-all duration-200 shadow-md",
         cancelButton:
-          "mx-2 px-4 py-2 text-[11px] font-bold uppercase tracking-tight text-gray-400 bg-white border border-gray-100 rounded-full hover:bg-gray-50 transition-all duration-300",
+          "px-6 py-2.5 mx-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-200",
+      },
+      buttonsStyling: false,
+      showClass: {
+        popup: "animate__animated animate__fadeInUp animate__faster",
+      },
+      hideClass: {
+        popup: "animate__animated animate__fadeOutDown animate__faster",
       },
     }).then((result) => {
       if (result.isConfirmed) {
@@ -93,30 +101,29 @@ const Orders = () => {
           .unwrap()
           .then(() => {
             Swal.fire({
-              title:
-                '<span style="font-size: 13px; font-weight: 500; color: #6b7280; letter-spacing: 0.05em; text-transform: uppercase;">Success</span>',
-              timer: 1500,
+              icon: "success",
+              title: "Success",
+              text: "Your order has been canceled.",
+              timer: 2000,
               showConfirmButton: false,
-              width: "220px",
-              padding: "1.2rem",
-              background: "#ffffff",
-              borderRadius: "20px",
+              background: "#fff",
+              color: "#1f2937",
               customClass: {
-                popup: "shadow-sm border border-gray-100",
+                popup: "rounded-2xl shadow-lg border border-gray-100",
+                title: "text-lg font-bold text-green-600",
               },
             });
           })
           .catch((error) => {
             Swal.fire({
-              title: `<span style="font-size: 13px; font-weight: 500; color: #9ca3af; letter-spacing: 0.05em; text-transform: uppercase;">${error || "Error"}</span>`,
-              timer: 1500,
+              icon: "error",
+              title: "Oops...",
+              text: error || "Something went wrong!",
+              timer: 2500,
               showConfirmButton: false,
-              width: "220px",
-              padding: "1.2rem",
-              background: "#ffffff",
-              borderRadius: "20px",
+              background: "#fff",
               customClass: {
-                popup: "shadow-sm border border-gray-100",
+                popup: "rounded-2xl shadow-lg border border-gray-100",
               },
             });
           });

@@ -32,11 +32,11 @@ export const placeOrderCOD = async (req, res, next) => {
 
     const updateProductOps = orderItems.map((item) => ({
       updateOne: {
-        filter: { _id: item.product }, 
+        filter: { _id: item.product },
         update: {
-          $inc: { 
-            stock: -item.quantity,    
-            salesCount: item.quantity 
+          $inc: {
+            stock: -item.quantity,
+            salesCount: item.quantity,
           },
         },
       },
@@ -101,6 +101,21 @@ export const cancelOrder = async (req, res) => {
         message: "Cannot cancel this order",
       });
     }
+
+    const updateProductOps = order.orderItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: {
+          $inc: {
+            stock: item.quantity,
+            salesCount: -item.quantity,
+          },
+        },
+      },
+    }));
+
+    await Product.bulkWrite(updateProductOps);
+
     order.orderStatus = "Canceled";
     await order.save();
     res.status(200).json({ success: true, message: "Order canceled" });
@@ -126,6 +141,38 @@ export const getAllOrders = async (req, res, next) => {
       count: orders.length,
       orders,
       message: "Fetched orders successfully!",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route [GET] api/order/:id
+ * @description Get single order details
+ */
+export const getOrderDetails = async (req, res, next) => {
+  try {
+    // Populate 'user'
+    // Populate 'orderItems.product' 
+    const order = await Order.findById(req.params.id)
+      .populate("user", "name email")
+      .populate("orderItems.product", "name images price stock");
+
+    if (!order) {
+      return next(new ErrorHandler("No Order found with this ID", 404));
+    }
+
+    const userId = req.user._id;
+    // const userRole = req.user.role;
+
+    // if (userRole !== "admin" && order.user._id.toString() !== userId.toString()) {
+    //   return next(new ErrorHandler("You are not authorized to view this order", 401));
+    // }
+
+    res.status(200).json({
+      success: true,
+      order,
     });
   } catch (error) {
     next(error);
