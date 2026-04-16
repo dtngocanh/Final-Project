@@ -394,9 +394,20 @@ const Checkout = () => {
                       </div>
 
                       {/* Option: COD */}
-                      <div
+                      {/* <div
                         onClick={() => setPaymentMethod("COD")}
                         className={`relative p-6 rounded-3xl border-2 cursor-pointer transition-all ${
+                          paymentMethod === "COD"
+                            ? "border-[#77cd3a] bg-[#77cd3a]/5"
+                            : "border-slate-100 hover:border-slate-200 bg-slate-50/50"
+                        }`}
+                      > */}
+                      <div
+                        onClick={() => {
+                          console.log("CLICK COD");
+                          setPaymentMethod("COD");
+                        }}
+                        className={`relative z-10 p-6 rounded-3xl border-2 cursor-pointer transition-all ${
                           paymentMethod === "COD"
                             ? "border-[#77cd3a] bg-[#77cd3a]/5"
                             : "border-slate-100 hover:border-slate-200 bg-slate-50/50"

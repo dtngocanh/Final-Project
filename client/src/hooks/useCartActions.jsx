@@ -51,7 +51,7 @@ export const useCartActions = () => {
           </div>
         </div>,
         {
-          position: "top-right",
+          position: "bottom-right",
           autoClose: 2000,
           icon: false,
           className:
