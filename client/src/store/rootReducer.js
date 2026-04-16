@@ -7,6 +7,7 @@ import orderReducer from "./slices/orderSlice";
 import uiReducer from "./slices/uiSlice";
 import aiReducer from "./slices/aiSlice";
 import categoryReducer from "./slices/categorySlice";
+import interactionReducer from "./slices/interactionSlice";
 
 const appReducer = combineReducers({
   auth: authReducer,
@@ -16,7 +17,8 @@ const appReducer = combineReducers({
   order: orderReducer,
   ui: uiReducer,
   ai: aiReducer,
-  category: categoryReducer
+  category: categoryReducer,
+  interaction: interactionReducer
 });
 
 const rootReducer = (state, action) => {

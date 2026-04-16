@@ -19,6 +19,7 @@ import categoryRouter from "./routes/categoryRoute.js";
 // Import Controllers & Middlewares
 import { stripeWebhook } from './controllers/stripeController.js';
 import { errorMiddleware } from "./middlewares/error.js";
+import interactionRouter from "./routes/interactionRoute.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -65,6 +66,7 @@ app.use("/api/address", addressRouter);
 app.use("/api/order", orderRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/category",categoryRouter);
+app.use("/api/interaction", interactionRouter);
 app.use("/api/ai", aiRouter);
 
 // 6. Xử lý lỗi tập trung

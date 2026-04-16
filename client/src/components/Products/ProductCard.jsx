@@ -1,18 +1,27 @@
 import React from "react";
 import { Star, ShoppingCart } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import { useCartActions } from "../../hooks/useCartActions";
-import { handleProductClick } from "../../store/slices/productSlice";
+// import { handleProductClick } from "../../store/slices/productSlice";
+import { trackClickThunk } from "../../store/slices/interactionSlice";
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
   const { handleCartAction } = useCartActions();
-
+  const { authUser } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+  
   const onClickCard = () => {
-    dispatch(handleProductClick({ productId: product._id }));
+    dispatch(
+      trackClickThunk({
+        productId: product._id,
+      }),
+    );
+
+    navigate(`/product/${product._id}`);
   };
 
   return (
@@ -23,7 +32,7 @@ const ProductCard = ({ product }) => {
       className="group relative cursor-pointer"
       onClick={onClickCard}
     >
-      <Link to={`/product/${product._id}`}>
+      {/* <Link to={`/product/${product._id}`}> */}
         <div className="relative overflow-hidden bg-[#fbfbfb] dark:bg-[#111111] rounded-2xl transition-all duration-500 border border-transparent dark:border-white/[0.03]">
           {/* Product Image Area */}
           <div className="relative aspect-square flex items-center justify-center p-8">
@@ -34,18 +43,20 @@ const ProductCard = ({ product }) => {
             />
 
             {/* Quick Add Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                handleCartAction(product, "ADD", 1);
-              }}
-              className="absolute bottom-6 right-6 w-12 h-12 bg-[#77cd3a] text-white rounded-2xl flex items-center justify-center 
+            {product.stock > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleCartAction(product, "ADD", 1);
+                }}
+                className="absolute bottom-6 right-6 w-12 h-12 bg-[#77cd3a] text-white rounded-2xl flex items-center justify-center 
                                  opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 
                                  shadow-lg shadow-[#77cd3a]/30 active:scale-90 z-10"
-            >
-              <ShoppingCart size={16} strokeWidth={2} />
-            </button>
+              >
+                <ShoppingCart size={16} strokeWidth={2} />
+              </button>
+            )}
 
             {/* Rating Badge */}
             <div className="absolute top-4 left-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -76,7 +87,7 @@ const ProductCard = ({ product }) => {
           {/* Hover Border Overlay */}
           <div className="absolute inset-0 border border-transparent group-hover:border-[#77cd3a]/20 rounded-2xl pointer-events-none transition-colors duration-500" />
         </div>
-      </Link>
+      {/* </Link> */}
     </motion.div>
   );
 };

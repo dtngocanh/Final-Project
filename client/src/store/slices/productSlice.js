@@ -78,21 +78,21 @@ export const fetchAllShopReviews = createAsyncThunk(
   },
 );
 
-export const handleProductClick = createAsyncThunk(
-  "product/track-click",
-  async ({ productId }, thunkAPI) => {
-    try {
-      const res = await axiosInstance.post(`/product/track-click`, {
-        productId,
-      });
-      return res.data;
-    } catch (error) {
-      return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Failed to track click.",
-      );
-    }
-  },
-);
+// export const handleProductClick = createAsyncThunk(
+//   "product/track-click",
+//   async ({ productId }, thunkAPI) => {
+//     try {
+//       const res = await axiosInstance.post(`/product/track-click`, {
+//         productId,
+//       });
+//       return res.data;
+//     } catch (error) {
+//       return thunkAPI.rejectWithValue(
+//         error.response?.data?.message || "Failed to track click.",
+//       );
+//     }
+//   },
+// );
 // --- SLICE ---
 
 const productSlice = createSlice({
