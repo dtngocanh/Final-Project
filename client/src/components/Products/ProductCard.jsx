@@ -3,7 +3,6 @@ import { Star, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { toast } from "react-toastify";
 import { useCartActions } from "../../hooks/useCartActions";
 import { handleProductClick } from "../../store/slices/productSlice";
 
@@ -33,22 +32,8 @@ const ProductCard = ({ product }) => {
               className="w-[80%] h-[80%] object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)] transition-transform duration-700 group-hover:scale-110 group-hover:-rotate-2"
             />
 
-            {/* Quick Add Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                handleCartAction(product, "ADD", 1);
-              }}
-              className="absolute bottom-6 right-6 w-12 h-12 bg-[#77cd3a] text-white rounded-2xl flex items-center justify-center 
-                                 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 
-                                 shadow-lg shadow-[#77cd3a]/30 active:scale-90 z-10"
-            >
-              <ShoppingCart size={16} strokeWidth={2} />
-            </button>
-
-            {/* Rating Badge */}
-            <div className="absolute top-4 left-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            {/* Rating Badge - Luôn hiện cho đồng bộ */}
+            <div className="absolute top-4 left-4 flex items-center gap-1">
               <Star size={14} fill="#77cd3a" className="text-[#77cd3a]" />
               <span className="text-xs text-gray-400 font-medium tracking-tighter">
                 {product.ratings}
@@ -77,6 +62,20 @@ const ProductCard = ({ product }) => {
           <div className="absolute inset-0 border border-transparent group-hover:border-[#77cd3a]/20 rounded-2xl pointer-events-none transition-colors duration-500" />
         </div>
       </Link>
+
+      {/* --- NÚT GIỎ HÀNG LUÔN HIỆN --- */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          handleCartAction(product, "ADD", 1);
+        }}
+        className="absolute bottom-[88px] right-6 w-12 h-12 bg-[#77cd3a] text-white rounded-2xl flex items-center justify-center 
+                   shadow-lg shadow-[#77cd3a]/30 active:scale-90 z-20 transition-all duration-300
+                   opacity-100 translate-y-0" // Đã xóa opacity-0 và group-hover
+      >
+        <ShoppingCart size={16} strokeWidth={2} />
+      </button>
     </motion.div>
   );
 };
