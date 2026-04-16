@@ -13,6 +13,17 @@ export const fetchMyOrders = createAsyncThunk(
     }
   },
 );
+export const fetchOrderDetails = createAsyncThunk(
+  "order/fetchOrderDetails",
+  async (id, thunkAPI) => {
+    try {
+      const res = await axiosInstance.get(`/order/${id}`);     
+      return res.data.order;      
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response.data.message);
+    }
+  },
+);
 
 export const placeOrder = createAsyncThunk(
   "order/placeOrder",
@@ -53,6 +64,7 @@ export const cancelOrder = createAsyncThunk(
     }
   },
 );
+
 const orderSlice = createSlice({
   name: "order",
   initialState: {
@@ -64,6 +76,7 @@ const orderSlice = createSlice({
       ? JSON.parse(localStorage.getItem("shippingInfo"))
       : {},
     error: null,
+    orderDetail: null,
   },
   reducers: {
     setOrderStep: (state, action) => {
@@ -92,6 +105,11 @@ const orderSlice = createSlice({
       .addCase(fetchMyOrders.rejected, (state) => {
         state.fetchingOrders = false;
       })
+
+      .addCase(fetchOrderDetails.fulfilled, (state, action) => {
+        state.orderDetail = action.payload;
+      })
+
       .addCase(placeOrder.pending, (state) => {
         state.placingOrder = true;
       })
