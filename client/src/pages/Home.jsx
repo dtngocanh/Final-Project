@@ -5,6 +5,7 @@ import ProductSlider from "../components/Home/ProductSlider";
 import FeatureSection from "../components/Home/FeatureSection";
 import NewsletterSection from "../components/Home/NewsletterSection";
 import { useSelector } from "react-redux";
+import RecommendSlider from "../components/Home/RecommendSlider";
 
 const Index = () => {
   const { topRatedProducts, newProducts } = useSelector(
@@ -25,6 +26,7 @@ const Index = () => {
           />
         )} */}
         <ProductSlider title="New Arrivals" products={newProducts} />
+        <RecommendSlider/>
         <FeatureSection />
         <NewsletterSection />
       </div>

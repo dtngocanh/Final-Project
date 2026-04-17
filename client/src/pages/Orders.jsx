@@ -1,18 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Filter,
   Package,
   Truck,
   CheckCircle,
   XCircle,
   ChevronRight,
-  Calendar,
   Box,
-  Star,
-  RefreshCw,
   Trash2,
-  Loader2,
-  ChevronDown,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
@@ -26,9 +20,6 @@ const Orders = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("all");
-  
-  // State mới để quản lý việc mở danh sách sản phẩm cần review
-  const [reviewingOrderId, setReviewingOrderId] = useState(null);
 
   const { myOrders, fetchingOrders } = useSelector((state) => state.order);
   const { authUser } = useSelector((state) => state.auth);
@@ -157,25 +148,6 @@ const Orders = () => {
                         </div>
 
                         <div className="col-span-2 flex flex-wrap gap-3 items-end">
-                          {order.orderStatus === "Delivered" && (
-                            <>
-                              <button
-                                onClick={() => setReviewingOrderId(reviewingOrderId === order._id ? null : order._id)}
-                                className={`px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold flex items-center gap-2 border rounded-xl transition-all ${
-                                  reviewingOrderId === order._id 
-                                  ? "bg-[#77cd3a] text-black border-[#77cd3a]" 
-                                  : "dark:text-white border-white/10 bg-white/5"
-                                }`}
-                              >
-                                <Star size={14} className={reviewingOrderId === order._id ? "fill-black" : "text-yellow-500"} /> 
-                                {reviewingOrderId === order._id ? "Close Reviews" : "Write Review"}
-                              </button>
-                              <button className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold flex items-center gap-2 dark:text-white border border-white/10 rounded-xl bg-white/5">
-                                <RefreshCw size={14} /> Reorder
-                              </button>
-                            </>
-                          )}
-
                           {order.orderStatus === "Processing" && (
                             <button
                               onClick={() => handleCancelOrder(order._id)}
@@ -201,53 +173,6 @@ const Orders = () => {
                       )}
                     </div>
                   </div>
-
-                  {/* BẢNG DANH SÁCH SẢN PHẨM ĐỂ REVIEW */}
-                  <AnimatePresence>
-                    {reviewingOrderId === order._id && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="mt-8 pt-8 border-t border-gray-100 dark:border-white/5 overflow-hidden"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                           <p className="text-[10px] font-black uppercase tracking-widest text-[#77cd3a]">
-                            Select an item to rate:
-                          </p>
-                          <div className="h-[1px] flex-1 bg-gradient-to-r from-[#77cd3a]/20 to-transparent ml-4" />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {order.orderItems.map((item) => (
-                            <motion.div 
-                              initial={{ x: -10, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              key={item.product}
-                              className="flex items-center justify-between p-4 bg-white/50 dark:bg-black/20 rounded-2xl border border-gray-100 dark:border-white/5 group/item hover:border-[#77cd3a]/50 transition-all"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl bg-white dark:bg-black/40 p-1 border border-gray-100 dark:border-white/10">
-                                  <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
-                                </div>
-                                <div>
-                                  <p className="text-xs font-bold dark:text-white group-hover/item:text-[#77cd3a] transition-colors">{item.name}</p>
-                                  <p className="text-[10px] text-gray-400">Qty: {item.qty} • ${item.price}</p>
-                                </div>
-                              </div>
-                              
-                              <button
-                                onClick={() => navigate(`/product/${item.product}`)}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-tighter bg-black text-white dark:bg-white dark:text-black hover:bg-[#77cd3a] dark:hover:bg-[#77cd3a] transition-all"
-                              >
-                                <Star size={12} className="fill-current" /> Review
-                              </button>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </motion.div>
               ))
             ) : (

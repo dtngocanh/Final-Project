@@ -19,7 +19,6 @@ import { fetchOrderDetails } from "../store/slices/orderSlice";
 
 const OrderDetail = () => {
   const { id } = useParams();
-
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -30,49 +29,6 @@ const OrderDetail = () => {
       dispatch(fetchOrderDetails(id));
     }
   }, [dispatch, id]);
-
-  // FULL MOCK DATA
-  // const allMockOrders = [
-  //   {
-  //     _id: "69d00eae61dccdf35b693fc6",
-  //     orderStatus: "Delivered",
-  //     itemsPrice: 40.57,
-  //     totalPrice: 40.57,
-  //     createdAt: "2026-04-03T19:02:06.438+00:00",
-  //     shippingInfo: { fullName: "muahaha", address: "Da Nang", city: "Da Nang", phone: "0938647438" },
-  //     paymentInfo: { status: "Paid" },
-  //     orderItems: [
-  //       { _id: "i1", product: "69c8c7417f5bdbacef641fbe", name: "Organic Spinach", quantity: 2, price: 15.00, image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=200" },
-  //       { _id: "i2", product: "69c8c7417f5bdbacef641fbf", name: "Red Apple", quantity: 1, price: 10.57, image: "https://images.unsplash.com/photo-1560806887-1e4cd0b6bcd6?w=200" }
-  //     ]
-  //   },
-  //   {
-  //     _id: "69ce06e2baab81c8b570f599",
-  //     orderStatus: "Delivered",
-  //     itemsPrice: 32.62,
-  //     totalPrice: 32.62,
-  //     createdAt: "2026-04-02T06:04:18.941+00:00",
-  //     shippingInfo: { fullName: "Duong Ngoc Anh", address: "430 Tran Dai Nghia", city: "Da Nang", phone: "+84889190484" },
-  //     paymentInfo: { status: "Paid" },
-  //     orderItems: [
-  //       { _id: "i3", product: "69c8c7417f5bdbacef6420af", name: "Beef", quantity: 2, price: 10.00, image: "https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=200" }
-  //     ]
-  //   },
-  //   {
-  //     _id: "69d00dfc154946378a399d53",
-  //     orderStatus: "Canceled",
-  //     itemsPrice: 5.9,
-  //     totalPrice: 5.9,
-  //     createdAt: "2026-04-02T05:45:35.305+00:00",
-  //     shippingInfo: { fullName: "Duong Ngoc Anh", address: "430 Tran Dai Nghia", city: "Da Nang", phone: "+84889190484" },
-  //     paymentInfo: { status: "Paid" },
-  //     orderItems: [
-  //       { _id: "i4", product: "69c8c7417f5bdbacef641fc6", name: "Kaiser", quantity: 1, price: 5.9, image: "https://res.cloudinary.com/dhbuqqiuc/image/upload/v1773632798/Kaiser_Iconic_tzwels.jpg" }
-  //     ]
-  //   }
-  // ];
-
-  // const orderDetail = allMockOrders.find(o => o._id === id);
 
   if (!orderDetail)
     return (
@@ -164,7 +120,11 @@ const OrderDetail = () => {
                         {step === "Delivered" && <CheckCircle2 size={20} />}
                       </div>
                       <p
-                        className={`mt-4 text-[9px] font-black uppercase tracking-widest ${idx <= currentStepIndex ? "dark:text-white text-black" : "text-gray-400"}`}
+                        className={`mt-4 text-[9px] font-black uppercase tracking-widest ${
+                          idx <= currentStepIndex
+                            ? "dark:text-white text-black"
+                            : "text-gray-400"
+                        }`}
                       >
                         {step}
                       </p>
@@ -174,7 +134,9 @@ const OrderDetail = () => {
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{
-                      width: `${(currentStepIndex / (steps.length - 1)) * 100}%`,
+                      width: `${
+                        (currentStepIndex / (steps.length - 1)) * 100
+                      }%`,
                     }}
                     className="absolute top-6 left-0 h-[2px] bg-[#77cd3a] -z-0"
                   />
@@ -243,7 +205,8 @@ const OrderDetail = () => {
 
                       {orderDetail.orderStatus === "Delivered" && (
                         <Link
-                          to={`/product/${item.product}/review`}
+                          // Sửa link để lấy đúng ID và thêm hash #reviews để tự động cuộn
+                          to={`/product/${item.product._id}`}
                           className="flex items-center gap-2 px-5 py-2.5 bg-[#77cd3a] text-black rounded-xl text-[9px] font-black uppercase tracking-tighter hover:bg-[#86e041] transition-all shadow-lg shadow-[#77cd3a]/20 active:scale-95 group/btn overflow-hidden relative inline-flex"
                         >
                           <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite]" />
@@ -308,7 +271,6 @@ const OrderDetail = () => {
                 </span>
               </div>
 
-              {/* CẬP NHẬT: Nút Need Support giờ là một Link dẫn đến trang Contact */}
               <Link
                 to="/contact"
                 className="w-full mb-6 py-4 border border-[#77cd3a]/30 hover:border-[#77cd3a] dark:text-white text-black rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95 bg-transparent"

@@ -6,7 +6,7 @@ import {
   ChevronLeft,
   Minus,
   Plus,
-  ShoppingCart,
+  ShoppingBag,
   ArrowLeft,
   ChevronRight,
   Utensils,
@@ -23,35 +23,14 @@ import { Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 
-// 1. Import component trang trí đã tách
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { useCartActions } from "../hooks/useCartActions";
 import { fetchProductDetails } from "../store/slices/productSlice";
+import BundleSection from "../components/ProductDetail/BundleSelection";
+import RelatedProducts from "../components/ProductDetail/RelatedProducts";
 
 // import RecommendedProductCard from "../components/Products/RecommendedProductCard";
 // import RecipeSection from "../components/Products/RecipeSection";
-const ALL_MOCK_PRODUCTS = [
-  {
-    _id: "69c75b8d1fe9cc301c63d919",
-    name: "Mango",
-    price: 14.99,
-    category: "Premium Fruits",
-    images: ["/mango.png", "/mango.png", "/cheri1.png"],
-    stock: 12,
-    description:
-      "Experience the exotic sweetness of our naturally grown dragon fruit. Hand-picked at peak ripeness.",
-  },
-  {
-    _id: "2",
-    name: "Wild Mountain Blueberry",
-    price: 8.5,
-    category: "Berries",
-    images: ["/cheri1.png"],
-    stock: 0,
-    description:
-      "Tiny bursts of antioxidant-rich flavor, harvested from high-altitude wild bushes.",
-  },
-];
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -141,19 +120,58 @@ const ProductDetail = () => {
             </h1>
 
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={10}
-                    fill={i < 4 ? "#77cd3a" : "none"}
-                    className={i < 4 ? "text-[#77cd3a]" : "text-gray-200"}
-                    strokeWidth={0}
-                  />
-                ))}
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  {[...Array(5)].map((_, i) => {
+                    const ratingValue = product.ratings || 0;
+                    const fullStars = Math.floor(ratingValue); // số sao đầy
+                    const hasHalfStar = ratingValue - fullStars >= 0.5; // có nửa sao không
+
+                    if (i < fullStars) {
+                      // Sao đầy
+                      return (
+                        <Star
+                          key={i}
+                          size={14}
+                          fill="#77cd3a"
+                          className="text-[#77cd3a]"
+                          strokeWidth={0}
+                        />
+                      );
+                    } else if (i === fullStars && hasHalfStar) {
+                      // Sao nửa chừng
+                      return (
+                        <Star
+                          key={i}
+                          size={14}
+                          fill="url(#half)" // cần định nghĩa gradient half
+                          className="text-[#77cd3a]"
+                          strokeWidth={0}
+                        />
+                      );
+                    } else {
+                      // Sao rỗng
+                      return (
+                        <Star
+                          key={i}
+                          size={14}
+                          fill="none"
+                          className="text-gray-300 border-[#77cd3a]" // viền xanh cho 0 sao
+                          strokeWidth={1}
+                        />
+                      );
+                    }
+                  })}
+                </div>
+
+                {/* Hiển thị số trung bình */}
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {product.ratings?.toFixed(1)} / 5
+                </span>
               </div>
-              <span className="text-[8px] text-gray-400 uppercase tracking-widest">
-                12 Reviews
+
+              <span className="text-[11px] text-gray-600 tracking-widest">
+               Total: {product.numOfReviews} Reviews
               </span>
             </div>
 
@@ -196,7 +214,7 @@ const ProductDetail = () => {
                 disabled={product.stock === 0}
                 className="w-full py-4 bg-[#77cd3a] text-white dark:text-black font-bold rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-[#77cd3a]/10 disabled:opacity-20 transition-all"
               >
-                <ShoppingCart size={15} />
+                <ShoppingBag size={15} />
                 <span className="uppercase tracking-[0.2em] text-[10px]">
                   {product.stock === 0 ? "Out of Stock" : "Add to Bag"}
                 </span>
@@ -264,9 +282,13 @@ const ProductDetail = () => {
             navigate={navigate}
           />
         )} */}
+        <br/>
+        <BundleSection/>
+        <RelatedProducts/>
 
         <div className="mt-24 relative z-10">
-          <ReviewsContainer />
+          
+          <ReviewsContainer id="reviews" />
         </div>
       </div>
     </main>

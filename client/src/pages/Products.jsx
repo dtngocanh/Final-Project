@@ -93,7 +93,7 @@ const Products = () => {
         {/* HEADER */}
         <header className="mb-16 flex items-baseline justify-between border-b border-gray-100 dark:border-white/5 pb-10">
           <h1 className="text-5xl font-extralight tracking-tighter uppercase dark:text-white">
-            Hehehehe{" "}
+            Fresh{" "}
             <span className="font-serif italic lowercase text-gray-400">
               Market
             </span>
@@ -194,12 +194,8 @@ const Products = () => {
                   exit={{ opacity: 0 }}
                   className="flex justify-center items-center py-40 text-center col-span-full"
                 >
-                  <p className="text-[11px] font-bold uppercase tracking-[0.5em] text-[#77cd3a] animate-pulse">
-                    Harvesting{" "}
-                    <span className="italic lowercase text-gray-400">
-                      our products
-                    </span>
-                    ...
+                  <p className="text-[11px] uppercase tracking-[0.5em] text-[#77cd3a] animate-pulse">
+                    Harvesting{" "} our products...
                   </p>
                 </motion.div>
               ) : (

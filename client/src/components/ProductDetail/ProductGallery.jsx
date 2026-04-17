@@ -8,21 +8,27 @@ const ProductGallery = ({ images, selectedIndex, setSelectedIndex, isOutOfStock 
   return (
     <div className="w-full space-y-4">
       {/* KHUNG ẢNH CHÍNH */}
-      <div className="relative aspect-square bg-[#fafafa] dark:bg-white/[0.015] rounded-[28px] md:rounded-[40px] flex items-center justify-center p-8 md:p-12 border border-gray-100 dark:border-white/[0.04] overflow-hidden group">
+      <div className="relative aspect-square bg-[#fafafa] dark:bg-white/[0.015] rounded-[28px] md:rounded-[40px] flex items-center justify-center border border-gray-100 dark:border-white/[0.04] overflow-hidden group">
         
-        {/* Hiệu ứng chuyển cảnh ảnh */}
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={selectedIndex}
-            src={images[selectedIndex].url}
-            initial={{ opacity: 0, scale: 0.92, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 1.05, y: -10 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full h-full object-contain z-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_20px_60px_rgba(0,0,0,0.4)] transition-transform duration-700 group-hover:scale-105"
-            alt="Product view"
-          />
-        </AnimatePresence>
+        {/* LOGIC ẢNH GIỐNG PRODUCT SLIDER: Phóng to 80% và dùng object-cover */}
+        <div className="w-full h-full flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedIndex}
+              initial={{ opacity: 0, scale: 0.92, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 1.05, y: -10 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="w-[80%] h-[80%] flex items-center justify-center overflow-hidden rounded-[2rem] border border-neutral-100 dark:border-white/5 bg-white/50 dark:bg-neutral-900 shadow-inner z-10 group-hover:scale-105 transition-transform duration-700"
+            >
+              <img
+                src={images[selectedIndex].url}
+                className="w-full h-full object-cover filter drop-shadow-[0_20px_50px_rgba(0,0,0,0.1)]"
+                alt="Product view"
+              />
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
         {/* Overlay Hết hàng */}
         {isOutOfStock && (
@@ -37,7 +43,7 @@ const ProductGallery = ({ images, selectedIndex, setSelectedIndex, isOutOfStock 
           </div>
         )}
 
-        {/* Decor background cực nhẹ cho Dark mode */}
+        {/* Decor background cực nhẹ */}
         <div className="absolute inset-0 bg-gradient-to-tr from-[#77cd3a]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
       </div>
 
@@ -53,7 +59,8 @@ const ProductGallery = ({ images, selectedIndex, setSelectedIndex, isOutOfStock 
                 : "border-transparent bg-gray-50 dark:bg-white/[0.02] opacity-40 hover:opacity-100 hover:scale-105"
             }`}
           >
-            <img src={img.url} className="w-full h-full object-contain" alt={`Thumbnail ${i}`} />
+            {/* Thumbnail cũng dùng object-cover cho đồng bộ */}
+            <img src={img.url} className="w-full h-full object-cover rounded-lg" alt={`Thumbnail ${i}`} />
             
             {/* Thanh indicator nhỏ khi active */}
             {i === selectedIndex && (

@@ -1,4 +1,4 @@
-import { Menu, ShoppingCart, Sun, Moon, Search, User } from "lucide-react";
+import { Menu, ShoppingBag, Sun, Moon, Search, User } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useDispatch, useSelector } from "react-redux";
 import { toggleAuthPopup, toggleCart, toggleSearchBar, toggleSidebar } from "../../store/slices/popupSlice";
@@ -67,7 +67,7 @@ const Navbar = () => {
 
         {/* Shopping Cart */}
         <button onClick={() => dispatch(toggleCart())} className="relative p-2.5 hover:scale-110 transition-transform">
-          <ShoppingCart size={22} strokeWidth={2} style={{ color: activeColor }} />
+          <ShoppingBag size={22} strokeWidth={2} style={{ color: activeColor }} />
           {cartItemsCount > 0 && (
             <span 
               className="absolute top-1 right-1 text-[9px] font-bold text-white w-4 h-4 flex items-center justify-center rounded-full shadow-lg"

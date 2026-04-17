@@ -1,31 +1,25 @@
 import React, { useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllProducts } from "../../store/slices/productSlice";
-
-import { ChevronLeft, ChevronRight, Star, ShoppingCart } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, Plus } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "react-toastify";
-import { Link } from "react-router-dom"; // Import Link để điều hướng
+import { Link } from "react-router-dom";
 import { useCartActions } from "../../hooks/useCartActions";
+import FloatingDecor from "../Fruit/FloatingDecor";
 
 const ProductSlider = ({ title = "Seasonal Picks" }) => {
-
   const scrollRef = useRef(null);
   const dispatch = useDispatch();
-
-  // Redux state
   const { products, loading } = useSelector((state) => state.product);
-
   const { handleCartAction } = useCartActions();
 
-  // Load products từ backend
   useEffect(() => {
     dispatch(fetchAllProducts());
   }, [dispatch]);
 
   const scroll = (direction) => {
     if (scrollRef.current) {
-      const scrollAmount = 400;
+      const scrollAmount = 320;
       scrollRef.current.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
@@ -33,103 +27,97 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
     }
   };
 
-  if (loading) return <p className="text-center py-20 text-gray-400 animate-pulse">Loading nature's best...</p>;
-  if (!products || products.length === 0) return <p className="text-center py-20 text-gray-400">No products found</p>;
+  if (loading) return <div className="h-[400px] flex items-center justify-center text-[10px] tracking-[0.5em] uppercase opacity-50">Loading...</div>;
+  if (!products || products.length === 0) return null;
 
   return (
-    <section className="py-24 bg-white dark:bg-[#0a0a0a] transition-colors duration-500 overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-6 relative">
+    <section className="py-20 bg-white dark:bg-[#030303] overflow-hidden transition-colors duration-500 relative">
+      {/* 1. Thêm Logic Floating Decor ở đây */}
+      <FloatingDecor />
 
+      <div className="max-w-[1450px] mx-auto px-8 relative z-10">
+        
         {/* Header Section */}
-        <div className="flex items-end justify-between mb-12 border-b border-gray-100 dark:border-white/5 pb-8">
-          <div>
-            <p className="text-[#77cd3a] text-[10px] font-bold uppercase tracking-[0.4em] mb-2">
-              Selected by Nature
-            </p>
-            <h2 className="text-3xl font-light tracking-tight text-gray-900 dark:text-white uppercase">
-              {title} <span className="font-serif italic lowercase text-gray-400">series</span>
-            </h2>
-          </div>
-
+        <div className="flex items-center justify-between mb-12 border-b border-neutral-100 dark:border-white/5 pb-6">
+          <h2 className="text-2xl md:text-3xl font-extralight tracking-tight text-gray-950 dark:text-white uppercase leading-none">
+            {title} <span className="font-serif italic lowercase text-neutral-400">series</span>
+          </h2>
           <div className="flex gap-2">
-            <button onClick={() => scroll("left")} className="p-2 text-gray-400 hover:text-[#77cd3a] transition-colors">
-              <ChevronLeft size={24} strokeWidth={1} />
+            <button onClick={() => scroll("left")} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-full transition-colors">
+              <ChevronLeft size={24} strokeWidth={1.5} className="text-neutral-500" />
             </button>
-            <button onClick={() => scroll("right")} className="p-2 text-gray-400 hover:text-[#77cd3a] transition-colors">
-              <ChevronRight size={24} strokeWidth={1} />
+            <button onClick={() => scroll("right")} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-full transition-colors">
+              <ChevronRight size={24} strokeWidth={1.5} className="text-neutral-500" />
             </button>
           </div>
         </div>
 
         {/* Slider Area */}
-        <div
-          ref={scrollRef}
-          className="flex gap-8 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-10"
-        >
+        <div ref={scrollRef} className="flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-10 px-2">
           {products.map((product, idx) => (
             <motion.div
               key={product._id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
               transition={{ delay: idx * 0.05 }}
-              className="min-w-[280px] md:min-w-[320px] snap-start group relative"
+              className="min-w-[240px] md:min-w-[260px] snap-start group"
             >
-              {/* Card Link - Chuyển đến trang chi tiết */}
-              <Link
-                to={`/product/${product._id}`
-                } className="block">
-                <div className="relative overflow-hidden bg-[#fbfbfb] dark:bg-[#111111] rounded-3xl transition-all duration-500 border border-transparent hover:border-[#77cd3a]/20">
-
-                  {/* Product Image Area */}
-                  <div className="relative aspect-square flex items-center justify-center p-10">
-                    <motion.img
-                      src={product.images?.[0]?.url || "/placeholder.png"}
-                      alt={product.name}
-                      className="w-[80%] h-[80%] object-contain filter drop-shadow-xl transition-transform duration-700 group-hover:scale-110 group-hover:-rotate-3"
-                    />
-
-                    {/* Rating Tag */}
-                    <div className="absolute top-6 left-6 flex items-center gap-1.5 bg-white/60 dark:bg-black/30 backdrop-blur-md px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      <Star size={14} className="fill-[#77cd3a] text-[#77cd3a]" />
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-200">
-                        {product.ratings}
-                      </span>
-                    </div>
-
-                    {/* Add to Cart Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleCartAction(product, "ADD", 1)
-                      }}
-                      className="absolute bottom-6 right-6 w-12 h-12 bg-[#77cd3a] text-white rounded-2xl flex items-center justify-center 
-                                 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 
-                                 shadow-lg shadow-[#77cd3a]/30 active:scale-90 z-10"
+              {/* Thẻ Card - Sửa bg-white thành bg-[#f9f9f9] cho xám xíu xiu ở light mode */}
+              <div className="relative flex flex-col bg-[#f9f9f9] dark:bg-[#111] rounded-[2rem] overflow-hidden border border-neutral-100 dark:border-white/5 shadow-sm hover:shadow-2xl hover:shadow-black/5 transition-all duration-500">
+                
+                {/* Container Ảnh Vuông 1:1 */}
+                <Link to={`/product/${product._id}`} className="block relative w-full aspect-square overflow-hidden group">
+                  <div className="w-full h-full flex items-center justify-center">
+                    <motion.div 
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                      className="w-[80%] h-[80%] flex items-center justify-center overflow-hidden rounded-2xl border border-neutral-100 dark:border-white/5 bg-neutral-50 dark:bg-neutral-900 shadow-inner"
                     >
-                      <ShoppingCart size={20} strokeWidth={2.5} />
-                    </button>
+                      <img
+                        src={product.images?.[0]?.url || "/placeholder.png"}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </motion.div>
                   </div>
-
-                  {/* Information Area */}
-                  <div className="px-8 pb-8">
-                    <h3 className="text-xl font-extralight text-gray-800 dark:text-gray-100 group-hover:text-[#77cd3a] transition-colors tracking-tight">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xl font-light text-gray-700 dark:text-white">
-                        ${product.price?.toFixed(2)}
-                      </span>
-                      <span className="text-[10px] text-gray-400 font-serif italic tracking-widest uppercase">
-                        per kg
-                      </span>
-                    </div>
+                  
+                  {/* Rating Tag */}
+                  <div className="absolute top-6 left-6 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-[-10px] group-hover:translate-x-0">
+                    <Star size={10} fill="#77cd3a" className="text-[#77cd3a]" />
+                    <span className="text-[10px] font-bold text-neutral-400">{product.ratings?.toFixed(1)}</span>
                   </div>
+                </Link>
 
-                  {/* Subtle Hover Border Overlay */}
-                  <div className="absolute inset-0 border border-transparent group-hover:border-[#77cd3a]/10 rounded-3xl pointer-events-none transition-colors duration-500" />
+                {/* Đường kẻ nhạt giữa ảnh và chữ */}
+                <div className="mx-8 h-[1px] bg-neutral-100 dark:bg-white/5" />
+
+                {/* Thông tin sản phẩm */}
+                <div className="px-6 py-6 text-center">
+                  <h3 className="text-medium font-medium text-neutral-800 dark:text-neutral-100 mb-1.5 truncate group-hover:text-[#77cd3a] transition-colors leading-tight">
+                    {product.name}
+                  </h3>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span className="text-[14px] font-semibold text-neutral-900 dark:text-white">
+                      ${product.price?.toFixed(2)}
+                    </span>
+                    <span className="text-[9px] text-neutral-300 font-bold uppercase tracking-tight pt-0.5">
+                      / per kg
+                    </span>
+                  </div>
                 </div>
-              </Link>
+
+                {/* Nút giỏ hàng trượt lên */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleCartAction(product, "ADD", 1);
+                  }}
+                  className="absolute bottom-[90px] right-6 w-11 h-11 bg-neutral-950 dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center shadow-2xl opacity-0 translate-y-6 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 hover:bg-[#77cd3a] hover:text-white z-20"
+                >
+                  <Plus size={22} strokeWidth={1.5} />
+                </button>
+              </div>
             </motion.div>
           ))}
         </div>

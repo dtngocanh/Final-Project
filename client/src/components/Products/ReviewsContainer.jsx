@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Star, Send, User } from "lucide-react";
+import { Star, Send, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
@@ -25,6 +25,10 @@ const ReviewsContainer = () => {
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const reviewsPerPage = 5;
+
   useEffect(() => {
     dispatch(fetchAllShopReviews());
   }, [dispatch]);
@@ -38,13 +42,27 @@ const ReviewsContainer = () => {
     );
   }, [myOrders, productId, authUser]);
 
-  // 2. Kiểm tra xem đã review chưa để đổi sang mode Update
-  const existingReview = useMemo(() => {
-    return allShopReviews?.find((rev) => 
-      rev.user?._id?.toString() === authUser?._id?.toString() &&
-      (rev.product?._id || rev.product)?.toString() === productId?.toString()
+  // 2. Lọc reviews theo sản phẩm này
+  const productReviews = useMemo(() => {
+    return (allShopReviews || []).filter(
+      (rev) => (rev.product?._id || rev.product)?.toString() === productId?.toString()
     );
-  }, [allShopReviews, authUser, productId]);
+  }, [allShopReviews, productId]);
+
+  // 3. Tính toán Pagination
+  const totalPages = Math.ceil(productReviews.length / reviewsPerPage);
+  const currentReviews = useMemo(() => {
+    const indexOfLastReview = currentPage * reviewsPerPage;
+    const indexOfFirstReview = indexOfLastReview - reviewsPerPage;
+    return productReviews.slice(indexOfFirstReview, indexOfLastReview);
+  }, [productReviews, currentPage]);
+
+  // 4. Kiểm tra xem đã review chưa để đổi sang mode Update
+  const existingReview = useMemo(() => {
+    return productReviews.find((rev) => 
+      rev.user?._id?.toString() === authUser?._id?.toString()
+    );
+  }, [productReviews, authUser]);
 
   useEffect(() => {
     if (isSuccess) {
@@ -76,12 +94,10 @@ const ReviewsContainer = () => {
 
   return (
     <div className="max-w-4xl mx-auto mt-32 border-t border-gray-100 dark:border-white/5 pt-24 pb-20 px-4">
-      {/* Tiêu đề này LUÔN HIỆN */}
-      <h2 className="text-3xl font-light uppercase tracking-[0.2em] mb-16 text-center dark:text-white">
-        Community <span className="font-serif italic lowercase text-gray-400">vibes</span>
+      <h2 className="text-3xl font-extralight text-gray-950 uppercase tracking-[0.2em] mb-16 text-center dark:text-white">
+         Customers' Reviews 
       </h2>
 
-      {/* --- PHẦN Ô NHẬP: CHỈ hiện khi đã mua hàng thành công --- */}
       <AnimatePresence>
         {canUserReview && (
           <motion.div
@@ -124,13 +140,11 @@ const ReviewsContainer = () => {
         )}
       </AnimatePresence>
 
-      {/* --- PHẦN DANH SÁCH: LUÔN HIỆN cho tất cả mọi người --- */}
       <div className="space-y-12">
         <AnimatePresence mode="popLayout">
-          {allShopReviews && allShopReviews.filter(rev => (rev.product?._id || rev.product)?.toString() === productId?.toString()).length > 0 ? (
-            allShopReviews
-              .filter(rev => (rev.product?._id || rev.product)?.toString() === productId?.toString())
-              .map((rev, idx) => (
+          {currentReviews.length > 0 ? (
+            <>
+              {currentReviews.map((rev) => (
                 <motion.div key={rev._id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="relative pl-8 border-l border-gray-100 dark:border-white/5 group">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
@@ -155,7 +169,45 @@ const ReviewsContainer = () => {
                     "{rev.comment}"
                   </p>
                 </motion.div>
-              ))
+              ))}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 pt-12">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 transition-colors"
+                  >
+                    <ChevronLeft size={20} className="dark:text-white" />
+                  </button>
+                  
+                  <div className="flex gap-2">
+                    {[...Array(totalPages)].map((_, i) => (
+                      <button
+                        key={i + 1}
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
+                          currentPage === i + 1
+                            ? "bg-[#77cd3a] text-black"
+                            : "text-gray-400 hover:text-[#77cd3a]"
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 transition-colors"
+                  >
+                    <ChevronRight size={20} className="dark:text-white" />
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-center text-gray-400 font-light italic">No reviews for this product yet.</p>
           )}
