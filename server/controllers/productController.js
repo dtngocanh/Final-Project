@@ -265,106 +265,237 @@ export const changeStock = async (req, res) => {
 };
 
 //[POST] api/product/import
+// export const importProducts = async (req, res) => {
+//   try {
+//     if (!req.files || !req.files.file) {
+//       return res.json({
+//         success: false,
+//         message: "Please upload an Excel file",
+//       });
+//     }
+
+//     const file = req.files.file;
+
+//     const workbook = XLSX.read(file.data, { type: "buffer" });
+//     const sheet = workbook.Sheets[workbook.SheetNames[0]];
+//     let products = XLSX.utils.sheet_to_json(sheet);
+
+//     const validProducts = [];
+//     const errors = [];
+
+//     const getPublicId = (url) => {
+//       try {
+//         const parts = url.split("/");
+//         const fileName = parts.pop();
+//         const uploadIndex = parts.findIndex((p) => p === "upload");
+//         const pathParts = parts.slice(uploadIndex + 2);
+//         return [...pathParts, fileName.split(".")[0]].join("/");
+//       } catch {
+//         return "";
+//       }
+//     };
+
+//     const validateProduct = (p, index) => {
+//       const err = [];
+
+//       if (!p.name || p.name.length < 2) {
+//         err.push("Name is required (>=2 chars)");
+//       }
+
+//       if (!p.price || isNaN(p.price) || Number(p.price) <= 0) {
+//         err.push("Invalid price");
+//       }
+
+//       if (p.stock === undefined || isNaN(p.stock) || Number(p.stock) < 0) {
+//         err.push("Invalid stock");
+//       }
+
+//       return err;
+//     };
+
+//     for (let i = 0; i < products.length; i++) {
+//       let p = products[i];
+
+//       let images = [];
+//       if (p.images && typeof p.images === "string") {
+//         try {
+//           const parsed = JSON.parse(p.images);
+
+//           if (Array.isArray(parsed)) {
+//             images = parsed
+//               .map((url) => {
+//                 if (!url.includes("res.cloudinary.com")) {
+//                   return null;
+//                 }
+//                 return {
+//                   url,
+//                   public_id: getPublicId(url),
+//                 };
+//               })
+//               .filter(Boolean);
+//           }
+//         } catch {
+//           images = [];
+//         }
+//       }
+
+//       const price = Number(p.price);
+//       const stock = Number(p.stock);
+
+//       const validationErrors = validateProduct(p, i);
+
+//       if (validationErrors.length > 0) {
+//         errors.push({
+//           row: i + 2,
+//           errors: validationErrors,
+//         });
+//         continue;
+//       }
+
+//       validProducts.push({
+//         name: p.name,
+//         category: p.category || "",
+//         subcategory: p.subcategory || "",
+//         description: p.description || "",
+//         images,
+//         price,
+//         stock,
+//       });
+//     }
+
+//     let insertedCount = 0;
+
+//     if (validProducts.length > 0) {
+//       const result = await Product.insertMany(validProducts, {
+//         ordered: false,
+//       });
+//       insertedCount = result.length;
+//     }
+
+//     return res.json({
+//       success: true,
+//       message: "Import completed",
+//       totalRows: products.length,
+//       successCount: insertedCount,
+//       failedCount: errors.length,
+//       errors,
+//     });
+//   } catch (error) {
+//     console.log(error);
+
+//     res.json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
+
+
+// TUI LM LỎ LỎ
+// import product list
+// Hàm Helper: Tìm hoặc tạo mới Category/Subcategory
+const getOrCreateCategory = async (name, parentId = null, level = 0) => {
+  if (!name) return null;
+
+  // Tìm danh mục khớp cả Tên VÀ Cha (để tránh lấy nhầm Herbs của Fruits cho Vegetables)
+  let category = await Category.findOne({
+    name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
+    parent: parentId 
+  });
+
+  if (!category) {
+    category = await Category.create({
+      name: name.trim(),
+      parent: parentId,
+      level: level,
+      path: parentId ? `${parentId},` : ",", 
+    });
+    console.log(` Đã tạo danh mục mới: ${name} (Level ${level})`);
+  }
+  return category;
+};
+
 export const importProducts = async (req, res) => {
   try {
-    if (!req.files || !req.files.file) {
-      return res.json({
-        success: false,
-        message: "Please upload an Excel file",
-      });
+    // 1. Kiểm tra file (Dùng Multer nên lấy từ req.file)
+    const file = req.file;
+    if (!file) {
+      return res.json({ success: false, message: "Ní chưa chọn file Excel!" });
     }
 
-    const file = req.files.file;
-
-    const workbook = XLSX.read(file.data, { type: "buffer" });
+    // 2. Đọc dữ liệu từ file Excel
+    const workbook = XLSX.read(file.buffer, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    let products = XLSX.utils.sheet_to_json(sheet);
+    const productsFromExcel = XLSX.utils.sheet_to_json(sheet);
 
     const validProducts = [];
     const errors = [];
 
-    const getPublicId = (url) => {
+    // 3. Duyệt qua từng dòng trong Excel
+    for (let i = 0; i < productsFromExcel.length; i++) {
+      let p = productsFromExcel[i];
+
       try {
-        const parts = url.split("/");
-        const fileName = parts.pop();
-        const uploadIndex = parts.findIndex((p) => p === "upload");
-        const pathParts = parts.slice(uploadIndex + 2);
-        return [...pathParts, fileName.split(".")[0]].join("/");
-      } catch {
-        return "";
-      }
-    };
+        // --- XỬ LÝ CATEGORY ---
+        // Lấy hoặc tạo Category cha (ví dụ: "Trái cây")
+        const parentCat = await getOrCreateCategory(p.category, null, 0);
 
-    const validateProduct = (p, index) => {
-      const err = [];
+        let finalCategoryId = parentCat?._id;
 
-      if (!p.name || p.name.length < 2) {
-        err.push("Name is required (>=2 chars)");
-      }
-
-      if (!p.price || isNaN(p.price) || Number(p.price) <= 0) {
-        err.push("Invalid price");
-      }
-
-      if (p.stock === undefined || isNaN(p.stock) || Number(p.stock) < 0) {
-        err.push("Invalid stock");
-      }
-
-      return err;
-    };
-
-    for (let i = 0; i < products.length; i++) {
-      let p = products[i];
-
-      let images = [];
-      if (p.images && typeof p.images === "string") {
-        try {
-          const parsed = JSON.parse(p.images);
-
-          if (Array.isArray(parsed)) {
-            images = parsed
-              .map((url) => {
-                if (!url.includes("res.cloudinary.com")) {
-                  return null;
-                }
-                return {
-                  url,
-                  public_id: getPublicId(url),
-                };
-              })
-              .filter(Boolean);
-          }
-        } catch {
-          images = [];
+        // Lấy hoặc tạo Subcategory nếu có (ví dụ: "Táo Nhập Khẩu")
+        if (p.subcategory && parentCat) {
+          const subCat = await getOrCreateCategory(
+            p.subcategory,
+            parentCat._id,
+            1,
+          );
+          finalCategoryId = subCat._id;
         }
-      }
 
-      const price = Number(p.price);
-      const stock = Number(p.stock);
+        if (!finalCategoryId) {
+          errors.push({ row: i + 2, error: "Thiếu thông tin Category" });
+          continue;
+        }
 
-      const validationErrors = validateProduct(p, i);
+        // --- XỬ LÝ ẢNH ---
+        let images = [];
+        if (p.images) {
+          try {
+            // Hỗ trợ cả mảng JSON ["url1", "url2"] hoặc chuỗi cách nhau bởi dấu phẩy
+            const rawImgs =
+              typeof p.images === "string" && p.images.startsWith("[")
+                ? JSON.parse(p.images)
+                : p.images.split(",");
 
-      if (validationErrors.length > 0) {
-        errors.push({
-          row: i + 2,
-          errors: validationErrors,
+            images = rawImgs
+              .map((url) => ({
+                url: url.trim(),
+                public_id: `import_${Date.now()}`, // Hoặc dùng hàm getPublicId cũ của ní
+              }))
+              .filter((img) => img.url.includes("res.cloudinary.com"));
+          } catch (e) {
+            images = [];
+          }
+        }
+
+        // --- PUSH VÀO MẢNG CHỜ ---
+        validProducts.push({
+          name: p.name,
+          description: p.description || "",
+          price: Number(p.price) || 0,
+          stock: Number(p.stock) || 0,
+          category: finalCategoryId, // Đã là ObjectId xịn
+          images: images,
+          tags: p.tags ? p.tags.split(",").map((t) => t.trim()) : [],
         });
-        continue;
+      } catch (err) {
+        errors.push({ row: i + 2, error: err.message });
       }
-
-      validProducts.push({
-        name: p.name,
-        category: p.category || "",
-        subcategory: p.subcategory || "",
-        description: p.description || "",
-        images,
-        price,
-        stock,
-      });
     }
 
+    // 4. Lưu vào Database
     let insertedCount = 0;
-
     if (validProducts.length > 0) {
       const result = await Product.insertMany(validProducts, {
         ordered: false,
@@ -374,18 +505,117 @@ export const importProducts = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Import completed",
-      totalRows: products.length,
+      message: "Import hoàn tất!",
+      totalRows: productsFromExcel.length,
       successCount: insertedCount,
       failedCount: errors.length,
       errors,
     });
   } catch (error) {
-    console.log(error);
-
-    res.json({
-      success: false,
-      message: error.message,
-    });
+    console.error(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Lỗi hệ thống: " + error.message });
   }
+};
+
+/**
+ *
+ * [GET] api/product/related-v2/:id
+ * Giải thích: Lấy trực tiếp mảng related_product_ids từ DB và hydrate thông tin
+ */
+export const getRelatedProductsFromDB = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Tìm sản phẩm hiện tại, chỉ lấy đúng trường related_product_ids
+    const product = await Product.findById(id).select("related_product_ids");
+
+    if (!product) {
+      return next(new ErrorHandler("Cannot find this product", 404));
+    }
+
+    // 2. Nếu mảng rỗng thì trả về mảng rỗng luôn
+    if (
+      !product.related_product_ids ||
+      product.related_product_ids.length === 0
+    ) {
+      return res.status(200).json({
+        success: true,
+        related: [],
+      });
+    }
+
+    // 3. Lôi chi tiết thông tin của 6 cái ID đó ra
+    const relatedProducts = await Product.find({
+      _id: { $in: product.related_product_ids },
+    });
+
+    // 4. Sắp xếp lại cho đúng thứ tự ưu tiên mà AI đã tính
+    const sortedRelated = product.related_product_ids
+      .map((recId) =>
+        relatedProducts.find((p) => p._id.toString() === recId.toString()),
+      )
+      .filter((p) => p !== undefined);
+
+    res.status(200).json({
+      success: true,
+      related: sortedRelated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+// get freq product
+export const getFreqProducts = async (req, res) => {
+    try {
+        // Dùng .lean() để lấy plain object, nhẹ và nhanh hơn
+        const product = await Product.findById(req.params.id).lean();
+        
+        if (!product) {
+            return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+        }
+
+        let recommendations = product.frequentlyBoughtTogether || [];
+
+        // Kiểm tra nếu chưa đủ 4 món
+        if (recommendations.length < 4) {
+            // Lấy danh sách ID đã có để tránh trùng
+            const currentIds = recommendations.map(r => r.productId.toString());
+            currentIds.push(product._id.toString());
+
+            const fallback = await Product.find({
+                _id: { $nin: currentIds },
+                category: product.category
+            })
+            .sort({ salesCount: -1 })
+            .limit(4 - recommendations.length)
+            .select('_id name image')
+            .lean(); // Dùng .lean() ở đây luôn
+
+            const formattedFallback = fallback.map(f => ({
+                productId: f._id,
+                name: f.name,
+                // Kiểm tra xem image có tồn tại và là mảng không
+                image: (f.image && f.image.length > 0) ? f.image[0] : "" 
+            }));
+
+            recommendations = [...recommendations, ...formattedFallback];
+        }
+
+        // Chỉ trả về 4 món đầu tiên
+        const finalRecommendations = recommendations.slice(0, 4);
+
+        // Trả về dữ liệu
+        res.json({
+            success: true,
+            // Nếu ní chỉ cần list gợi ý thì dùng key này
+            frequentlyBoughtTogether: finalRecommendations,
+            // Nếu cần cả thông tin SP gốc thì giữ lại dòng dưới
+            // product: product 
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };

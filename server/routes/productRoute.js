@@ -1,5 +1,6 @@
 import express from "express";
 import { upload } from "../configs/multer.js";
+import multer from "multer";
 import {
   addProduct,
   productList,
@@ -8,9 +9,18 @@ import {
   importProducts,
   deleteProduct,
   updateProduct,
+  getRelatedProductsFromDB,
+  getFreqProducts,
 } from "../controllers/productController.js";
 
 import authSeller from "../middlewares/authSeller.js";
+import authUser from "../middlewares/authUser.js";
+// import
+const excelStorage = multer.memoryStorage();
+const excelUpload = multer({ 
+  storage: excelStorage,
+  limits: { fileSize: 5 * 1024 * 1024 } 
+});
 
 const productRouter = express.Router();
 
@@ -27,7 +37,15 @@ productRouter.get("/:id", productById);
 productRouter.post("/stock", authSeller, changeStock);
 
 //upload product list
-productRouter.post("/import", authSeller, importProducts);
+// productRouter.post("/import", authSeller, importProducts);
+
+//upload product list
+productRouter.post(
+  "/import", 
+  authSeller, 
+  excelUpload.single("file"), 
+  importProducts
+);
 
 //delete a product
 productRouter.delete("/delete/:id", authSeller, deleteProduct);
@@ -42,4 +60,8 @@ productRouter.patch(
 
 // productRouter.post("/track-click", handleInteraction);
 
+// get related product
+productRouter.get("/related-v2/:id", getRelatedProductsFromDB)
+// get freq products
+productRouter.get("/freq/:id", getFreqProducts)
 export default productRouter;
