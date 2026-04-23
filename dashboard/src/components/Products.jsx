@@ -21,13 +21,14 @@ import {
   toggleCreateProductModal,
   toggleUpdateProductModal,
   toggleViewProductModal,
+  toggleImportProductModal,
 } from "../store/slices/extraSlice";
 
 import CreateProductModal from "../modals/CreateProductModal";
 import UpdateProductModal from "../modals/UpdateProductModal";
 import ViewProductModal from "../modals/ViewProductModal";
 import FloatingVegetables from "../components/Fruit/FloatingVegetables";
-
+import ImportProductModal from "../modals/ImportProductModal";
 const Products = () => {
   const dispatch = useDispatch();
 
@@ -39,6 +40,7 @@ const Products = () => {
     isCreateProductModalOpened,
     isUpdateProductModalOpened,
     isViewProductModalOpened,
+    isImportProductModalOpened,
   } = useSelector((state) => state.extra);
 
   // State UI
@@ -112,14 +114,27 @@ const Products = () => {
             </p>
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => dispatch(toggleCreateProductModal())}
-            className="flex items-center gap-2 px-8 py-4 bg-[#77cd3af2] text-white rounded-[25px] font-bold shadow-lg shadow-green-100 transition-all"
-          >
-            <Plus size={20} /> <span>Harvest New Product</span>
-          </motion.button>
+          <div className="flex gap-3">
+            {" "}
+            {/* Bọc lại bằng div để chứa 2 nút */}
+            {/* Nút Import List mới */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => dispatch(toggleImportProductModal())} // Ní cần tạo action này trong extraSlice
+              className="flex items-center gap-2 px-6 py-4 bg-white border-2 border-[#77cd3af2] text-[#77cd3af2] rounded-[25px] font-bold shadow-sm transition-all"
+            >
+              <ShoppingBasket size={20} /> <span>Import List</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => dispatch(toggleCreateProductModal())}
+              className="flex items-center gap-2 px-8 py-4 bg-[#77cd3af2] text-white rounded-[25px] font-bold shadow-lg shadow-green-100 transition-all"
+            >
+              <Plus size={20} /> <span>Harvest New Product</span>
+            </motion.button>
+          </div>
         </div>
 
         {/* Filters & Search */}
@@ -134,7 +149,9 @@ const Products = () => {
               placeholder="Search products..."
               className="w-full pl-14 pr-6 py-4 bg-white border-none rounded-[25px] shadow-sm focus:ring-4 focus:ring-[#77cd3a10] outline-none text-sm transition-all"
               value={filters.search}
-              onChange={(e) => setFilters({...filters, search: e.target.value})}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value })
+              }
             />
           </div>
 
@@ -287,6 +304,7 @@ const Products = () => {
         {isViewProductModalOpened && (
           <ViewProductModal selectedProduct={selectedProduct} />
         )}
+        {isImportProductModalOpened && <ImportProductModal />}
       </AnimatePresence>
     </div>
   );

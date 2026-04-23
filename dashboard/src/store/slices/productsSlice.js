@@ -91,6 +91,48 @@ export const deleteProduct = createAsyncThunk(
   },
 );
 
+/**
+ * @desc Import products from Excel file
+ */
+export const importProducts = createAsyncThunk(
+  "products/importProducts",
+  async (file, thunkAPI) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await axiosInstance.post("/product/import", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // Backend trả về res.data = { success, successCount, failedCount, errors, ... }
+      if (res.data.success) {
+        if (res.data.failedCount > 0) {
+          // Trường hợp có dòng thành công, có dòng thất bại (do sai Category chẳng hạn)
+          toast.warning(
+            `Import xong: ${res.data.successCount} thành công, ${res.data.failedCount} lỗi.`
+          );
+          console.table(res.data.errors); // Hiện bảng lỗi ở Console cho ní dễ soi
+        } else {
+          toast.success(`Hàng đã về vườn! Thành công ${res.data.successCount} sản phẩm.`);
+        }
+
+        // Luôn fetch lại danh sách để cập nhật những món đã thành công
+        thunkAPI.dispatch(fetchAllProducts());
+        return res.data;
+      } else {
+        // Trường hợp file lỗi hoàn toàn hoặc logic backend chặn
+        toast.error(res.data.message || "Import thất bại ní ơi!");
+        return thunkAPI.rejectWithValue(res.data.message);
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || "Lỗi kết nối server rồi ní!";
+      toast.error(message);
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 // --- SLICE CONFIGURATION ---
 
 const productsSlice = createSlice({
