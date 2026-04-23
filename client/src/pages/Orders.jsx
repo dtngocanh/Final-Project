@@ -1,12 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Filter,
   Package,
   Truck,
   CheckCircle,
   XCircle,
   ChevronRight,
+  Calendar,
   Box,
+  Star,
+  RefreshCw,
   Trash2,
+  Loader2,
+  ChevronDown,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
@@ -148,6 +154,12 @@ const Orders = () => {
                         </div>
 
                         <div className="col-span-2 flex flex-wrap gap-3 items-end">
+                          {order.orderStatus === "Delivered" && (
+                            <button className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold flex items-center gap-2 dark:text-white border border-white/10 rounded-xl bg-white/5">
+                              <RefreshCw size={14} /> Reorder
+                            </button>
+                          )}
+
                           {order.orderStatus === "Processing" && (
                             <button
                               onClick={() => handleCancelOrder(order._id)}
@@ -173,6 +185,44 @@ const Orders = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* HIỂN THỊ LUÔN DANH SÁCH SẢN PHẨM KHI ĐÃ GIAO HÀNG */}
+                  {order.orderStatus === "Delivered" && (
+                    <div className="mt-8 pt-8 border-t border-gray-100 dark:border-white/5">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#77cd3a]">
+                          Rate your products:
+                        </p>
+                        <div className="h-[1px] flex-1 bg-gradient-to-r from-[#77cd3a]/20 to-transparent ml-4" />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {order.orderItems.map((item) => (
+                          <div 
+                            key={item.product}
+                            className="flex items-center justify-between p-4 bg-white/50 dark:bg-black/20 rounded-2xl border border-gray-100 dark:border-white/5 group/item hover:border-[#77cd3a]/50 transition-all"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-white dark:bg-black/40 p-1 border border-gray-100 dark:border-white/10">
+                                <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold dark:text-white group-hover/item:text-[#77cd3a] transition-colors">{item.name}</p>
+                                <p className="text-[10px] text-gray-400">Qty: {item.qty} • ${item.price}</p>
+                              </div>
+                            </div>
+                            
+                            <button
+                              onClick={() => navigate(`/product/${item.product}`)}
+                              className="flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-tighter bg-black text-white dark:bg-white dark:text-black hover:bg-[#77cd3a] dark:hover:bg-[#77cd3a] transition-all"
+                            >
+                              <Star size={12} className="fill-current" /> Review
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               ))
             ) : (

@@ -25,7 +25,7 @@ import "swiper/css/navigation";
 
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { useCartActions } from "../hooks/useCartActions";
-import { fetchProductDetails } from "../store/slices/productSlice";
+import { fetchProductDetails, fetchRelatedProducts } from "../store/slices/productSlice";
 import BundleSection from "../components/ProductDetail/BundleSelection";
 import RelatedProducts from "../components/ProductDetail/RelatedProducts";
 
@@ -51,6 +51,7 @@ const ProductDetail = () => {
   useEffect(() => {
     if (id) {
       dispatch(fetchProductDetails(id));
+      dispatch(fetchRelatedProducts(id));
     }
   }, [id, dispatch]);
 
@@ -171,7 +172,7 @@ const ProductDetail = () => {
               </div>
 
               <span className="text-[11px] text-gray-600 tracking-widest">
-               Total: {product.numOfReviews} Reviews
+                Total: {product.numOfReviews} Reviews
               </span>
             </div>
 
@@ -282,12 +283,11 @@ const ProductDetail = () => {
             navigate={navigate}
           />
         )} */}
-        <br/>
-        <BundleSection/>
-        <RelatedProducts/>
+        <br />
+        <BundleSection mainProduct={product} />
+        <RelatedProducts products={relatedProducts} />
 
         <div className="mt-24 relative z-10">
-          
           <ReviewsContainer id="reviews" />
         </div>
       </div>

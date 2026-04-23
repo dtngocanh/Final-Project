@@ -2,18 +2,17 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Plus, ArrowRight, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useCartActions } from "../../hooks/useCartActions"; // Import hook của má
+import { useCartActions } from "../../hooks/useCartActions";
 
-const RELATED_MOCK = [
-  { _id: "101", name: "Organic Honey", price: 15.0, ratings: 4.8, images: [{ url: "/honey.png" }], category: "Sweeteners", stock: 10 },
-  { _id: "102", name: "Fresh Avocado", price: 3.5, ratings: 4.9, images: [{ url: "/peach.png" }], category: "Veggies", stock: 5 },
-  { _id: "103", name: "Natural Almonds", price: 8.2, ratings: 4.7, images: [{ url: "/melon.png" }], category: "Fruits", stock: 12 },
-  { _id: "104", name: "Red Apple", price: 1.2, ratings: 4.5, images: [{ url: "/apple.png" }], category: "Fruits", stock: 20 },
-];
-
-const RelatedProducts = () => {
+const RelatedProducts = ({ products }) => {
   const navigate = useNavigate();
-  const { handleCartAction } = useCartActions(); // Hook xử lý giỏ hàng
+  const { handleCartAction } = useCartActions();
+
+  // 1. Kiểm tra nếu không có dữ liệu thì nghỉ khỏe
+  if (!products || products.length === 0) return null;
+
+  // 2. Chỉ lấy 4 món đầu tiên để hiện ra ngoài mặt tiền
+  const displayedProducts = products.slice(0, 4);
 
   return (
     <section className="py-20 bg-white dark:bg-[#020202]">
@@ -31,8 +30,9 @@ const RelatedProducts = () => {
             </div>
           </div>
           
+          {/* Nút View All này bấm vào sẽ dẫn đi đâu đó để xem hết 6 món hoặc toàn bộ shop */}
           <button 
-            onClick={() => navigate("/shop")}
+            onClick={() => navigate("/products")}
             className="hidden md:flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-400 hover:text-[#77cd3a] transition-colors group"
           >
             View All 
@@ -40,16 +40,19 @@ const RelatedProducts = () => {
           </button>
         </div>
 
-        {/* Grid Danh sách */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-          {RELATED_MOCK.map((item, index) => (
+        {/* Grid Danh sách - Giờ chỉ còn 4 món */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+          {displayedProducts.map((item, index) => (
             <motion.div
-              key={item._id}
+              key={item._id} // ID được cất ở đây, React biết thôi chứ người dùng không thấy
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              onClick={() => navigate(`/product/${item._id}`)} // Bấm vào card là đi xem chi tiết
+              onClick={() => {
+                navigate(`/product/${item._id}`);
+                window.scrollTo({ top: 0, behavior: 'smooth' }); 
+              }}
               className="group relative cursor-pointer"
             >
               <div className="relative bg-[#fafafa] dark:bg-white/[0.02] rounded-[2.5rem] p-4 md:p-6 border border-transparent dark:border-white/[0.03] hover:bg-white dark:hover:bg-neutral-900 transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] dark:hover:shadow-black/40">
@@ -58,7 +61,7 @@ const RelatedProducts = () => {
                 <div className="relative aspect-square mb-6 flex items-center justify-center overflow-hidden">
                   <div className="w-[85%] h-[85%] flex items-center justify-center bg-white dark:bg-neutral-800 rounded-3xl shadow-inner border border-neutral-100 dark:border-white/5">
                     <img 
-                      src={item.images[0].url} 
+                      src={item.images?.[0]?.url || "/placeholder.png"} 
                       alt={item.name} 
                       className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
                     />
@@ -67,13 +70,13 @@ const RelatedProducts = () => {
                   {/* Rating */}
                   <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/80 dark:bg-black/50 backdrop-blur-md px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                     <Star size={10} fill="#77cd3a" className="text-[#77cd3a]" />
-                    <span className="text-[9px] font-bold dark:text-white">{item.ratings}</span>
+                    <span className="text-[9px] font-bold dark:text-white">{item.ratings?.toFixed(1) || 0}</span>
                   </div>
 
-                  {/* Nút Plus - Logic thêm vào giỏ hàng */}
+                  {/* Nút Plus */}
                   <button 
                     onClick={(e) => {
-                      e.stopPropagation(); // Chặn navigate để không bị nhảy trang khi bấm nút
+                      e.stopPropagation(); 
                       handleCartAction(item, "ADD", 1);
                     }}
                     className="absolute bottom-2 right-2 w-10 h-10 bg-neutral-950 dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 hover:bg-[#77cd3a] dark:hover:bg-[#77cd3a] dark:hover:text-white z-20 shadow-xl active:scale-90"
@@ -82,21 +85,20 @@ const RelatedProducts = () => {
                   </button>
                 </div>
 
-                {/* Info */}
+                {/* Info - Tuyệt đối không render ID ra đây nữa */}
                 <div className="space-y-1 px-2">
                   <span className="text-[9px] uppercase tracking-[0.2em] text-[#77cd3a] font-black">
-                    {item.category}
+                    {/* {item.category?.name || item.category || "General"} */}
                   </span>
                   <h4 className="text-sm md:text-base font-medium text-gray-900 dark:text-white truncate group-hover:text-[#77cd3a] transition-colors">
                     {item.name}
                   </h4>
                   <div className="flex items-center gap-1.5 pt-1">
-                    <span className="text-base font-light dark:text-white">${item.price.toFixed(2)}</span>
+                    <span className="text-base font-light dark:text-white">${item.price?.toFixed(2)}</span>
                     <span className="text-[8px] text-neutral-400 font-bold uppercase tracking-tighter pt-1">/ unit</span>
                   </div>
                 </div>
 
-                {/* Overlay Border */}
                 <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#77cd3a]/10 rounded-[2.5rem] pointer-events-none transition-all duration-500" />
               </div>
             </motion.div>
@@ -106,7 +108,7 @@ const RelatedProducts = () => {
         {/* Mobile View All */}
         <div className="mt-12 flex justify-center md:hidden">
            <button 
-            onClick={() => navigate("/shop")}
+            onClick={() => navigate("/products")}
             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] py-4 px-8 border border-neutral-200 dark:border-white/10 rounded-full"
            >
             View All Products

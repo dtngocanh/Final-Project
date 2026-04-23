@@ -95,12 +95,40 @@ export const fetchAllShopReviews = createAsyncThunk(
 // );
 // --- SLICE ---
 
+// --- Related product ---
+// Gọi API lấy sản phẩm liên quan từ mảng ID đã có trong DB
+export const fetchRelatedProducts = createAsyncThunk(
+  "product/fetchRelatedProducts",
+  async (id, thunkAPI) => {
+    try {
+      const res = await axiosInstance.get(`/product/related-v2/${id}`);
+      return res.data; // Trả về { success: true, related: [...] }
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to fetch related products.",
+      );
+    }
+  },
+);
+// Freq product
+export const fetchFreqProducts = createAsyncThunk(
+  "product/fetchFreqProducts",
+  async (id, thunkAPI) => {
+    try {
+      const res = await axiosInstance.get(`/product/freq/${id}`);
+      return res.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message);
+    }
+  },
+);
+
 const productSlice = createSlice({
   name: "product",
   initialState: {
-    loading: false, // fetch
+    loading: false,
     reviewLoading: false,
-    isUpdating: false, // update/post
+    isUpdating: false,
     products: [],
     productDetails: {},
     totalProducts: 0,
@@ -112,13 +140,21 @@ const productSlice = createSlice({
     allShopReviews: [],
     isSuccess: false,
     relatedProducts: [],
+    freqProducts: [],
+    isLoadingFreq: false,
+    freqError: null,
     recipes: [],
   },
+  // --- REDUCERS (Đồng bộ) ---
   reducers: {
     clearReviewState: (state) => {
       state.isSuccess = false;
     },
+    clearFreqProducts: (state) => {
+      state.freqProducts = [];
+    },
   },
+  // --- EXTRA REDUCERS (Bất đồng bộ - PHẢI NẰM NGOÀI NÀY) ---
   extraReducers: (builder) => {
     builder
       // Fetch All Products
@@ -156,7 +192,7 @@ const productSlice = createSlice({
         state.isUpdating = true;
         state.isSuccess = false;
       })
-      .addCase(postReview.fulfilled, (state, action) => {
+      .addCase(postReview.fulfilled, (state) => {
         state.isUpdating = false;
         state.isSuccess = true;
       })
@@ -165,15 +201,15 @@ const productSlice = createSlice({
         state.isSuccess = false;
       })
 
-      //Update Review
+      // Update Review
       .addCase(updateReview.pending, (state) => {
         state.isUpdating = true;
       })
-      .addCase(updateReview.fulfilled, (state, action) => {
+      .addCase(updateReview.fulfilled, (state) => {
         state.isUpdating = false;
         state.isSuccess = true;
       })
-      .addCase(updateReview.rejected, (state, action) => {
+      .addCase(updateReview.rejected, (state) => {
         state.isUpdating = false;
       })
 
@@ -185,10 +221,33 @@ const productSlice = createSlice({
         state.reviewLoading = false;
         state.allShopReviews = action.payload;
       })
-      .addCase(fetchAllShopReviews.rejected, (state, action) => {
+      .addCase(fetchAllShopReviews.rejected, (state) => {
         state.reviewLoading = false;
+      })
+
+      // Fetch related product
+      .addCase(fetchRelatedProducts.fulfilled, (state, action) => {
+        state.relatedProducts = action.payload.related;
+      })
+      .addCase(fetchRelatedProducts.rejected, (state) => {
+        state.relatedProducts = [];
+      })
+
+      // Fetch freq product
+      .addCase(fetchFreqProducts.pending, (state) => {
+        state.isLoadingFreq = true;
+      })
+      .addCase(fetchFreqProducts.fulfilled, (state, action) => {
+        state.isLoadingFreq = false;
+        state.freqProducts = action.payload.frequentlyBoughtTogether || [];
+      })
+      .addCase(fetchFreqProducts.rejected, (state, action) => {
+        state.isLoadingFreq = false;
+        state.freqError = action.payload;
       });
   },
 });
-export const { clearReviewState } = productSlice.actions;
+
+
+export const { clearReviewState, clearFreqProducts } = productSlice.actions;
 export default productSlice.reducer;

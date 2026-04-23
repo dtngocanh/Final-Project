@@ -1,14 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, Check, ShoppingBag } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchFreqProducts } from "../../store/slices/productSlice";
+import { useCartActions } from "../../hooks/useCartActions";
+import { toast } from "react-toastify";
 
-const MOCK_BUNDLE = [
-  { id: 2, name: "Organic Salad Dressing", price: 5.5, image: "/cheri2.png" },
-  { id: 3, name: "Wooden Salad Bowl", price: 12.0, image: "/apple.png" },
-];
+const BundleSelection = ({ mainProduct }) => {
+  const dispatch = useDispatch();
+  const { handleCartAction } = useCartActions();
+  
+  const { freqProducts, isLoadingFreq } = useSelector((state) => state.product);
+  const [selectedItems, setSelectedItems] = useState([]);
 
-const BundleSection = ({ mainProduct = { name: "Baby Spinach", price: 4.5, image: "/honey.png" } }) => {
-  const [selectedItems, setSelectedItems] = useState(MOCK_BUNDLE.map(item => item.id));
+  const limitedFreqProducts = React.useMemo(() => {
+    return freqProducts?.slice(0, 2) || [];
+  }, [freqProducts]);
+
+  useEffect(() => {
+    if (mainProduct?._id) {
+      dispatch(fetchFreqProducts(mainProduct._id));
+    }
+  }, [mainProduct?._id, dispatch]);
+
+  useEffect(() => {
+    if (limitedFreqProducts.length > 0) {
+      const ids = limitedFreqProducts.map(item => item.productId);
+      setSelectedItems(ids);
+    }
+  }, [limitedFreqProducts]);
 
   const toggleItem = (id) => {
     setSelectedItems(prev => 
@@ -16,85 +36,111 @@ const BundleSection = ({ mainProduct = { name: "Baby Spinach", price: 4.5, image
     );
   };
 
-  const totalPrice = mainProduct.price + MOCK_BUNDLE
-    .filter(item => selectedItems.includes(item.id))
-    .reduce((sum, item) => sum + item.price, 0);
+  const activeBundleItems = limitedFreqProducts.filter(item => selectedItems.includes(item.productId));
+  const totalPrice = (mainProduct?.price || 0) + activeBundleItems.reduce((sum, item) => sum + (item.price || 0), 0);
+
+  const handleAddBundleToCart = async () => {
+    try {
+      await handleCartAction(mainProduct, "ADD", 1);
+      for (const item of activeBundleItems) {
+        const formattedItem = {
+          _id: item.productId,
+          name: item.name,
+          price: item.price,
+          images: item.image?.url ? [item.image] : (Array.isArray(item.image) ? item.image : []),
+          stock: 99, 
+        };
+        await handleCartAction(formattedItem, "ADD", 1);
+      }
+      toast.success("Added full combo to your bag! 🛒");
+    } catch (error) {
+      console.error("Bundle Add Error:", error);
+      toast.error("Something went wrong!");
+    }
+  };
+
+  if (isLoadingFreq || limitedFreqProducts.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-20 border-t border-neutral-100 dark:border-white/5 bg-white dark:bg-[#020202]">
-      <div className="max-w-[1200px] mx-auto px-4 md:px-6">
+    <section className="py-16 md:py-20 border-t border-neutral-100 dark:border-white/5 bg-white dark:bg-[#060606]">
+      <div className="max-w-[1200px] mx-auto px-6">
         
-        {/* Header - Căn giữa trên mobile */}
-        <div className="mb-10 text-center lg:text-left">
-          <h3 className="text-xl md:text-2xl font-extralight tracking-tighter text-gray-950 dark:text-white">
+        <div className="mb-10 text-center lg:text-left ml-2">
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[#77cd3a]">Perfect Match</span>
+          <h3 className="text-xl md:text-3xl font-extralight tracking-tighter text-gray-950 dark:text-white mt-2">
             Frequently <span className="font-medium text-[#77cd3a]">Bought Together</span>
           </h3>
-          <p className="text-[10px] md:text-xs text-neutral-400 mt-2 uppercase tracking-[0.2em]">Upgrade your experience</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-10 lg:gap-16">
+        <div className="flex flex-col lg:flex-row items-stretch gap-8 lg:gap-12">
           
-          {/* Bundle Visualizer - Chuyển sang Grid trên mobile nhỏ */}
-          <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-6 lg:flex-grow">
+          {/* Left: Product Visualizer - Thu nhỏ lại xíu */}
+          <div className="flex items-center justify-center gap-3 md:gap-6 flex-[1.5] bg-neutral-50/50 dark:bg-white/[0.01] rounded-[2.5rem] py-8 px-4 border border-neutral-100 dark:border-white/5">
+            <BundleItem 
+              image={mainProduct?.images?.[0]?.url || mainProduct?.image?.[0]} 
+              isMain 
+              name={mainProduct?.name} 
+            />
             
-            {/* Main Product */}
-            <BundleItem image={mainProduct.image} isMain />
-            
-            {/* List sản phẩm đi kèm */}
-            <div className="flex flex-col sm:flex-row items-center gap-6 w-full sm:w-auto">
-              {MOCK_BUNDLE.map((item) => (
-                <React.Fragment key={item.id}>
-                  {/* Icon cộng: Xoay dọc trên mobile, ngang trên tablet/desktop */}
-                  <div className="flex items-center justify-center">
-                    <Plus size={20} className="text-neutral-300 rotate-0 sm:rotate-0" />
-                  </div>
-                  
-                  <BundleItem 
-                    image={item.image} 
-                    isSelected={selectedItems.includes(item.id)}
-                    onClick={() => toggleItem(item.id)}
-                    name={item.name} // Hiện tên dưới ảnh trên mobile nếu cần
-                  />
-                </React.Fragment>
-              ))}
-            </div>
+            {limitedFreqProducts.map((item) => (
+              <React.Fragment key={item.productId}>
+                <Plus size={18} className="text-neutral-300 stroke-[1.5px] flex-shrink-0" />
+                <BundleItem 
+                  image={item.image?.url || item.image} 
+                  isSelected={selectedItems.includes(item.productId)}
+                  onClick={() => toggleItem(item.productId)}
+                  name={item.name}
+                />
+              </React.Fragment>
+            ))}
           </div>
 
-          {/* Price & Action Card - Tự thích nghi chiều rộng */}
-          <div className="w-full lg:max-w-[380px] p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] bg-neutral-50 dark:bg-white/[0.02] border border-neutral-100 dark:border-white/5 shadow-sm">
-            <div className="space-y-4 mb-8">
-              <div className="flex justify-between items-center border-b border-neutral-200 dark:border-white/5 pb-4">
-                <span className="text-sm text-neutral-500 font-medium">Selected Bundle</span>
-                <span className="px-3 py-1 bg-[#77cd3a]/10 text-[#77cd3a] rounded-full text-xs font-bold">
-                  {selectedItems.length + 1} Items
+          {/* Right: Summary & Action - Tăng chiều rộng lên (flex-1 hoặc w-[450px]) */}
+          <div className="w-full lg:w-[450px] p-8 rounded-[2.5rem] bg-neutral-50 dark:bg-white/[0.03] border border-neutral-100 dark:border-white/10 flex flex-col justify-between shadow-sm">
+            <div className="space-y-6">
+              <div className="flex justify-between items-end">
+                <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-widest">Bundle Summary</span>
+                <span className="text-[11px] font-bold text-[#77cd3a] bg-[#77cd3a]/10 px-3 py-1 rounded-full uppercase">
+                  {selectedItems.length + 1} Selected
                 </span>
               </div>
               
-              <div className="space-y-3 pt-2">
-                <div className="flex justify-between text-xs md:text-sm">
-                  <span className="truncate w-2/3 text-neutral-600 dark:text-neutral-400">{mainProduct.name}</span>
-                  <span className="font-medium">${mainProduct.price.toFixed(2)}</span>
+              <div className="space-y-4 pt-4">
+                <div className="flex justify-between text-[13px] dark:text-white group">
+                  <span className="truncate opacity-60 w-3/4 group-hover:opacity-100 transition-opacity italic">1x {mainProduct?.name}</span>
+                  <span className="font-semibold">${mainProduct?.price?.toFixed(2)}</span>
                 </div>
-                {MOCK_BUNDLE.filter(i => selectedItems.includes(i.id)).map(item => (
-                  <div key={item.id} className="flex justify-between text-xs md:text-sm animate-in fade-in slide-in-from-bottom-2">
-                    <span className="truncate w-2/3 text-neutral-600 dark:text-neutral-400">{item.name}</span>
-                    <span className="font-medium">${item.price.toFixed(2)}</span>
-                  </div>
+                
+                {activeBundleItems.map(item => (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    key={item.productId} 
+                    className="flex justify-between text-[13px] dark:text-white group"
+                  >
+                    <span className="truncate opacity-60 w-3/4 group-hover:opacity-100 transition-opacity italic">1x {item.name}</span>
+                    <span className="font-semibold">${(item.price || 0).toFixed(2)}</span>
+                  </motion.div>
                 ))}
               </div>
 
-              <div className="pt-6 border-t border-dashed border-neutral-300 dark:border-white/10 flex justify-between items-center">
-                <span className="text-sm font-bold uppercase tracking-wider">Total</span>
-                <span className="text-2xl md:text-3xl font-light tracking-tighter text-[#77cd3a]">
+              <div className="pt-6 border-t border-dashed border-neutral-200 dark:border-white/10 flex justify-between items-center">
+                <span className="text-xs font-black uppercase dark:text-white tracking-wider">Total Amount</span>
+                <span className="text-4xl font-light text-[#77cd3a] tracking-tighter">
                   ${totalPrice.toFixed(2)}
                 </span>
               </div>
             </div>
 
-            <button className="w-full py-4 md:py-5 bg-gray-950 dark:bg-white text-white dark:text-black rounded-full font-bold text-sm flex items-center justify-center gap-3 hover:bg-[#77cd3a] dark:hover:bg-[#77cd3a] dark:hover:text-white transition-all duration-500 group active:scale-95">
-              <ShoppingBag size={18} className="group-hover:scale-110 transition-transform" />
-              Add Bundle to Cart
-            </button>
+            <motion.button 
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleAddBundleToCart}
+              className="w-full mt-8 py-5 bg-black dark:bg-[#77cd3a] text-white dark:text-black rounded-2xl font-bold flex items-center justify-center gap-3 shadow-xl hover:shadow-[#77cd3a]/20 transition-all"
+            >
+              <ShoppingBag size={18} />
+              <span className="uppercase tracking-[0.2em] text-[11px]">Add Full Combo to Bag</span>
+            </motion.button>
           </div>
 
         </div>
@@ -104,37 +150,36 @@ const BundleSection = ({ mainProduct = { name: "Baby Spinach", price: 4.5, image
 };
 
 const BundleItem = ({ image, isMain = false, isSelected = true, onClick, name }) => (
-  <div className="flex flex-col items-center gap-3">
+  <div className="flex flex-col items-center gap-4">
     <motion.div 
-      whileHover={{ y: -5 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={isSelected ? { y: -5 } : {}}
       onClick={onClick}
-      className={`relative w-28 h-28 md:w-36 md:h-36 rounded-[2rem] flex items-center justify-center cursor-pointer transition-all duration-500 border ${
+      className={`relative w-20 h-20 md:w-28 md:h-28 rounded-[2rem] flex items-center justify-center cursor-pointer transition-all duration-500 border-2 ${
         isSelected 
-          ? "bg-white dark:bg-neutral-900 border-neutral-100 dark:border-white/10 shadow-xl shadow-black/5" 
-          : "bg-transparent border-dashed border-neutral-300 dark:border-white/5 opacity-40 scale-90"
+          ? "bg-white dark:bg-neutral-900 shadow-xl border-white dark:border-white/10" 
+          : "opacity-25 grayscale scale-90 border-dashed border-neutral-300 dark:border-white/5"
       }`}
     >
-      <img src={image} alt="bundle item" className="w-[70%] h-[70%] object-contain" />
+      <img src={image} alt={name} className="w-[65%] h-[65%] object-contain" />
       
       {!isMain && (
-        <div className={`absolute -top-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white dark:border-[#020202] transition-all ${
-          isSelected ? "bg-[#77cd3a] text-white scale-100" : "bg-neutral-200 text-transparent scale-75"
+        <div className={`absolute -top-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-[3px] border-white dark:border-[#060606] transition-all duration-500 ${
+          isSelected ? "bg-[#77cd3a] text-white scale-100" : "bg-neutral-300 scale-0"
         }`}>
           <Check size={12} strokeWidth={4} />
         </div>
       )}
       
       {isMain && (
-        <span className="absolute -bottom-2 px-3 py-1 bg-neutral-950 dark:bg-[#77cd3a] text-white text-[7px] font-black uppercase tracking-[0.15em] rounded-full shadow-lg">
+        <div className="absolute -bottom-2 px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase rounded-full tracking-tighter shadow-md">
           Current
-        </span>
+        </div>
       )}
     </motion.div>
-    
-    {/* Tên sản phẩm nhỏ dưới ảnh (chỉ hiện trên mobile để dễ nhận biết) */}
-    {name && <span className="text-[10px] text-neutral-400 font-medium sm:hidden truncate max-w-[100px]">{name}</span>}
+    <span className={`text-[9px] uppercase font-bold tracking-tight text-center max-w-[80px] leading-tight transition-colors ${isSelected ? "text-neutral-500" : "text-neutral-300"}`}>
+      {name?.split(' ').slice(0, 2).join(' ')}
+    </span>
   </div>
 );
 
-export default BundleSection;
+export default BundleSelection;
