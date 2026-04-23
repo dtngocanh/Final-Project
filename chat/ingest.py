@@ -15,7 +15,7 @@ def clean_data(value):
     return str(value).strip()
 
 def start_ingest():
-    print("🚀 Đang lấy dữ liệu từ MongoDB...")
+    print("Đang lấy dữ liệu từ MongoDB...")
     # Lấy tất cả sản phẩm, nhưng không lấy field embedding cũ để đỡ nặng RAM
     products = list(collection.find({}, {"embedding": 0}))
     total = len(products)
@@ -66,16 +66,16 @@ def start_ingest():
             if len(bulk_updates) >= 50: # Cứ 50 sản phẩm thì đẩy lên DB một lần cho nhanh
                 collection.bulk_write(bulk_updates)
                 bulk_updates = []
-                print(f"✅ Đã nạp: {index+1}/{total}")
+                print(f"Đã nạp: {index+1}/{total}")
 
         except Exception as e:
-            print(f"❌ Lỗi tại sản phẩm {name}: {e}")
+            print(f" Lỗi tại sản phẩm {name}: {e}")
 
     # Nạp nốt số còn lại
     if bulk_updates:
         collection.bulk_write(bulk_updates)
             
-    print("\n✨ INGESTION XONG RỒI! Giờ search cái là ra ID luôn.")
+    print("\nINGESTION XONG RỒI! Giờ search cái là ra ID luôn.")
 
 if __name__ == "__main__":
     start_ingest()

@@ -122,7 +122,7 @@ async def chat_endpoint(request: ChatRequest):
         }
 
     except Exception as e:
-        print(f"❌ ERROR: {e}", flush=True)
+        print(f" ERROR: {e}", flush=True)
         return {"answer": "I'm sorry, I hit a snag. Please ask again! 🌿", "products": []}
 
 if __name__ == "__main__":
