@@ -15,6 +15,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { clearCart } from "../store/slices/cartSlice";
 import Swal from "sweetalert2";
+import { useEffect } from "react";
+import { calcFee, fetchProvinces } from "../store/slices/addressSlice";
+import AddressSelection from "../components/Payment/AddressSelection";
 
 const Checkout = () => {
   const dispatch = useDispatch();
@@ -22,10 +25,19 @@ const Checkout = () => {
 
   // FETCH DATA
   const { authUser } = useSelector((state) => state.auth);
+
   const { cart } = useSelector((state) => state.cart);
+  const { provinces, districts, wards, shippingFee } = useSelector(
+    (state) => state.address,
+  );
+
   const { activeStep, loading, shippingInfo } = useSelector(
     (state) => state.order,
   );
+
+  useEffect(() => {
+    dispatch(fetchProvinces());
+  }, [dispatch]);
 
   // State local cho Form
   const [shippingDetails, setShippingDetails] = useState({
@@ -33,8 +45,7 @@ const Checkout = () => {
     email: authUser?.email || "",
     phone: authUser?.phone || "",
     address: shippingInfo?.address || "",
-    city: shippingInfo?.city || "",
-    country: shippingInfo?.country || "",
+    country: shippingInfo?.country || "Vietnam",
   });
 
   const [paymentMethod, setPaymentMethod] = useState("Stripe");
@@ -43,8 +54,19 @@ const Checkout = () => {
   const subtotal =
     cart?.reduce((acc, item) => acc + item.product.price * item.quantity, 0) ||
     0;
-  const shippingFee = 0;
   const totalAmount = subtotal + shippingFee;
+
+  useEffect(() => {
+    if (shippingDetails.districtId && shippingDetails.wardCode) {
+      dispatch(
+        calcFee({
+          cartItems: cart,
+          to_district_id: shippingDetails.districtId,
+          to_ward_code: shippingDetails.wardCode,
+        }),
+      );
+    }
+  }, [shippingDetails.districtId, shippingDetails.wardCode, cart, dispatch]);
 
   const handleInputChange = (e) => {
     setShippingDetails({ ...shippingDetails, [e.target.name]: e.target.value });
@@ -53,15 +75,25 @@ const Checkout = () => {
   const handleNext = () => {
     if (activeStep === 0) {
       const newErrors = {};
-      const { fullName, email, address, city, phone, country } =
-        shippingDetails;
+      const {
+        fullName,
+        email,
+        address,
+        phone,
+        provinceId,
+        districtId,
+        wardCode,
+      } = shippingDetails;
 
       if (!fullName?.trim()) newErrors.fullName = "Full name is required";
       if (!email?.trim()) newErrors.email = "Email is required";
       if (!address?.trim()) newErrors.address = "Address is required";
-      if (!city?.trim()) newErrors.city = "City is required";
+      // if (!city?.trim()) newErrors.city = "City is required";
       if (!phone?.trim()) newErrors.phone = "Phone number is required";
-      if (!country?.trim()) newErrors.country = "Phone number is required";
+      if (!provinceId?.trim()) newErrors.provinceId = "Province is required";
+      if (!districtId?.trim()) newErrors.districtId = "District is required";
+      if (!wardCode?.trim()) newErrors.wardCode = "Ward is required";
+      // if (!country?.trim()) newErrors.country = "Phone number is required";
 
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
@@ -165,7 +197,7 @@ const Checkout = () => {
                         </p>
                       )}
                     </div>
-                    <div>
+                    <div className="md:col-span-1">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
                         Email Address
                       </label>
@@ -189,7 +221,7 @@ const Checkout = () => {
                         </p>
                       )}
                     </div>
-                    <div>
+                    <div className="md:col-span-1">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
                         Phone Number
                       </label>
@@ -239,55 +271,13 @@ const Checkout = () => {
                         </p>
                       )}
                     </div>
-                    <div className="md:col-span-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
-                        City
-                      </label>
-                      <input
-                        name="city"
-                        value={shippingDetails.city}
-                        onChange={(e) => {
-                          handleInputChange(e);
-                          if (errors.city) setErrors({ ...errors, city: null });
-                        }}
-                        className={`w-full p-4 bg-slate-50 rounded-2xl outline-none transition-all border ${
-                          errors.city
-                            ? "border-red-300 ring-1 ring-red-100"
-                            : "border-transparent focus:ring-2 focus:ring-[#77cd3a]"
-                        }`}
-                      />
-                      {errors.city && (
-                        <p className="text-[9px] text-red-400 ml-3 font-medium flex items-center gap-1 animate-pulse italic">
-                          * {errors.city}
-                        </p>
-                      )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-2">
-                        Country
-                      </label>
-                      <input
-                        name="country"
-                        // required
-                        value={shippingDetails.country}
-                        onChange={(e) => {
-                          handleInputChange(e);
-                          if (errors.country)
-                            setErrors({ ...errors, country: null });
-                        }}
-                        className={`w-full p-4 bg-slate-50 rounded-2xl outline-none transition-all border ${
-                          errors.country
-                            ? "border-red-300 ring-1 ring-red-100"
-                            : "border-transparent focus:ring-2 focus:ring-[#77cd3a]"
-                        }`}
-                      />
-                      {errors.country && (
-                        <p className="text-[9px] text-red-400 ml-3 font-medium flex items-center gap-1 animate-pulse italic">
-                          * {errors.country}
-                        </p>
-                      )}
-                    </div>
                   </div>
+                  <AddressSelection
+                    shippingDetails={shippingDetails}
+                    setShippingDetails={setShippingDetails}
+                    errors={errors}
+                    setErrors={setErrors}
+                  />
                 </motion.div>
               ) : (
                 <motion.div
@@ -321,7 +311,8 @@ const Checkout = () => {
                         Shipping To
                       </p>
                       <p className="text-slate-700 font-medium">
-                        {shippingDetails.address}, {shippingDetails.city}
+                        {shippingDetails.address}, {shippingDetails.ward},{" "}
+                        {shippingDetails.district},{shippingDetails.city}
                       </p>
                     </div>
                   </div>
@@ -458,7 +449,9 @@ const Checkout = () => {
                   <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                     Shipping
                   </span>
-                  <span className="text-[#77cd3a] font-bold">FREE</span>
+                  <span className="text-[#77cd3a] font-bold">
+                    {shippingFee || "FREE"}
+                  </span>
                 </div>
                 <div className="h-px bg-slate-800 my-4" />
                 <div>

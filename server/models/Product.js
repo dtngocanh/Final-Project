@@ -39,15 +39,15 @@ const productSchema = new mongoose.Schema(
     tags: [{ type: String, index: true }],
     salesCount: { type: Number, default: 0 },
     viewCount: { type: Number, default: 0 },
-// try.....
+    // try.....
     related_product_ids: [{ type: String }],
     frequentlyBoughtTogether: [
-        {
-            productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
-            name: String,
-            image: String
-        }
-    ]
+      {
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+        name: String,
+        image: String,
+      },
+    ],
   },
   { timestamps: true },
 );

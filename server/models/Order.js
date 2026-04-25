@@ -26,10 +26,20 @@ const orderItemSchema = new mongoose.Schema({
 
 const shippingInfoSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
-  address: { type: String, required: true },
-  city: { type: String, required: true },
-  country: { type: String, required: true },
   phone: { type: String, required: true },
+
+  address: { type: String, required: true },
+
+  provinceId: { type: Number, required: true },
+  districtId: { type: Number, required: true },
+  wardCode: { type: String, required: true },
+
+  provinceName: { type: String },
+  districtName: { type: String },
+  wardName: { type: String },
+  
+  city: { type: String},
+  country: { type: String, required: true },
 });
 
 const paymentInfoSchema = new mongoose.Schema({

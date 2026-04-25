@@ -17,8 +17,8 @@ export const fetchOrderDetails = createAsyncThunk(
   "order/fetchOrderDetails",
   async (id, thunkAPI) => {
     try {
-      const res = await axiosInstance.get(`/order/${id}`);     
-      return res.data.order;      
+      const res = await axiosInstance.get(`/order/${id}`);
+      return res.data.order;
     } catch (error) {
       return thunkAPI.rejectWithValue(error.response.data.message);
     }
@@ -65,6 +65,7 @@ export const cancelOrder = createAsyncThunk(
   },
 );
 
+
 const orderSlice = createSlice({
   name: "order",
   initialState: {
@@ -77,6 +78,7 @@ const orderSlice = createSlice({
       : {},
     error: null,
     orderDetail: null,
+
   },
   reducers: {
     setOrderStep: (state, action) => {
@@ -128,7 +130,8 @@ const orderSlice = createSlice({
         if (i !== -1) {
           state.myOrders[i].orderStatus = "Canceled";
         }
-      });
+      })
+;
   },
 });
 
