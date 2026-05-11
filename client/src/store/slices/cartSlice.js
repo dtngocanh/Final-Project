@@ -45,6 +45,18 @@ const cartSlice = createSlice({
     loading: false,
   },
   reducers: {
+    addToCartLocal(state, action) {
+      const { product, quantity } = action.payload;
+      const existingItem = state.cart.find(
+        (item) => item.product._id === product._id,
+      );
+
+      if (existingItem) {
+        existingItem.quantity += quantity;
+      } else {
+        state.cart.push({ product, quantity });
+      }
+    },
     //4.  Xóa sạch giỏ hàng
     clearCart(state) {
       state.cart = [];
@@ -72,8 +84,7 @@ const cartSlice = createSlice({
 });
 
 // Export các actions để dùng ở Component
-export const { clearCart } =
-  cartSlice.actions;
+export const { clearCart } = cartSlice.actions;
 
 // Export reducer để khai báo trong store
 export default cartSlice.reducer;

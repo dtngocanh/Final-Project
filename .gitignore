@@ -46,5 +46,4 @@ venv/
 chat/requirements.txt
 client/src/components/Products/RecipeSection.jsx
 client/src/components/Products/RecommendedProductCard.jsx
-server/migrateProducts.js
-server/geo.js
+server/mongo/

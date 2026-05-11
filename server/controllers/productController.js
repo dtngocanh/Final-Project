@@ -1,9 +1,11 @@
 import { v2 as cloudinary } from "cloudinary";
+// import ProductSimilarity from "../models/ProductSimilarity.js";
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import XLSX from "xlsx";
 import ErrorHandler from "../utils/errorHandler.js";
 import axios from "axios";
+import { getCategoryIdsWithSub } from "../helpers/categoryHelper.js";
 /**
  * @route [POST] api/product/add
  */
@@ -53,18 +55,9 @@ export const productList = async (req, res, next) => {
       query.name = { $regex: search, $options: "i" };
     }
 
-    // Handle category-based filtering (including subcategories)
     if (categoryId) {
-      // Find the selected category and all its descendants using the path field
-      const subCategories = await Category.find({
-        $or: [{ _id: categoryId }, { path: new RegExp(`,${categoryId},`) }],
-      }).select("_id");
-
-      // Extract only the IDs into an array for the query
-      const categoryIds = subCategories.map((cat) => cat._id);
-
-      // Filter products that belong to any of the found category IDs
-      query.category = { $in: categoryIds };
+      const cateIds = await getCategoryIdsWithSub(categoryId);
+      query.category = { $in: cateIds };
     }
 
     // Execute the database query with population and sorting
@@ -80,6 +73,67 @@ export const productList = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * @route [GET] /api/products/search?q=apple
+ */
+export const searchProducts = async (req, res) => {
+  try {
+    const { q, categoryId } = req.query;
+
+    if (!q) return res.json([]);
+
+    let pipeline = [
+      {
+        $search: {
+          index: "idx-search",
+          compound: {
+            should: [
+              {
+                autocomplete: {
+                  query: q,
+                  path: "name",
+                  score: { boost: { value: 5 } },
+                },
+              },
+              {
+                autocomplete: {
+                  query: q,
+                  path: "tags",
+                  score: { boost: { value: 2 } },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ];
+
+    if (categoryId) {
+      const categoryIds = await getCategoryIdsWithSub(categoryId);
+      pipeline.push({
+        $match: {
+          category: { $in: categoryIds }, 
+        },
+      });
+    }
+
+    pipeline.push({ $limit: 20 });
+    pipeline.push({
+      $project: {
+        name: 1,
+        price: 1,
+        images: 1,
+        score: { $meta: "searchScore" },
+      },
+    });
+
+    const results = await Product.aggregate(pipeline);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -390,8 +444,6 @@ export const changeStock = async (req, res) => {
 //   }
 // };
 
-
-
 // TUI LM LỎ LỎ
 // import product list
 // Hàm Helper: Tìm hoặc tạo mới Category/Subcategory
@@ -401,7 +453,7 @@ const getOrCreateCategory = async (name, parentId = null, level = 0) => {
   // Tìm danh mục khớp cả Tên VÀ Cha (để tránh lấy nhầm Herbs của Fruits cho Vegetables)
   let category = await Category.findOne({
     name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
-    parent: parentId 
+    parent: parentId,
   });
 
   if (!category) {
@@ -409,7 +461,7 @@ const getOrCreateCategory = async (name, parentId = null, level = 0) => {
       name: name.trim(),
       parent: parentId,
       level: level,
-      path: parentId ? `${parentId},` : ",", 
+      path: parentId ? `${parentId},` : ",",
     });
     console.log(` Đã tạo danh mục mới: ${name} (Level ${level})`);
   }
@@ -568,54 +620,105 @@ export const getRelatedProductsFromDB = async (req, res, next) => {
 };
 // get freq product
 export const getFreqProducts = async (req, res) => {
-    try {
-        // Dùng .lean() để lấy plain object, nhẹ và nhanh hơn
-        const product = await Product.findById(req.params.id).lean();
-        
-        if (!product) {
-            return res.status(404).json({ message: "Sản phẩm không tồn tại" });
-        }
+  try {
+    // Dùng .lean() để lấy plain object, nhẹ và nhanh hơn
+    const product = await Product.findById(req.params.id).lean();
 
-        let recommendations = product.frequentlyBoughtTogether || [];
-
-        // Kiểm tra nếu chưa đủ 4 món
-        if (recommendations.length < 4) {
-            // Lấy danh sách ID đã có để tránh trùng
-            const currentIds = recommendations.map(r => r.productId.toString());
-            currentIds.push(product._id.toString());
-
-            const fallback = await Product.find({
-                _id: { $nin: currentIds },
-                category: product.category
-            })
-            .sort({ salesCount: -1 })
-            .limit(4 - recommendations.length)
-            .select('_id name image')
-            .lean(); // Dùng .lean() ở đây luôn
-
-            const formattedFallback = fallback.map(f => ({
-                productId: f._id,
-                name: f.name,
-                // Kiểm tra xem image có tồn tại và là mảng không
-                image: (f.image && f.image.length > 0) ? f.image[0] : "" 
-            }));
-
-            recommendations = [...recommendations, ...formattedFallback];
-        }
-
-        // Chỉ trả về 4 món đầu tiên
-        const finalRecommendations = recommendations.slice(0, 4);
-
-        // Trả về dữ liệu
-        res.json({
-            success: true,
-            // Nếu ní chỉ cần list gợi ý thì dùng key này
-            frequentlyBoughtTogether: finalRecommendations,
-            // Nếu cần cả thông tin SP gốc thì giữ lại dòng dưới
-            // product: product 
-        });
-
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    if (!product) {
+      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
     }
+
+    let recommendations = product.frequentlyBoughtTogether || [];
+
+    // Kiểm tra nếu chưa đủ 4 món
+    if (recommendations.length < 4) {
+      // Lấy danh sách ID đã có để tránh trùng
+      const currentIds = recommendations.map((r) => r.productId.toString());
+      currentIds.push(product._id.toString());
+
+      const fallback = await Product.find({
+        _id: { $nin: currentIds },
+        category: product.category,
+      })
+        .sort({ salesCount: -1 })
+        .limit(4 - recommendations.length)
+        .select("_id name image")
+        .lean(); // Dùng .lean() ở đây luôn
+
+      const formattedFallback = fallback.map((f) => ({
+        productId: f._id,
+        name: f.name,
+        // Kiểm tra xem image có tồn tại và là mảng không
+        image: f.image && f.image.length > 0 ? f.image[0] : "",
+      }));
+
+      recommendations = [...recommendations, ...formattedFallback];
+    }
+
+    // Chỉ trả về 4 món đầu tiên
+    const finalRecommendations = recommendations.slice(0, 4);
+
+    // Trả về dữ liệu
+    res.json({
+      success: true,
+      // Nếu ní chỉ cần list gợi ý thì dùng key này
+      frequentlyBoughtTogether: finalRecommendations,
+      // Nếu cần cả thông tin SP gốc thì giữ lại dòng dưới
+      // product: product
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
+
+// export const getRelatedProductsFromDB2 = async (req, res, next) => {
+//   try {
+//     const { id } = req.params;
+
+//     // 1. Kiểm tra sản phẩm gốc
+//     const product = await Product.findById(id).lean();
+//     if (!product) {
+//       return next(new ErrorHandler("Cannot find this product", 404));
+//     }
+
+//     // 2. Truy vấn từ bảng AI
+//     const aiRecommendation = await ProductSimilarity.findOne({ productId: id })
+//       .populate({
+//         path: "similarProducts.productId",
+//         model: Product,
+//       })
+//       .lean();
+
+//     let sortedRelated = [];
+
+//     // 3. Kiểm tra dữ liệu AI
+//     if (aiRecommendation && aiRecommendation.similarProducts?.length > 0) {
+//       sortedRelated = aiRecommendation.similarProducts
+//         .filter((item) => {
+//           if (item.productId == null) {
+//             return false;
+//           }
+//           return true;
+//         })
+//         .map((item) => item.productId);
+//     } else {
+//     }
+
+//     // 4. Fallback
+//     if (sortedRelated.length === 0) {
+//       sortedRelated = await Product.find({
+//         category: product.category,
+//         _id: { $ne: id },
+//       })
+//         .limit(6)
+//         .lean();
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       related: sortedRelated,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };

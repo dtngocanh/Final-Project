@@ -13,14 +13,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 
 // Store actions
-import { fetchAllProducts } from "../store/slices/productSlice";
-import { useLocation } from "react-router-dom";
+import { fetchAllProducts, searchProducts } from "../store/slices/productSlice";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { fetchCategories, setCategory } from "../store/slices/categorySlice";
+import { NoProductsFound } from "../components/Products/NoProductsFound";
 
 const Products = () => {
   const dispatch = useDispatch();
-  const { search: urlSearch } = useLocation(); //?subcategory=Potato
+  const location = useLocation(); //?subcategory=Potato
 
+  const [searchParams, setSearchParams] = useSearchParams();
   // State Local
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [openFilter, setOpenFilter] = useState(null);
@@ -28,8 +30,8 @@ const Products = () => {
     rating: null,
     stock: "all",
     maxPrice: 150,
-    subcategory: "",
-    search: "",
+    // subcategory: "",
+    // search: "",
   };
   const [filters, setFilters] = useState(initialFilters);
 
@@ -38,37 +40,42 @@ const Products = () => {
   const { categories, selectedCategory } = useSelector(
     (state) => state.category,
   );
-
+  // 1. Initial Data Fetching
+  // Fetch all categories on component mount to populate the filter bar.
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // Fetch Products
+  // 2. Gọi API
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      const params = {
-        ...(selectedCategory !== "All" && { categoryId: selectedCategory }),
-        ...(filters.search.trim() !== "" && { search: filters.search }),
-      };
-      dispatch(fetchAllProducts(params));
-    }, 500);
+    const fetchData = () => {
+      const q = searchParams.get("q"); // Lấy q từ URL
+      const subCatId = searchParams.get("subCatId");
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [selectedCategory, filters.search, dispatch]);
+      const currentCategoryId =
+        subCatId || (selectedCategory !== "All" ? selectedCategory : null);
 
-  // Handle logic URL
-  useEffect(() => {
-    setFilters(initialFilters);
-    const params = new URLSearchParams(urlSearch);
-    const subcatId = params.get("subCatId"); // Giả sử URL truyền ID
-    if (subcatId) {
-      dispatch(setCategory(subcatId));
-    } else {
-      dispatch(setCategory("All"));
-    }
-  }, [urlSearch, dispatch]);
+      if (q) {
+        dispatch(
+          searchProducts({
+            q: q,
+            categoryId: currentCategoryId,
+          }),
+        );
+      } else {
+        const params = {
+          ...(currentCategoryId && { categoryId: currentCategoryId }),
+        };
 
-  // Filter Client-side
+        dispatch(fetchAllProducts(params));
+      }
+    };
+
+    const timer = setTimeout(fetchData, 500);
+    return () => clearTimeout(timer);
+  }, [searchParams, selectedCategory, dispatch]);
+
+  // 3. Lọc tại Client
   const filteredProducts = useMemo(() => {
     if (!products) return [];
     return products.filter((p) => {
@@ -82,11 +89,20 @@ const Products = () => {
           : filters.stock === "in"
             ? p.stock > 0
             : p.stock === 0;
-
       return matchStar && matchPrice && matchStock;
     });
-  }, [products, filters.rating, filters.maxPrice, filters.stock]);
+  }, [products, filters]);
 
+  // 4. Hàm xử lý khi chọn Category (Cập nhật URL thay vì chỉ dispatch)
+  const handleCategoryChange = (id) => {
+    if (id === "All") {
+      searchParams.delete("subCatId");
+    } else {
+      searchParams.set("subCatId", id);
+    }
+    setSearchParams(searchParams);
+    dispatch(setCategory(id));
+  };
   return (
     <main className="min-h-screen pt-32 pb-24 bg-white dark:bg-[#060606] transition-all duration-700">
       <div className="max-w-[1200px] mx-auto px-6">
@@ -110,7 +126,7 @@ const Products = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16 relative border-y border-gray-100 dark:border-white/5 py-8">
           <div className="flex gap-10 overflow-x-auto no-scrollbar">
             <button
-              onClick={() => dispatch(setCategory("All"))}
+              onClick={() => handleCategoryChange("All")}
               className={selectedCategory === "All" ? "active" : ""}
             >
               All
@@ -121,7 +137,7 @@ const Products = () => {
               .map((cat) => (
                 <button
                   key={cat._id}
-                  onClick={() => dispatch(setCategory(cat._id))} // Gửi ID lên store
+                  onClick={() => handleCategoryChange(cat._id)}
                   className={
                     selectedCategory === cat._id
                       ? "text-[#77cd3a] font-bold"
@@ -143,9 +159,15 @@ const Products = () => {
                 type="text"
                 placeholder="Search..."
                 value={filters.search}
-                onChange={(e) =>
-                  setFilters({ ...filters, search: e.target.value })
-                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    searchParams.set("q", val);
+                  } else {
+                    searchParams.delete("q");
+                  }
+                  setSearchParams(searchParams); // Cập nhật URL ngay lập tức
+                }}
                 className="bg-transparent border-none outline-none pl-6 text-sm w-32 focus:w-48 transition-all dark:text-white"
               />
             </div>
@@ -184,22 +206,17 @@ const Products = () => {
 
         {/* GRID */}
         <section className="min-h-[500px]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
-            <AnimatePresence mode="popLayout">
-              {loading ? (
-                <motion.div
-                  key="loader"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex justify-center items-center py-40 text-center col-span-full"
-                >
-                  <p className="text-[11px] uppercase tracking-[0.5em] text-[#77cd3a] animate-pulse">
-                    Harvesting{" "} our products...
-                  </p>
-                </motion.div>
-              ) : (
-                filteredProducts.map((product) => (
+          {loading ? (
+            <div className="flex justify-center items-center py-40 text-center col-span-full">
+              <p className="text-[11px] uppercase tracking-[0.5em] text-[#77cd3a] animate-pulse">
+                Harvesting our products...
+              </p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            /* Chỉ render thẻ div grid khi CÓ sản phẩm */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
+              <AnimatePresence mode="popLayout">
+                {filteredProducts.map((product) => (
                   <motion.div
                     key={product._id}
                     layout
@@ -210,10 +227,18 @@ const Products = () => {
                   >
                     <ProductCard product={product} />
                   </motion.div>
-                ))
-              )}
-            </AnimatePresence>
-          </div>
+                ))}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <NoProductsFound
+              onReset={() => {
+                setSearchParams({});
+                dispatch(setCategory("All"));
+                setFilters(initialFilters);
+              }}
+            />
+          )}
         </section>
 
         <Pagination currentPage={1} totalPages={3} onPageChange={() => {}} />

@@ -16,6 +16,7 @@ const productSchema = new mongoose.Schema(
       ref: "category",
       required: true,
     },
+    categoryName: { type: String },
     images: [
       {
         public_id: String,
@@ -36,7 +37,10 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    tags: [{ type: String, index: true }],
+    tags: {
+      type: [String],
+      index: true,
+    },
     salesCount: { type: Number, default: 0 },
     viewCount: { type: Number, default: 0 },
     // try.....

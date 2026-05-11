@@ -123,6 +123,25 @@ export const fetchFreqProducts = createAsyncThunk(
   },
 );
 
+export const searchProducts = createAsyncThunk(
+  "product/searchProducts",
+  async (fileterParams, thunkAPI) => {
+    try {
+      // Gửi keyword qua query parameter (?q=...)
+      const res = await axiosInstance.get(`/product/search`, {
+        params: fileterParams,
+      });
+      console.log("Dữ liệu từ API:", res.data);
+      return res.data;
+    } catch (error) {
+      // Trả về lỗi từ backend hoặc lỗi mặc định
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Search failed",
+      );
+    }
+  },
+);
+
 const productSlice = createSlice({
   name: "product",
   initialState: {
@@ -144,6 +163,8 @@ const productSlice = createSlice({
     isLoadingFreq: false,
     freqError: null,
     recipes: [],
+    loadingSearch: false,
+    searchSug: [],
   },
   // --- REDUCERS (Đồng bộ) ---
   reducers: {
@@ -152,6 +173,9 @@ const productSlice = createSlice({
     },
     clearFreqProducts: (state) => {
       state.freqProducts = [];
+    },
+    clearSearchResults: (state) => {
+      state.searchSug = [];
     },
   },
   // --- EXTRA REDUCERS (Bất đồng bộ - PHẢI NẰM NGOÀI NÀY) ---
@@ -244,10 +268,21 @@ const productSlice = createSlice({
       .addCase(fetchFreqProducts.rejected, (state, action) => {
         state.isLoadingFreq = false;
         state.freqError = action.payload;
+      })
+      .addCase(searchProducts.pending, (state) => {
+        state.loadingSearch = true;
+      })
+      .addCase(searchProducts.fulfilled, (state, action) => {
+        state.loadingSearch = false;
+        state.searchSug = action.payload;
+        state.products = action.payload;
+      })
+      .addCase(searchProducts.rejected, (state, action) => {
+        state.loadingSearch = false;
       });
   },
 });
 
-
-export const { clearReviewState, clearFreqProducts } = productSlice.actions;
+export const { clearReviewState, clearFreqProducts, clearSearchResults } =
+  productSlice.actions;
 export default productSlice.reducer;

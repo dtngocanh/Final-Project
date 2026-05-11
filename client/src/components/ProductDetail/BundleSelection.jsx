@@ -48,11 +48,11 @@ const BundleSelection = ({ mainProduct }) => {
           name: item.name,
           price: item.price,
           images: item.image?.url ? [item.image] : (Array.isArray(item.image) ? item.image : []),
-          stock: 99, 
+          stock: item.stock, 
         };
         await handleCartAction(formattedItem, "ADD", 1);
       }
-      toast.success("Added full combo to your bag! 🛒");
+      // toast.success("Added full combo to your bag! 🛒");
     } catch (error) {
       console.error("Bundle Add Error:", error);
       toast.error("Something went wrong!");
