@@ -136,20 +136,13 @@ export const calcFee = async (req, res, next) => {
   try {
     const { cartItems, to_district_id, to_ward_code } = req.body;
 
-    if (!cartItems || !to_district_id || !to_ward_code) {
-      return next(new ErrorHandler("Missing required fields", 400));
-    }
-
-    const totalWeight = cartItems.reduce((sum, item) => {
-      const weightPerItem = getWeight(item.product);
-      return sum + item.quantity * weightPerItem;
-    }, 0);
+    const DISTRICT_ID = 1529;
 
     const serviceRes = await ghnReq.post(
       "/v2/shipping-order/available-services",
       {
         shop_id: Number(process.env.GHN_SHOP_ID),
-        from_district: 1454,
+        from_district: DISTRICT_ID,
         to_district: Number(to_district_id),
       },
     );
@@ -158,34 +151,32 @@ export const calcFee = async (req, res, next) => {
 
     if (!services || services.length === 0) {
       return next(
-        new ErrorHandler("No shipping service available for this route", 400),
+        new ErrorHandler("Shipping not available for this location.", 400),
       );
     }
 
-    const service_id = services[0].service_id;
+    const active_service_id = services[0].service_id;
+
+    const totalWeight = cartItems.reduce((sum, item) => {
+      return sum + item.quantity * getWeight(item.product);
+    }, 0);
 
     const feeRes = await ghnReq.post("/v2/shipping-order/fee", {
-      service_id,
-      from_district_id: 1454,
+      service_id: Number(active_service_id),
+      from_district_id: DISTRICT_ID,
       to_district_id: Number(to_district_id),
       to_ward_code: String(to_ward_code),
       weight: totalWeight || 1000,
-      // length: 10,
-      // width: 10,
-      // height: 10,
-      insurance_value: 500000,
+      insurance_value: 0,
     });
 
     const feeVND = feeRes.data?.data?.total || 0;
-
-    // Convert USD
     const feeUSD = await convertToUSD(feeVND);
 
     return res.status(200).json({
       success: true,
       feeVND,
       feeUSD,
-      weight: totalWeight,
       service_name: services[0].short_name,
     });
   } catch (error) {

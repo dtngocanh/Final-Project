@@ -40,13 +40,12 @@ const Products = () => {
   const { categories, selectedCategory } = useSelector(
     (state) => state.category,
   );
-  // 1. Initial Data Fetching
-  // Fetch all categories on component mount to populate the filter bar.
+  // 1. Gọi API hiển thị dm
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // 2. Gọi API
+  // 2. Gọi API hiển thị ds sp và tìm kiếm
   useEffect(() => {
     const fetchData = () => {
       const q = searchParams.get("q"); // Lấy q từ URL
@@ -75,7 +74,7 @@ const Products = () => {
     return () => clearTimeout(timer);
   }, [searchParams, selectedCategory, dispatch]);
 
-  // 3. Lọc tại Client
+  // 3. Hàm lọc
   const filteredProducts = useMemo(() => {
     if (!products) return [];
     return products.filter((p) => {

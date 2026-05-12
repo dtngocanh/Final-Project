@@ -44,8 +44,8 @@ export const calcFee = createAsyncThunk(
     try {
       const response = await axiosInstance.post("/address/calc-fee", {
         cartItems,
-        to_district_id,
-        to_ward_code,
+        to_district_id: Number(to_district_id),
+        to_ward_code: String(to_ward_code),
       });
 
       return response.data.feeUSD;
@@ -61,9 +61,9 @@ const addressSlice = createSlice({
     provinces: [],
     districts: [],
     wards: [],
-    loading: false,
+    loadingAddress: false,
     error: null,
-    shippingFee: null,
+    shippingFee: 0,
   },
   reducers: {
     resetDistricts: (state) => {
@@ -73,27 +73,40 @@ const addressSlice = createSlice({
     resetWards: (state) => {
       state.wards = [];
     },
+    resetAddressState: (state) => {
+      state.shippingFee = 0;
+      state.districts = [];
+      state.wards = [];
+    },
   },
   extraReducers: (builder) => {
     builder
       // Fetch Provinces
       .addCase(fetchProvinces.pending, (state) => {
-        state.loading = true;
+        state.loadingAddress = true;
       })
       .addCase(fetchProvinces.fulfilled, (state, action) => {
-        state.loading = false;
+        state.loadingAddress = false;
         state.provinces = action.payload;
       })
       .addCase(fetchProvinces.rejected, (state, action) => {
-        state.loading = false;
+        state.loadingAddress = false;
         state.error = action.payload;
       })
       // Fetch Districts
+      .addCase(fetchDistricts.pending, (state) => {
+        state.loadingAddress = true;
+      })
       .addCase(fetchDistricts.fulfilled, (state, action) => {
+        state.loadingAddress = false;
         state.districts = action.payload;
       })
       // Fetch Wards
+      .addCase(fetchWards.pending, (state) => {
+        state.loadingAddress = true;
+      })
       .addCase(fetchWards.fulfilled, (state, action) => {
+        state.loadingAddress = false;
         state.wards = action.payload;
       })
 
@@ -103,6 +116,7 @@ const addressSlice = createSlice({
   },
 });
 
-export const { resetDistricts, resetWards } = addressSlice.actions;
+export const { resetDistricts, resetWards, resetAddressState } =
+  addressSlice.actions;
 
 export default addressSlice.reducer;
