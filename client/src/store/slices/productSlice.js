@@ -131,7 +131,7 @@ export const searchProducts = createAsyncThunk(
       const res = await axiosInstance.get(`/product/search`, {
         params: fileterParams,
       });
-      console.log("Dữ liệu từ API:", res.data);
+      // console.log("Dữ liệu từ API:", res.data);
       return res.data;
     } catch (error) {
       // Trả về lỗi từ backend hoặc lỗi mặc định

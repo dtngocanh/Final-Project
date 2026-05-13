@@ -8,6 +8,7 @@ import {
   searchProducts,
 } from "../../store/slices/productSlice";
 import { setCategory } from "../../store/slices/categorySlice";
+import { trackClickThunk } from "../../store/slices/interactionSlice";
 
 const SearchOverlay = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,6 +51,20 @@ const SearchOverlay = () => {
       setSearchQuery("");
       dispatch(clearSearchResults());
     }
+  };
+
+  const handleSugClick = (p) => {
+    dispatch(
+      trackClickThunk({
+        productId: p._id,
+        action: "search_click",
+        searchQuery: searchQuery,
+      }),
+    );
+    dispatch(toggleSearchBar());
+    navigate(`/product/${p._id}`);
+    setSearchQuery("");
+    dispatch(clearSearchResults());
   };
   if (!isSearchBarOpen) return null;
 
@@ -126,7 +141,7 @@ const SearchOverlay = () => {
                     searchSug.slice(0, 5).map((item) => (
                       <div
                         key={item._id}
-                        onClick={(e) => handleFinalSearch(e, item.name)}
+                        onClick={() => handleSugClick(item)}
                         className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer flex items-center justify-between border-b last:border-0 border-gray-50 dark:border-gray-700"
                       >
                         <div className="flex flex-col items-start">

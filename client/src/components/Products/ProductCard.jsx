@@ -18,7 +18,7 @@ const ProductCard = ({ product }) => {
     dispatch(
       trackClickThunk({
         productId: product._id,
-        action: "click",
+        action: "view",
       }),
     );
 

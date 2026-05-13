@@ -23,6 +23,7 @@ import Swal from "sweetalert2";
 import { useEffect } from "react";
 import { calcFee, fetchProvinces } from "../store/slices/addressSlice";
 import AddressSelection from "../components/Payment/AddressSelection";
+import { trackClickThunk } from "../store/slices/interactionSlice";
 
 const Checkout = () => {
   const dispatch = useDispatch();
@@ -140,6 +141,29 @@ const Checkout = () => {
       dispatch(placeOrder(orderData))
         .unwrap()
         .then(() => {
+          // SAVE INTERACTIONS
+          cart.forEach((item) => {
+            dispatch(
+              trackClickThunk({
+                productId: item.product._id,
+                action: "order",
+              }),
+            )
+              // .unwrap()
+              // .then((payload) => {
+              //   console.log(
+              //     `Lưu interaction thành công cho SP ${item.product.name}:`,
+              //     payload,
+              //   );
+              // })
+              // .catch((error) => {
+              //   console.error(
+              //     `Lỗi khi lưu interaction cho SP ${item.product.name}:`,
+              //     error,
+              //   );
+              // });
+          });
+          // RESET STATE
           dispatch(clearCart());
           dispatch(resetAddressState());
           dispatch(resetOrder());
@@ -426,7 +450,7 @@ const Checkout = () => {
                       > */}
                       <div
                         onClick={() => {
-                          console.log("CLICK COD");
+                          // console.log("CLICK COD");
                           setPaymentMethod("COD");
                         }}
                         className={`relative z-10 p-6 rounded-3xl border-2 cursor-pointer transition-all ${

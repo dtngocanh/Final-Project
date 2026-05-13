@@ -154,53 +154,12 @@ export const productById = async (req, res, next) => {
     let relatedProducts = [];
     let recipeRelatedProducts = [];
 
-    try {
-      // 2. Call the AI service to get recommendation IDs
-      // The Python server now returns { recommendations: [], recipe_related: [] }
-      const aiResponse = await axios.get(
-        `http://127.0.0.1:8000/recommend/${id}`,
-      );
-      const { recommendations, recipe_related } = aiResponse.data;
-
-      // 3. Hydrate Similar Products (Content-based)
-      if (recommendations && recommendations.length > 0) {
-        const simDb = await Product.find({
-          _id: { $in: recommendations },
-        });
-        //.select("name price images category");
-
-        // Maintain the AI's ranking order
-        relatedProducts = recommendations
-          .map((recId) => simDb.find((p) => p._id.toString() === recId))
-          .filter((p) => p !== undefined);
-      }
-
-      // 4. Hydrate Recipe-related Products (Usage-based)
-      if (recipe_related && recipe_related.length > 0) {
-        const recipeDb = await Product.find({
-          _id: { $in: recipe_related },
-        });
-        //.select("name price images category");
-
-        // Maintain the AI's ranking order
-        recipeRelatedProducts = recipe_related
-          .map((recId) => recipeDb.find((p) => p._id.toString() === recId))
-          .filter((p) => p !== undefined);
-      }
-    } catch (err) {
-      // Log AI error but keep the main product page functional
-      // console.error("AI Service Error:", err.message);
-      relatedProducts = [];
-      recipeRelatedProducts = [];
-    }
 
     // 5. Send unified response back to the client
     res.json({
       success: true,
       product: product,
-      related: relatedProducts, // For "Similar Selections"
-      recipes: recipeRelatedProducts, // For "Cook This With..." or "Recipe Ideas"
-    });
+     });
   } catch (error) {
     next(error);
   }
