@@ -6,6 +6,7 @@ import {
   fetchWards,
   resetDistricts,
   resetWards,
+  resetAddressState,
 } from "../../store/slices/addressSlice";
 
 const AddressSelection = ({
@@ -18,7 +19,6 @@ const AddressSelection = ({
   useEffect(() => {
     dispatch(fetchProvinces());
   }, [dispatch]);
-  
 
   const { provinces, districts, wards, loading } = useSelector(
     (state) => state.address,
@@ -39,7 +39,7 @@ const AddressSelection = ({
     });
 
     dispatch(resetDistricts());
-    console.log(provinceId);
+    // console.log(provinceId);
 
     if (provinceId) dispatch(fetchDistricts(provinceId));
     if (errors.city) setErrors({ ...errors, city: null });
@@ -49,16 +49,18 @@ const AddressSelection = ({
     const districtId = e.target.value;
     const districtName = e.target.options[e.target.selectedIndex].text;
 
-    setShippingDetails({
-      ...shippingDetails,
-      districtId,
+    if (!districtId) return;
+
+    setShippingDetails((prev) => ({
+      ...prev,
+      districtId: districtId,
       district: districtName,
       wardCode: "",
       ward: "",
-    });
+    }));
 
     dispatch(resetWards());
-    if (districtId) dispatch(fetchWards(districtId));
+    dispatch(fetchWards(districtId));
   };
 
   return (

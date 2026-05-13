@@ -64,7 +64,7 @@ export const getUserOrders = async (req, res) => {
     const userId = req.user._id; // Middleware truyền vào
     // console.log(userId);
 
-    const orders = await Order.find({ user: userId }).sort({ created_at: -1 }); // mới nhất trước
+    const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -154,7 +154,7 @@ export const getAllOrders = async (req, res, next) => {
 export const getOrderDetails = async (req, res, next) => {
   try {
     // Populate 'user'
-    // Populate 'orderItems.product' 
+    // Populate 'orderItems.product'
     const order = await Order.findById(req.params.id)
       .populate("user", "name email")
       .populate("orderItems.product", "name images price stock");

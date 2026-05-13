@@ -3,18 +3,23 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCategories } from "../../store/slices/categorySlice";
-
+const floatingVariants = {
+  initial: { y: 0 },
+  animate: {
+    y: [0, -15, 0],
+    transition: {
+      duration: 3,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
+};
 const CategoryGrid = () => {
-  
   const categoryImages = {
-    Apple: "/apple.png",
-    Melon: "/melon.png",
-    Meat: "/meat.png",
-    Pear: "/pear.png",
-    Fruits: "/berry.png",
-    Seafood: "/seafood.png",
-    Juice: "/juice.png",
-    Milk: "/milk.png"
+    "Meats and Seafood": "/seafood.png",
+    Fruits: "/apple.png",
+    Vegetables: "/xalach.png",
+    Packages: "/juice.png",
   };
 
   const dispatch = useDispatch();
@@ -26,16 +31,13 @@ const CategoryGrid = () => {
   }, [dispatch]);
 
   const displayCat = useMemo(() => {
-    if (!categories || !products) return [];
-    return categories
-      .filter((cat) => {
-        const count = products.filter(
-          (p) => String(p.category?._id).trim() === String(cat._id).trim(),
-        ).length;
-        return count > 2;
-      })
-      .slice(0, 8);
-  }, [categories, products]);
+    if (!categories) return [];
+    return categories.map((cat) => ({
+      ...cat,
+      image: categoryImages[cat.name] || "/placeholder.png",
+    }));
+  }, [categories]);
+
   if (displayCat.length === 0) return null;
 
   return (
@@ -94,14 +96,28 @@ const CategoryGrid = () => {
                       src={cat.image || categoryImages[cat.name] || "image"}
                       alt={cat.name}
                       className="max-h-full max-w-full object-contain drop-shadow-2xl"
-                      whileHover={{ scale: 1.12, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 200 }}
+                      animate={{
+                        y: [0, -10, 0],
+                        rotate: [0, index % 2 === 0 ? 2 : -2, 0], // Xoay nhẹ trái phải tùy vị trí
+                      }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: index * 0.2, // Tạo độ lệch thời gian để không nhảy cùng lúc
+                      }}
+                      whileHover={{
+                        scale: 1.2,
+                        rotate: [0, -10, 10, -10, 0], // (Wobble)
+                        y: -20, // Nhảy vọt lên
+                      }}
+
                     />
                   </div>
 
                   {/* Label & Line */}
                   <div className="absolute bottom-8 left-8 right-8 flex items-center justify-between">
-                    <span className="text-lg font-light tracking-wide text-gray-800 dark:text-gray-200 group-hover:text-[#77cd3a] transition-colors duration-300">
+                    <span className="text-lg tracking-wide text-gray-800 dark:text-gray-200 group-hover:text-[#77cd3a] transition-colors duration-300">
                       {cat.name}
                     </span>
 

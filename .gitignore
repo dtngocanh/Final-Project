@@ -44,7 +44,7 @@ automation/
 # misc for recommender 
 venv/
 chat/requirements.txt
+server/helpers/aiWatcher.js
 client/src/components/Products/RecipeSection.jsx
 client/src/components/Products/RecommendedProductCard.jsx
-server/migrateProducts.js
-server/geo.js
+server/mongo/

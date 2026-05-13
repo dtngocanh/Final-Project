@@ -11,6 +11,7 @@ import {
   updateProduct,
   getRelatedProductsFromDB,
   getFreqProducts,
+  searchProducts,
 } from "../controllers/productController.js";
 
 import authSeller from "../middlewares/authSeller.js";
@@ -29,6 +30,9 @@ productRouter.post("/add", upload.array("images", 10), authSeller, addProduct);
 
 // get all products
 productRouter.get("/list", productList);
+
+productRouter.get("/search",searchProducts)
+
 
 // get single product
 productRouter.get("/:id", productById);
@@ -64,4 +68,6 @@ productRouter.patch(
 productRouter.get("/related-v2/:id", getRelatedProductsFromDB)
 // get freq products
 productRouter.get("/freq/:id", getFreqProducts)
+
+
 export default productRouter;

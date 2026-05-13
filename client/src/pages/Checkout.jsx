@@ -1,7 +1,12 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { setOrderStep, placeOrder } from "../store/slices/orderSlice";
+import {
+  setOrderStep,
+  placeOrder,
+  resetOrder,
+} from "../store/slices/orderSlice";
+import { resetAddressState } from "../store/slices/addressSlice";
 import {
   Loader2,
   ArrowRight,
@@ -18,20 +23,18 @@ import Swal from "sweetalert2";
 import { useEffect } from "react";
 import { calcFee, fetchProvinces } from "../store/slices/addressSlice";
 import AddressSelection from "../components/Payment/AddressSelection";
+import { trackClickThunk } from "../store/slices/interactionSlice";
 
 const Checkout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // FETCH DATA
+  // REDUX SELECTOR
   const { authUser } = useSelector((state) => state.auth);
-
   const { cart } = useSelector((state) => state.cart);
-  const { provinces, districts, wards, shippingFee } = useSelector(
-    (state) => state.address,
-  );
-
-  const { activeStep, loading, shippingInfo } = useSelector(
+  const { provinces, districts, wards, shippingFee, loadingAddress } =
+    useSelector((state) => state.address);
+  const { activeStep, loading, shippingInfo, placingOrder } = useSelector(
     (state) => state.order,
   );
 
@@ -39,7 +42,7 @@ const Checkout = () => {
     dispatch(fetchProvinces());
   }, [dispatch]);
 
-  // State local cho Form
+  // LOCAL STATE
   const [shippingDetails, setShippingDetails] = useState({
     fullName: authUser?.name || "",
     email: authUser?.email || "",
@@ -57,16 +60,27 @@ const Checkout = () => {
   const totalAmount = subtotal + shippingFee;
 
   useEffect(() => {
-    if (shippingDetails.districtId && shippingDetails.wardCode) {
-      dispatch(
-        calcFee({
-          cartItems: cart,
-          to_district_id: shippingDetails.districtId,
-          to_ward_code: shippingDetails.wardCode,
-        }),
-      );
+    const { districtId, wardCode } = shippingDetails;
+
+    if (
+      districtId &&
+      Number(districtId) > 0 &&
+      wardCode &&
+      cart.length > 0 &&
+      !loadingAddress
+    ) {
+      const timeoutId = setTimeout(() => {
+        dispatch(
+          calcFee({
+            cartItems: cart,
+            to_district_id: districtId,
+            to_ward_code: wardCode,
+          }),
+        );
+      }, 500);
+      return () => clearTimeout(timeoutId);
     }
-  }, [shippingDetails.districtId, shippingDetails.wardCode, cart, dispatch]);
+  }, [shippingDetails.districtId, shippingDetails.wardCode, loadingAddress]);
 
   const handleInputChange = (e) => {
     setShippingDetails({ ...shippingDetails, [e.target.name]: e.target.value });
@@ -75,6 +89,15 @@ const Checkout = () => {
   const handleNext = () => {
     if (activeStep === 0) {
       const newErrors = {};
+      const requiredFields = [
+        "fullName",
+        "email",
+        "address",
+        "phone",
+        "provinceId",
+        "districtId",
+        "wardCode",
+      ];
       const {
         fullName,
         email,
@@ -85,16 +108,11 @@ const Checkout = () => {
         wardCode,
       } = shippingDetails;
 
-      if (!fullName?.trim()) newErrors.fullName = "Full name is required";
-      if (!email?.trim()) newErrors.email = "Email is required";
-      if (!address?.trim()) newErrors.address = "Address is required";
-      // if (!city?.trim()) newErrors.city = "City is required";
-      if (!phone?.trim()) newErrors.phone = "Phone number is required";
-      if (!provinceId?.trim()) newErrors.provinceId = "Province is required";
-      if (!districtId?.trim()) newErrors.districtId = "District is required";
-      if (!wardCode?.trim()) newErrors.wardCode = "Ward is required";
-      // if (!country?.trim()) newErrors.country = "Phone number is required";
-
+      requiredFields.forEach((fieldKey) => {
+        if (!shippingDetails[fieldKey]?.toString().trim()) {
+          newErrors[fieldKey] = `${fieldKey} is required`;
+        }
+      });
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
         return;
@@ -104,6 +122,8 @@ const Checkout = () => {
 
       dispatch(setOrderStep(1));
     } else {
+      if (placingOrder) return;
+
       const orderData = {
         shippingInfo: shippingDetails,
         paymentMethod: paymentMethod,
@@ -119,10 +139,45 @@ const Checkout = () => {
         itemsPrice: subtotal,
       };
       dispatch(placeOrder(orderData))
-        .unwrap() // "Mở gói" để lấy payload trực tiếp hoặc nhảy vào .catch nếu lỗi
+        .unwrap()
         .then(() => {
+          // SAVE INTERACTIONS
+          cart.forEach((item) => {
+            dispatch(
+              trackClickThunk({
+                productId: item.product._id,
+                action: "order",
+              }),
+            )
+              // .unwrap()
+              // .then((payload) => {
+              //   console.log(
+              //     `Lưu interaction thành công cho SP ${item.product.name}:`,
+              //     payload,
+              //   );
+              // })
+              // .catch((error) => {
+              //   console.error(
+              //     `Lỗi khi lưu interaction cho SP ${item.product.name}:`,
+              //     error,
+              //   );
+              // });
+          });
+          // RESET STATE
           dispatch(clearCart());
-          // Nếu là COD, backend trả về success: true, chúng ta navigate
+          dispatch(resetAddressState());
+          dispatch(resetOrder());
+          // DEFAULT STATE
+          setShippingDetails({
+            fullName: authUser?.name || "",
+            email: authUser?.email || "",
+            phone: authUser?.phone || "",
+            address: "",
+            provinceId: "",
+            districtId: "",
+            wardCode: "",
+            country: "Vietnam",
+          });
           if (orderData.paymentMethod === "COD") {
             navigate("/success");
           }
@@ -395,7 +450,7 @@ const Checkout = () => {
                       > */}
                       <div
                         onClick={() => {
-                          console.log("CLICK COD");
+                          // console.log("CLICK COD");
                           setPaymentMethod("COD");
                         }}
                         className={`relative z-10 p-6 rounded-3xl border-2 cursor-pointer transition-all ${

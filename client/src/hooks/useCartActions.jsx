@@ -5,12 +5,18 @@ import { trackClickThunk } from "../store/slices/interactionSlice";
 
 export const useCartActions = () => {
   const dispatch = useDispatch();
-  const { cart } = useSelector((state) => state.cart);
 
-  const handleCartAction = (product, type, change = 1) => {
-    let newCart = [...cart];
+  const handleCartAction = async (
+    product,
+    type,
+    change = 1,
+    silent = false,
+  ) => {
+    const currentStore = await dispatch((_, getState) => getState());
+    const latestCart = JSON.parse(JSON.stringify(currentStore.cart.cart));
 
-    const stockAvailable = Number(product.stock) || 0;
+    let newCart = latestCart;
+    const stockAvailable = Number(product.stock);
 
     if (type === "ADD") {
       dispatch(
@@ -22,43 +28,20 @@ export const useCartActions = () => {
       const existingItem = newCart.find(
         (item) => item.product._id === product._id,
       );
-      const currentQty = existingItem ? existingItem.quantity : 0;
-      const nextQty = currentQty + change;
+      const nextQty = (existingItem ? existingItem.quantity : 0) + change;
 
       if (nextQty > stockAvailable) {
-        toast.error(`Sorry, we only have ${stockAvailable} items in stock.`);
+        if (!silent) toast.error("Out of stock!");
         return;
       }
 
       if (existingItem) {
-        newCart = newCart.map((item) =>
-          item.product._id === product._id
-            ? { ...item, quantity: nextQty }
-            : item,
-        );
+        existingItem.quantity = nextQty;
       } else {
         newCart.push({ product, quantity: change });
       }
 
-      toast.success(
-        <div className="flex items-center gap-3">
-          <img src="/logohaha.png" alt="" className="w-8 h-8 object-contain" />
-          <div>
-            <p className="text-sm font-bold">Yum! Added!</p>
-            <p className="text-xs font-serif italic text-gray-500 dark:text-gray-400">
-              {product.name} is in your cart
-            </p>
-          </div>
-        </div>,
-        {
-          position: "bottom-right",
-          autoClose: 2000,
-          icon: false,
-          className:
-            "border-l-4 border-[#77cd3a] rounded-xl shadow-2xl dark:bg-[#1a1a1a] dark:text-white bg-white text-gray-800",
-          progressClassName: "bg-[#77cd3a]",
-        },
-      );
+      if (!silent) toast.success(`Added ${product.name}`);
     }
 
     if (type === "REMOVE") {
@@ -88,7 +71,7 @@ export const useCartActions = () => {
       }
     }
 
-    dispatch(updateCart(newCart));
+    return await dispatch(updateCart(newCart));
   };
 
   return { handleCartAction }; // Trả về hàm để các component khác sử dụng

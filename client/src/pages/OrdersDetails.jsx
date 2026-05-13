@@ -67,7 +67,7 @@ const OrderDetail = () => {
           <div>
             <div className="flex items-center gap-3 text-[#77cd3a] mb-2">
               <span className="text-[10px] font-black uppercase tracking-[0.4em]">
-                Order ID: #{orderDetail?._id?.slice(-8)}
+                Order ID: {orderDetail?._id}
               </span>
               {orderDetail.orderStatus === "Canceled" && (
                 <span className="px-3 py-1 bg-red-500/10 text-red-500 rounded-full text-[9px] font-black uppercase tracking-widest">
@@ -75,9 +75,9 @@ const OrderDetail = () => {
                 </span>
               )}
             </div>
-            <h1 className="text-4xl md:text-4xl font-extralight tracking-tighter dark:text-white uppercase">
+            <h1 className="text-4xl md:text-4xl tracking-tighter dark:text-white uppercase">
               Order{" "}
-              <span className="font-serif border-b-2 border-[#77cd3af2]/30">
+              <span className="border-b-2 border-[#77cd3af2]/30">
                 details
               </span>
             </h1>
@@ -267,7 +267,7 @@ const OrderDetail = () => {
                   Final total
                 </span>
                 <span className="text-4xl font-light dark:text-white leading-none">
-                  ${orderDetail.totalPrice}
+                  ${orderDetail.totalPrice.toFixed(2)}
                 </span>
               </div>
 

@@ -93,6 +93,7 @@ const orderSlice = createSlice({
     },
     resetOrder: (state) => {
       state.activeStep = 0;
+      state.shippingInfo = {};
     },
   },
   extraReducers: (builder) => {
