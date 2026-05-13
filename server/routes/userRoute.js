@@ -21,5 +21,11 @@ userRouter.post('/review',authUser,postReview);
 userRouter.put('/review',authUser,updateReview);
 userRouter.get('/review',getAllShopReviews);
 
+// Lấy gợi ý "Dành riêng cho bạn" (Dựa trên User ID - Collaborative Filtering)
+// userRouter.get('/recommendations/personalized', authUser, getPersonalizedRecs);
+
+// // Lấy gợi ý "Sản phẩm tương đương" (Dựa trên Product ID - Item-Item Similarity)
+// userRouter.get('/recommendations/related/:productId', getRelatedByRating);
+
 
 export default userRouter;

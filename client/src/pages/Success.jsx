@@ -1,75 +1,154 @@
-import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle, ArrowRight, ShoppingBag, Package } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux'; // Sửa lại: import useDispatch ở đây
+import {
+  CheckCircle,
+  ShoppingBag,
+  Package,
+  Sparkles,
+  ShoppingCart,
+  Star,
+  Loader2
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 
+import { useCartActions } from "../hooks/useCartActions";
+import RecommendSuccess from '../components/Layout/RecommendSuccess';
 
+import { fetchRecommendations } from "../store/slices/recommendSlice"; 
 
 const Success = () => {
-  const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  const dispatch = useDispatch(); // Khai báo dispatch từ hook
+  const { handleCartAction } = useCartActions();
+
+  // Lấy data từ store
+  const { list: recommendedList, isLoading } = useSelector((state) => state.recommend);
+  const { authUser } = useSelector((state) => state.auth); 
+
+  const isGuest = !authUser;
+
+  // Gọi API lấy gợi ý ngay khi vào trang nếu là Member
+ useEffect(() => {
+    if (authUser) {
+      // 2. Đổi tên hàm khi dispatch
+      dispatch(fetchRecommendations()); 
+    }
+  }, [dispatch, authUser]);
+  // Lấy 3 sản phẩm đầu làm Hot Deal
+  const hotDeals = recommendedList ? recommendedList.slice(0, 3) : [];
+
+  const onAddToCart = (e, product) => {
+    e.preventDefault();
+    handleCartAction(product, "ADD", 1);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="max-w-lg w-full bg-white rounded-3xl shadow-2xl p-10 text-center border border-slate-100">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center py-12 px-4 md:px-6">
 
-        {/* Success Icon with Animation */}
-        <div className="flex justify-center mb-8">
-          <div className="relative">
-            <div className="absolute inset-0 bg-green-100 rounded-full scale-150 animate-pulse"></div>
-            <div className="relative bg-green-500 p-5 rounded-full shadow-lg">
-              <CheckCircle className="w-12 h-12 text-white" />
+      <div className={`${isGuest ? 'max-w-2xl' : 'max-w-6xl'} w-full mb-16 transition-all duration-500`}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`
+            w-full bg-white rounded-[3rem]
+            shadow-2xl shadow-slate-200/60
+            overflow-hidden border border-white relative flex
+            ${isGuest ? "justify-center" : "flex-col lg:flex-row"}
+          `}
+        >
+          {/* CỘT TRÁI: THÔNG BÁO THÀNH CÔNG */}
+          <div className={`
+            p-10 md:p-14 flex flex-col justify-center
+            ${isGuest 
+                ? "flex-1 items-center text-center" 
+                : "flex-[0.8] items-center text-center lg:items-start lg:text-left border-b lg:border-b-0 lg:border-r border-slate-100"
+            }
+          `}>
+            <div className="inline-flex items-center gap-2 bg-green-50 text-green-600 px-4 py-1.5 rounded-full text-xs font-bold mb-6 w-fit">
+              <CheckCircle size={14} /> Order Confirmed
+            </div>
+
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-tight">
+              Success! <br />
+              <span className="text-[#77cd3a]">Freshness</span> is coming.
+            </h1>
+
+            <div className={`flex flex-col mb-8 ${isGuest ? 'items-center' : 'items-center lg:items-start'}`}>
+              <p className="text-slate-500 text-lg mb-6 max-w-sm">
+                Your order has been received and is being prepared with love.
+              </p>
+              <motion.div 
+                animate={{ y: [0, -5, 0], rotate: [-2, 2, -2] }} 
+                transition={{ duration: 3, repeat: Infinity }} 
+                className="relative"
+              >
+                <img src='/TOMATOGIF.gif' alt="Tomato Mascot" className="w-20 h-20 md:w-24 md:h-24 object-contain" />
+                <div className="absolute -top-4 -right-8 bg-[#77cd3a] text-white text-[8px] font-black px-2 py-1 rounded-lg rotate-12 shadow-sm">THANKS!</div>
+              </motion.div>
+            </div>
+
+            <div className={`flex flex-col sm:flex-row gap-4 w-full ${isGuest ? 'justify-center max-w-md' : ''}`}>
+              {!isGuest && (
+                <Link to="/orders" className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-black text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg">
+                  <Package size={18} /> Track Order
+                </Link>
+              )}
+              <Link to="/" className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 px-6 rounded-2xl transition-all">
+                <ShoppingBag size={18} /> Shop More
+              </Link>
             </div>
           </div>
-        </div>
 
-        {/* Text Content */}
-        <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
-          Payment Successful!
-        </h1>
-        <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-          Thank you for your purchase. We’ve received your order and our team is already getting it ready for shipment.
-        </p>
-
-        {/* Transaction Reference Box */}
-        {sessionId && (
-          <div className="bg-slate-50 rounded-2xl p-4 mb-10 border border-slate-200 inline-block px-6">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">
-              Order Reference
-            </p>
-            <p className="text-sm font-mono text-indigo-600 font-medium break-all">
-              {sessionId.slice(0, 24)}...
-            </p>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Link
-            to="/orders"
-            className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-lg shadow-slate-200"
-          >
-            <Package size={20} />
-            Track Order
-          </Link>
-
-          <Link
-            to="/"
-            className="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold py-4 px-6 rounded-2xl border-2 border-slate-200 transition-all duration-300"
-          >
-            <ShoppingBag size={20} />
-            Continue Shopping
-            <ArrowRight size={18} className="ml-1" />
-          </Link>
-        </div>
-
-        {/* Help Link */}
-        <div className="mt-12 pt-8 border-t border-slate-100">
-          <p className="text-sm text-slate-400">
-            Need help? Contact our support team at{' '}
-            <a href="mailto:support@yourstore.com" className="text-indigo-500 hover:underline font-medium">
-              support@yourstore.com
-            </a>
-          </p>
-        </div>
+          {/* CỘT PHẢI: HOT DEALS (Ẩn nếu là khách) */}
+          {!isGuest && (
+            <div className="flex-[1.2] bg-slate-50/50 p-8 md:p-12 flex flex-col justify-center">
+              <div className="flex items-center gap-2 text-orange-500 font-black text-xs uppercase tracking-widest mb-2">
+                <Sparkles size={14} fill="currentColor" /> One-time Offer
+              </div>
+              <h2 className="text-2xl font-black text-slate-800 mb-8">Get <span className="text-red-500">10% OFF</span></h2>
+              
+              {isLoading ? (
+                <div className="h-64 flex items-center justify-center"><Loader2 className="animate-spin text-[#77cd3a]" /></div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {hotDeals.map((product, idx) => (
+                    <motion.div key={product._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }} className="bg-white rounded-[2rem] p-4 shadow-sm border border-slate-100 group flex flex-col">
+                      <Link to={`/product/${product._id}`} className="flex-1">
+                        <div className="relative aspect-square bg-slate-50 rounded-2xl overflow-hidden mb-4 flex items-center justify-center p-4">
+                          <img src={product.image} alt={product.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                        <h3 className="font-bold text-slate-800 text-[11px] mb-2 line-clamp-1 group-hover:text-[#77cd3a]">{product.name}</h3>
+                        <div className="flex flex-col mb-3">
+                            <span className="text-sm font-black text-[#77cd3a]">${(product.price * 0.9).toFixed(2)}</span>
+                            <span className="text-[10px] text-slate-400 line-through">${product.price.toFixed(2)}</span>
+                        </div>
+                      </Link>
+                      <button onClick={(e) => onAddToCart(e, product)} className="w-full bg-slate-900 text-white py-2.5 rounded-xl hover:bg-[#77cd3a] transition-all flex items-center justify-center gap-2 text-[10px] font-bold shadow-md">
+                        <ShoppingCart size={12} /> Add
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
       </div>
+
+      {/* DƯỚI CÙNG: RECOMMENDATION (Ẩn nếu là khách) */}
+      {!isGuest && (
+        <div className="w-full max-w-[1400px]">
+          <div className="flex items-center gap-4 mb-8">
+            <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Recommended For You</h2>
+            <div className="h-[2px] flex-1 bg-slate-100"></div>
+          </div>
+          <RecommendSuccess />
+        </div>
+      )}
+
+      <style>{`
+        body { background-image: radial-gradient(#cbd5e1 0.5px, transparent 0.5px); background-size: 30px 30px; }
+      `}</style>
     </div>
   );
 };

@@ -113,7 +113,7 @@ async def chat_endpoint(request: ChatRequest):
                 })
             print(f"📦 Checking: {doc.get('name')} | Match: {name_lower in ai_ans_lower or name_lower in user_msg_lower}", flush=True)
 
-        print(f"✅ Cards sent: {len(final_products)}", flush=True)
+        print(f" Cards sent: {len(final_products)}", flush=True)
         sys.stdout.flush()
 
         return {

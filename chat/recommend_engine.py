@@ -11,14 +11,14 @@ db = client[os.getenv("DB_NAME")]
 collection = db[os.getenv("COLLECTION_NAME")]
 
 def build_final_recommendations():
-    print("🎯 Đang thực thi thuật toán Hybrid Recommendation...")
+    print(" Đang thực thi thuật toán Hybrid Recommendation...")
 
     # 1. Lấy dữ liệu
     projection = {"_id": 1, "embedding": 1, "category": 1, "salesCount": 1, "viewCount": 1}
     products = list(collection.find({"embedding": {"$exists": True}}, projection))
     
     if not products:
-        print("❌ Không có dữ liệu embedding!")
+        print(" Không có dữ liệu embedding!")
         return
 
     product_ids = [p['_id'] for p in products]
@@ -72,7 +72,7 @@ def build_final_recommendations():
     # 5. Lưu vào Database
     if bulk_updates:
         collection.bulk_write(bulk_updates)
-        print(f"✅ Đã cập nhật Related Products cho {len(products)} sản phẩm.")
+        print(f" Đã cập nhật Related Products cho {len(products)} sản phẩm.")
 
 if __name__ == "__main__":
     build_final_recommendations()

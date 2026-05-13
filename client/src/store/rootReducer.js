@@ -9,6 +9,7 @@ import aiReducer from "./slices/aiSlice";
 import categoryReducer from "./slices/categorySlice";
 import interactionReducer from "./slices/interactionSlice";
 import addressReducer from "./slices/addressSlice";
+import recommendReducer from "./slices/recommendSlice"
 
 const appReducer = combineReducers({
   auth: authReducer,
@@ -18,6 +19,7 @@ const appReducer = combineReducers({
   order: orderReducer,
   ui: uiReducer,
   ai: aiReducer,
+  recommend: recommendReducer,
   category: categoryReducer,
   interaction: interactionReducer,
   address: addressReducer
