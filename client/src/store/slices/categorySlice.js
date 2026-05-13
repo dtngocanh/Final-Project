@@ -7,6 +7,8 @@ export const fetchCategories = createAsyncThunk(
   async (_, thunkAPI) => {
     try {
       const res = await axiosInstance.get("/category/list");
+      // console.log(res.data.categories);
+      
       return res.data.categories;
     } catch (error) {
       return thunkAPI.rejectWithValue(
