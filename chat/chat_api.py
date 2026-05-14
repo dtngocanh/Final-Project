@@ -64,7 +64,7 @@ async def chat_endpoint(request: ChatRequest):
         
         # 3. OPTIMIZED ENGLISH PROMPT
         template = f"""
-        Role: Friendly Assistant at Veganic Mart 🌿.
+        Role: Friendly Assistant at Veganic Mart .
         Style: Very brief, concise, and helpful English.
         
         STRICT RULES:
@@ -111,7 +111,7 @@ async def chat_endpoint(request: ChatRequest):
                     "price": doc.get("price", 0),
                     "image": img_url
                 })
-            print(f"📦 Checking: {doc.get('name')} | Match: {name_lower in ai_ans_lower or name_lower in user_msg_lower}", flush=True)
+            print(f" Checking: {doc.get('name')} | Match: {name_lower in ai_ans_lower or name_lower in user_msg_lower}", flush=True)
 
         print(f" Cards sent: {len(final_products)}", flush=True)
         sys.stdout.flush()
@@ -123,7 +123,7 @@ async def chat_endpoint(request: ChatRequest):
 
     except Exception as e:
         print(f" ERROR: {e}", flush=True)
-        return {"answer": "I'm sorry, I hit a snag. Please ask again! 🌿", "products": []}
+        return {"answer": "I'm sorry, I hit a snag. Please ask again! ", "products": []}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
