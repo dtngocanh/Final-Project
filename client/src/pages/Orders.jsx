@@ -47,7 +47,11 @@ const Orders = () => {
 
   const filterOrders = useMemo(() => {
     if (!currentOrders) return [];
-    return currentOrders.filter((order) => {
+    
+    // Thêm logic sort: Đơn hàng mới nhất (createdAt) sẽ nằm lên đầu
+    const sorted = [...currentOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    return sorted.filter((order) => {
       return statusFilter === "all" || order.orderStatus === statusFilter;
     });
   }, [currentOrders, statusFilter]);
@@ -137,8 +141,9 @@ const Orders = () => {
 
                         <div className="flex flex-col gap-1.5">
                           <div className="flex flex-col">
-                            <p className="text-[9px] text-gray-400 uppercase tracking-[0.2em] font-medium">
-                              Order Reference
+                            {/* Hiển thị ngày đặt hàng ngay trên Mã đơn */}
+                            <p className="text-[9px] text-gray-400 uppercase tracking-[0.2em] font-medium flex items-center gap-2">
+                              Order Reference • {new Date(order.createdAt).toLocaleDateString('vi-VN')}
                             </p>
                             <h3 className="text-base dark:text-white uppercase tracking-tighter leading-none">
                               #{order._id.slice(-8)}...
@@ -187,16 +192,13 @@ const Orders = () => {
                           to={`/order/${order._id}`}
                           className="group relative flex items-center gap-2 px-6 py-3 border border-gray-200 dark:border-white/10 rounded-full overflow-hidden transition-all duration-500 hover:border-[#77cd3a]/50 hover:shadow-[0_0_20px_rgba(119,205,58,0.15)] text-gray-500 dark:text-gray-400"
                         >
-                          {/* Chữ Details sẽ đổi màu khi di chuột vào vùng của group */}
                           <span className="relative z-10 text-[10px] font-black uppercase tracking-[0.3em] group-hover:text-[#77cd3a] transition-colors duration-500">
                             Details
                           </span>
-                          {/* Icon cũng sẽ đổi màu và nhích sang phải một chút */}
                           <ChevronRight
                             size={14}
                             className="relative z-10 transition-all duration-500 group-hover:text-[#77cd3a] group-hover:translate-x-1"
                           />
-                          {/* Lớp nền mờ ảo xuất hiện khi hover */}
                           <div className="absolute inset-0 bg-[#77cd3a]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         </Link>
                       ) : (
@@ -206,54 +208,6 @@ const Orders = () => {
                       )}
                     </div>
                   </div>
-
-                  {/* HIỂN THỊ LUÔN DANH SÁCH SẢN PHẨM KHI ĐÃ GIAO HÀNG */}
-                  {order.orderStatus === "Delivered" && (
-                    <div className="mt-8 pt-8 border-t border-gray-100 dark:border-white/5">
-                      <div className="flex items-center justify-between mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#77cd3a]">
-                          Rate your products:
-                        </p>
-                        <div className="h-[1px] flex-1 bg-gradient-to-r from-[#77cd3a]/20 to-transparent ml-4" />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {order.orderItems.map((item) => (
-                          <div
-                            key={item.product}
-                            className="flex items-center justify-between p-4 bg-white/50 dark:bg-black/20 rounded-2xl border border-gray-100 dark:border-white/5 group/item hover:border-[#77cd3a]/50 transition-all"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-xl bg-white dark:bg-black/40 p-1 border border-gray-100 dark:border-white/10">
-                                <img
-                                  src={item.image}
-                                  alt={item.name}
-                                  className="w-full h-full object-contain"
-                                />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold dark:text-white group-hover/item:text-[#77cd3a] transition-colors">
-                                  {item.name}
-                                </p>
-                                <p className="text-[10px] text-gray-400">
-                                  Qty: {item.qty} • ${item.price}
-                                </p>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={() =>
-                                navigate(`/product/${item.product}`)
-                              }
-                              className="flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-tighter bg-black text-white dark:bg-white dark:text-black hover:bg-[#77cd3a] dark:hover:bg-[#77cd3a] transition-all"
-                            >
-                              <Star size={12} className="fill-current" /> Review
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </motion.div>
               ))
             ) : (
@@ -285,7 +239,7 @@ const OrderImage = ({ src }) => {
       src={src}
       alt="Product"
       className="w-full h-full object-cover rounded-lg"
-      onError={() => setIsError(true)} // Khi link 404, set error = true
+      onError={() => setIsError(true)}
     />
   );
 };

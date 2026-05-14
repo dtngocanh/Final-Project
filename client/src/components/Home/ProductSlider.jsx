@@ -1,11 +1,12 @@
 import React, { useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllProducts } from "../../store/slices/productSlice";
-import { ChevronLeft, ChevronRight, Star, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, Plus, Loader } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useCartActions } from "../../hooks/useCartActions";
 import FloatingDecor from "../Fruit/FloatingDecor";
+import FruitLoader from "../Fruit/FruitLoader";
 
 const ProductSlider = ({ title = "Seasonal Picks" }) => {
   const scrollRef = useRef(null);
@@ -27,7 +28,7 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
     }
   };
 
-  if (loading) return <div className="h-[400px] flex items-center justify-center text-[10px] tracking-[0.5em] uppercase opacity-50">Loading...</div>;
+  if (loading) return <FruitLoader/>
   if (!products || products.length === 0) return null;
 
   return (

@@ -17,6 +17,7 @@ import { fetchAllProducts, searchProducts } from "../store/slices/productSlice";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { fetchCategories, setCategory } from "../store/slices/categorySlice";
 import { NoProductsFound } from "../components/Products/NoProductsFound";
+import FruitLoader from "../components/Fruit/FruitLoader";
 
 const Products = () => {
   const dispatch = useDispatch();
@@ -206,11 +207,9 @@ const Products = () => {
         {/* GRID */}
         <section className="min-h-[500px]">
           {loading ? (
-            <div className="flex justify-center items-center py-40 text-center col-span-full">
-              <p className="text-[11px] uppercase tracking-[0.5em] text-[#77cd3a] animate-pulse">
-                Harvesting our products...
-              </p>
-            </div>
+            // <div className="flex justify-center items-center py-40 text-center col-span-full">
+              <FruitLoader/>
+            // </div>
           ) : filteredProducts.length > 0 ? (
             /* Chỉ render thẻ div grid khi CÓ sản phẩm */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">

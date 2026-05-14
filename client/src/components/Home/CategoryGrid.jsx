@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCategories } from "../../store/slices/categorySlice";
+
 const floatingVariants = {
   initial: { y: 0 },
   animate: {
@@ -24,7 +25,7 @@ const CategoryGrid = () => {
 
   const dispatch = useDispatch();
   const { products } = useSelector((state) => state.product);
-  const { categories } = useSelector((state) => state.category);
+  const { categories} = useSelector((state) => state.category);
 
   useEffect(() => {
     dispatch(fetchCategories());
@@ -39,6 +40,7 @@ const CategoryGrid = () => {
   }, [categories]);
 
   if (displayCat.length === 0) return null;
+
 
   return (
     <section className="relative py-24 bg-white dark:bg-[#0a0a0a] transition-colors duration-700 overflow-hidden">
@@ -111,7 +113,6 @@ const CategoryGrid = () => {
                         rotate: [0, -10, 10, -10, 0], // (Wobble)
                         y: -20, // Nhảy vọt lên
                       }}
-
                     />
                   </div>
 

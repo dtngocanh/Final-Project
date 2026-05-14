@@ -1,6 +1,6 @@
 import Interaction from "../models/Interaction.js";
 import Product from "../models/Product.js";
-import ProductSimilarity from "../models/ProductSimilarity.js";
+// import ProductSimilarity from "../models/ProductSimilarity.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
 export const trackInteraction = async (req, res, next) => {
