@@ -27,7 +27,7 @@ const app = express();
 const port = process.env.PORT || 4000;
 const allowedOrigins = [process.env.FRONTEND_URL, process.env.ADMIN_URL];
 
-// 1. Stripe Webhook (BẮT BUỘC đặt trước express.json)
+// 1. Stripe Webhook 
 app.post(
   "/api/payment/webhook",
   express.raw({ type: "application/json" }),
@@ -73,22 +73,8 @@ const startServer = async () => {
     app.use("/api/interaction", interactionRouter);
     app.use("/api/ai", aiRouter);
 
-<<<<<<< HEAD
-app.use("/api/user", userRouter);
-app.use("/api/admin", adminRouter); 
-app.use("/api/product", productRouter);
-app.use("/api/cart", cartRouter);
-app.use("/api/address", addressRouter);
-app.use("/api/order", orderRouter);
-app.use("/api/payment", paymentRouter);
-app.use("/api/category",categoryRouter);
-app.use("/api/interaction", interactionRouter);
-app.use("/api/ai", aiRouter);
-app.use("/api/recommendations", recRouter)
-=======
     // 6. Xử lý lỗi tập trung
     app.use(errorMiddleware);
->>>>>>> 4c8df0b8021192171cc6f9e5ced3b0ce91052b90
 
     // 7. Khởi động Server
     app.listen(port, () => {
