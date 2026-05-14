@@ -1,0 +1,20 @@
+{
+  "name": "grocerystore",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "all": "concurrently --kill-others     \"cd server && npm run server\"     \"cd client && npm run dev\"     \"cd dashboard && npm run dev\"     \"python chat/chat_api.py\"    \"cd server && stripe listen --forward-to localhost:4000/api/payment/webhook\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/dtngocanh/Final-Project/issues"
+  },
+  "homepage": "https://github.com/dtngocanh/Final-Project#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

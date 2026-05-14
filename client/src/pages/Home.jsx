@@ -25,8 +25,8 @@ const Index = () => {
             products={topRatedProducts}
           />
         )} */}
-        <ProductSlider title="New Arrivals" products={newProducts} />
         <RecommendSlider/>
+        <ProductSlider title="New Arrivals" products={newProducts} />
         <FeatureSection />
         <NewsletterSection />
       </div>

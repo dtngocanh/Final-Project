@@ -41,10 +41,3 @@ Thumbs.db
 # Automation
 automation/
 
-# misc for recommender 
-venv/
-chat/requirements.txt
-server/helpers/aiWatcher.js
-client/src/components/Products/RecipeSection.jsx
-client/src/components/Products/RecommendedProductCard.jsx
-server/mongo/

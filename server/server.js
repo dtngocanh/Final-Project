@@ -26,7 +26,7 @@ const app = express();
 const port = process.env.PORT || 4000;
 const allowedOrigins = [process.env.FRONTEND_URL, process.env.ADMIN_URL];
 
-// 1. Stripe Webhook (BẮT BUỘC đặt trước express.json)
+// 1. Stripe Webhook 
 app.post(
   "/api/payment/webhook",
   express.raw({ type: "application/json" }),
