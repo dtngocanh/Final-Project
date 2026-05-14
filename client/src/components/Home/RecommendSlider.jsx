@@ -14,97 +14,54 @@ import { useCartActions } from "../../hooks/useCartActions";
 import { getRecommendationsThunk } from "../../store/slices/interactionSlice.js";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
+import { fetchRecommendations } from "../../store/slices/recommendSlice.js";
 
-const MOCK_PRODUCTS = [
-  {
-    _id: "1",
-    name: "Baby Spinach",
-    price: 4.5,
-    ratings: 4.9,
-    image: "/honey.png",
-    tag: "Veganic Choice",
-  },
-  {
-    _id: "2",
-    name: "Organic Carrots",
-    price: 3.2,
-    ratings: 4.8,
-    image: "/cheri2.png",
-    tag: "Non-GMO",
-  },
-  {
-    _id: "3",
-    name: "Red Bell Pepper",
-    price: 5.9,
-    ratings: 5.0,
-    image: "/apple.png",
-    tag: "Premium Quality",
-  },
-  {
-    _id: "4",
-    name: "Fresh Broccoli",
-    price: 4.0,
-    ratings: 4.7,
-    image: "/cabage.png",
-    tag: "Veganic Choice",
-  },
-  {
-    _id: "5",
-    name: "Sweet Corn",
-    price: 2.5,
-    ratings: 4.9,
-    image: "/lemon.png",
-    tag: "Eco-Friendly",
-  },
-];
-
-const shuffleArray = (array) => {
-  const newArr = [...array];
-  for (let i = newArr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-  }
-  return newArr;
-};
-
-const RecommendSlider = ({ title = "Specifically" }) => {
+const RecommendSlider = () => {
   const scrollRef = useRef(null);
-  const { handleCartAction } = useCartActions();
-
   const dispatch = useDispatch();
 
-  const { recommendations, loading } = useSelector(
-    (state) => state.interaction,
+  const { handleCartAction } = useCartActions();
+
+  const { list = [], isLoading } = useSelector(
+    (state) => state.recommend
   );
 
-  const shuffledProducts = useMemo(() => {
-    if (!recommendations || recommendations.length === 0) return [];
-    return shuffleArray(recommendations);
-  }, [recommendations]);
-
-
   useEffect(() => {
-    dispatch(getRecommendationsThunk());
+    dispatch(fetchRecommendations());
   }, [dispatch]);
+
+  // FILTER VALID PRODUCTS
+  const products = useMemo(() => {
+    return (list || []).filter(
+      (p) =>
+        p &&
+        p._id &&
+        p.stock > 0
+    );
+  }, [list]);
 
   const scroll = (direction) => {
     if (scrollRef.current) {
       const amount = direction === "left" ? -280 : 280;
-      scrollRef.current.scrollBy({ left: amount, behavior: "smooth" });
+
+      scrollRef.current.scrollBy({
+        left: amount,
+        behavior: "smooth",
+      });
     }
   };
 
-  if (!loading && shuffledProducts.length === 0) return null;
+  // HIDE SECTION IF NO DATA
+  if (!isLoading && products.length === 0) return null;
 
   return (
     <section className="relative py-20 bg-white dark:bg-[#020202] overflow-hidden transition-colors duration-1000">
       <FloatingDecor />
 
       <div className="max-w-[1400px] mx-auto px-6 relative z-10">
-        {/* --- Header Section --- */}
-
+        {/* HEADER */}
         <div className="flex flex-col items-center mb-16 text-center space-y-6">
-          {/* Logo & Sub-header */}
+          {/* Logo */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -114,9 +71,14 @@ const RecommendSlider = ({ title = "Specifically" }) => {
             <div className="relative mb-4">
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
                 className="absolute -inset-2 border border-dashed border-[#77cd3a]/30 rounded-full"
               />
+
               <img
                 src="/logohaha.png"
                 alt="logo"
@@ -125,20 +87,22 @@ const RecommendSlider = ({ title = "Specifically" }) => {
             </div>
 
             <span className="text-[9px] font-bold tracking-[0.6em] text-[#77cd3a] uppercase">
-              Veganic Heritage
+              Personalized Picks
             </span>
           </motion.div>
 
-          {/* Main Title Section */}
+          {/* TITLE */}
           <div className="relative max-w-2xl mx-auto">
             <motion.h3
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                duration: 0.8,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               className="text-3xl md:text-6xl font-extralight tracking-tight text-gray-950 dark:text-white leading-[1.1]"
             >
-              {/* <span className="block mb-2">{title}</span> */}
-              <span className="flex items-center justify-center gap-4 font-serif italic text-neutral-400 dark:text-neutral-500 lowecase">
+              <span className="flex items-center justify-center gap-4 font-serif italic text-neutral-400 dark:text-neutral-500">
                 <span className="h-[1px] w-8 md:w-12 bg-neutral-200 dark:bg-white/10" />
                 Just for you
                 <span className="h-[1px] w-8 md:w-12 bg-neutral-200 dark:bg-white/10" />
@@ -153,7 +117,7 @@ const RecommendSlider = ({ title = "Specifically" }) => {
             />
           </div>
 
-          {/* Decorative bottom line */}
+          {/* LINE */}
           <motion.div
             initial={{ width: 0, opacity: 0 }}
             whileInView={{ width: "40px", opacity: 1 }}
@@ -162,9 +126,9 @@ const RecommendSlider = ({ title = "Specifically" }) => {
           />
         </div>
 
-        {/* --- Slider Area --- */}
+        {/* SLIDER */}
         <div className="relative group/slider">
-          {/* Navigation Mini */}
+          {/* LEFT BUTTON */}
           <div className="absolute top-1/2 -left-2 -translate-y-1/2 z-20 hidden md:block opacity-0 group-hover/slider:opacity-100 transition-opacity">
             <button
               onClick={() => scroll("left")}
@@ -173,6 +137,8 @@ const RecommendSlider = ({ title = "Specifically" }) => {
               <ChevronLeft size={30} strokeWidth={1} />
             </button>
           </div>
+
+          {/* RIGHT BUTTON */}
           <div className="absolute top-1/2 -right-2 -translate-y-1/2 z-20 hidden md:block opacity-0 group-hover/slider:opacity-100 transition-opacity">
             <button
               onClick={() => scroll("right")}
@@ -182,53 +148,65 @@ const RecommendSlider = ({ title = "Specifically" }) => {
             </button>
           </div>
 
+          {/* PRODUCTS */}
           <div
             ref={scrollRef}
             className="flex gap-5 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-10 px-2"
           >
-            {shuffledProducts.map((product, idx) => (
+            {products.map((product, idx) => (
               <motion.div
                 key={product._id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                transition={{
+                  duration: 0.5,
+                  delay: idx * 0.08,
+                }}
                 className="min-w-[200px] md:min-w-[230px] snap-start group"
               >
                 <div className="relative flex flex-col h-[380px]">
-                  {/* Slim Card Wrapper */}
+                  {/* CARD */}
                   <div className="relative flex-grow rounded-[2rem] bg-neutral-50 dark:bg-neutral-900/30 border border-neutral-100 dark:border-white/5 overflow-hidden transition-all duration-500 group-hover:bg-white dark:group-hover:bg-neutral-800 group-hover:shadow-xl group-hover:shadow-black/5">
-                    {/* Tiny Star */}
-                    <div className="absolute top-4 left-4 z-10 flex items-center gap-1">
+                    {/* RATING */}
+                    <div className="absolute top-4 left-4 z-10 flex items-center gap-1 bg-white/90 dark:bg-black/60 px-2 py-1 rounded-full backdrop-blur-sm">
                       <Star
                         size={10}
                         fill="#77cd3a"
                         className="text-[#77cd3a]"
                       />
-                      <span className="text-[10px] font-bold text-neutral-400">
-                        {product.ratings}
+
+                      <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-300">
+                        {product.ratings?.toFixed(1) || "0.0"}
                       </span>
                     </div>
 
-                    {/* Image Area - LOGIC GIỐNG PRODUCT SLIDER */}
+                    {/* IMAGE */}
                     <Link
                       to={`/product/${product._id}`}
                       className="absolute inset-0 flex items-center justify-center overflow-hidden"
                     >
                       <motion.div
-                        whileHover={{ scale: 1.1 }}
-                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                        whileHover={{ scale: 1.08 }}
+                        transition={{
+                          duration: 0.8,
+                          ease: [0.16, 1, 0.3, 1],
+                        }}
                         className="w-[80%] h-[80%] flex items-center justify-center overflow-hidden rounded-2xl border border-neutral-100 dark:border-white/5 bg-neutral-100/50 dark:bg-neutral-900 shadow-inner"
                       >
                         <img
-                          src={product.images?.[0]?.url}
+                          src={
+                            product.images?.[0]?.url ||
+                            product.image ||
+                            "/placeholder.png"
+                          }
                           alt={product.name}
                           className="w-full h-full object-cover"
                         />
                       </motion.div>
                     </Link>
 
-                    {/* Floating Add Button */}
+                    {/* ADD TO CART */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -240,29 +218,31 @@ const RecommendSlider = ({ title = "Specifically" }) => {
                     </button>
                   </div>
 
-                  {/* Info Area */}
+                  {/* INFO */}
                   <div className="mt-5 flex flex-col items-center text-center px-1">
-                    <h4 className="text-md font-medium text-neutral-800 dark:text-neutral-200 mb-0.5 truncate w-full group-hover:text-[#77cd3a] transition-colors">
+                    <h4 className="text-md font-medium text-neutral-800 dark:text-neutral-200 mb-1 truncate w-full group-hover:text-[#77cd3a] transition-colors">
                       {product.name}
                     </h4>
 
-                    <span className="text-sm font-bold text-neutral-400 mb-3 tracking-tighter">
-                      ${product.price.toFixed(1)}
-                    </span>
-
-                    {/* Veganic Tag */}
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#77cd3a]/5 border border-[#77cd3a]/10">
-                      <Leaf size={8} className="text-[#77cd3a]" />
-                      <span className="text-[7px] font-black uppercase tracking-[0.1em] text-[#77cd3a]">
-                        {product.tag}
+                    {/* REASON */}
+                    <div className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-[#77cd3a] mb-2">
+                      <Leaf size={9} />
+                      <span>
+                        {product.reason || "Recommended for you"}
                       </span>
                     </div>
+
+                    {/* PRICE */}
+                    <span className="text-sm font-bold text-neutral-400 tracking-tighter">
+                      $
+                      {Number(product.price || 0).toFixed(2)}
+                    </span>
                   </div>
                 </div>
               </motion.div>
             ))}
 
-            {/* View All - Mini */}
+            {/* SHOW ALL */}
             <div className="min-w-[120px] flex items-center justify-center snap-start">
               <Link
                 to="/products"
@@ -274,6 +254,7 @@ const RecommendSlider = ({ title = "Specifically" }) => {
                     className="text-neutral-300 group-hover:text-[#77cd3a]"
                   />
                 </div>
+
                 <span className="text-[7px] font-bold uppercase tracking-widest text-neutral-400">
                   Show All
                 </span>
@@ -284,8 +265,14 @@ const RecommendSlider = ({ title = "Specifically" }) => {
       </div>
 
       <style>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
       `}</style>
     </section>
   );

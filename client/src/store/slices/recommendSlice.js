@@ -9,7 +9,7 @@ export const fetchRecommendations = createAsyncThunk(
       const res = await axiosInstance.get(`/recommendations?_t=${Date.now()}`);
       
       // LOG TO DEBUG: Check your F12 console
-      console.log("API Response:", res.data);
+      // console.log("API Response:", res.data);
 
       return {
         // MATCHING THE CONTROLLER: Controller returns 'list', not 'data'
