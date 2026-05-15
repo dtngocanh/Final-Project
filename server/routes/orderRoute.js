@@ -6,8 +6,10 @@ import {
   getAllOrders,
   getUserOrders,
   cancelOrder,
-  getOrderDetails
+  getOrderDetails, 
+  updateOrder
 } from "../controllers/orderController.js ";
+
 
 const orderRouter = express.Router();
 
@@ -16,6 +18,6 @@ orderRouter.get("/user", authUser, getUserOrders);
 orderRouter.get("/seller", authSeller, getAllOrders);
 orderRouter.post(`/cancel`, authUser, cancelOrder);
 orderRouter.get(`/:id`, authUser, getOrderDetails);
-
+orderRouter.put(`/:id`, updateOrder);
 
 export default orderRouter;

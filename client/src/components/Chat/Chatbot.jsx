@@ -5,6 +5,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { sendMessage, addUserMessage } from '../../store/slices/aiSlice';
 import { useCartActions } from "../../hooks/useCartActions";
+import FruitLoader from '../Fruit/FruitLoader';
+import FruitChat from '../Fruit/FruitChat';
 
 const ChatBot = () => {
   const dispatch = useDispatch();
@@ -78,7 +80,7 @@ const ChatBot = () => {
               {/* English Greeting using authUser Name */}
               <div className="flex flex-col items-start">
                 <div className="p-4 rounded-[22px] rounded-tl-none text-sm bg-white border border-green-100 text-gray-700 shadow-sm leading-relaxed">
-                  Hi <b>{displayName}</b>! 👋 <br/> 
+                  Hi <b>{displayName}</b>!  <br/> 
                   Welcome to Veganic Mart. How can I help you find fresh products today? 
                 </div>
               </div>
@@ -133,8 +135,11 @@ const ChatBot = () => {
               
               {isAsking && (
                 <div className="flex items-center gap-2 text-[#025c37] bg-white border border-green-50 w-fit px-4 py-2 rounded-full text-xs font-medium shadow-sm">
-                  <Loader2 className="animate-spin w-4 h-4" /> Waiting a min...
+                <FruitChat/>
+                   
                 </div>
+                 
+              
               )}
             </div>
 

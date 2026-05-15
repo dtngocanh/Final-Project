@@ -68,6 +68,7 @@ const FruitLoader = () => {
             animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
+            
             Wait a min...
           </motion.p>
         </div>

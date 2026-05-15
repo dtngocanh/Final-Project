@@ -75,7 +75,7 @@ const Dashboard = () => {
 
   // --- LOGIC XUẤT FILE ---
   const handleExportData = () => {
-    toast.info("Đang khởi tạo tệp báo cáo doanh thu...");
+    toast.info("Creating file...");
     // Giả lập tạo file CSV
     const headers = ["Order ID, Customer, Total, Status\n"];
     const rows = orders.map(
@@ -298,7 +298,7 @@ const Dashboard = () => {
                 ))
               ) : (
                 <div className="py-20 text-center text-gray-400 italic text-sm">
-                  Kho hàng đang ở trạng thái an toàn.
+                  The stock is in safe status
                 </div>
               )}
             </div>

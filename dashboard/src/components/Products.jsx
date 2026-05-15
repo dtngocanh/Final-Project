@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  LoaderCircle,
   Plus,
   Search,
   Filter,
@@ -29,6 +28,8 @@ import UpdateProductModal from "../modals/UpdateProductModal";
 import ViewProductModal from "../modals/ViewProductModal";
 import FloatingVegetables from "../components/Fruit/FloatingVegetables";
 import ImportProductModal from "../modals/ImportProductModal";
+import FruitLoader from "./Fruit/FruitLoader"; // Import FruitLoader giống bên Orders
+
 const Products = () => {
   const dispatch = useDispatch();
 
@@ -48,11 +49,7 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  const initialFilters = {
-    search: "",
-  };
-
-  const [filters, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState({ search: "" });
 
   useEffect(() => {
     const filterParams = {
@@ -70,13 +67,29 @@ const Products = () => {
     setCurrentPage(1);
   }, [filters.search, selectedCategory]);
 
+  // --- LOGIC PHÂN TRANG RÚT GỌN ---
   const totalItems = products?.length || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-  // Tính toán phân trang
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = products?.slice(indexOfFirstItem, indexOfLastItem);
+
+  const renderPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   // Handlers
   const handleView = (product) => {
@@ -110,18 +123,15 @@ const Products = () => {
               </span>
             </h1>
             <p className="text-gray-400 text-[10px] font-black mt-1 tracking-[0.3em] uppercase">
-              Garden Status: {products?.length} Items Available
+              Garden Status: {totalItems} Items Available
             </p>
           </div>
 
           <div className="flex gap-3">
-            {" "}
-            {/* Bọc lại bằng div để chứa 2 nút */}
-            {/* Nút Import List mới */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => dispatch(toggleImportProductModal())} // Ní cần tạo action này trong extraSlice
+              onClick={() => dispatch(toggleImportProductModal())}
               className="flex items-center gap-2 px-6 py-4 bg-white border-2 border-[#77cd3af2] text-[#77cd3af2] rounded-[25px] font-bold shadow-sm transition-all"
             >
               <ShoppingBasket size={20} /> <span>Import List</span>
@@ -174,11 +184,11 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Products Grid */}
+        {/* Products Grid Section */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-40 gap-4">
-            <LoaderCircle className="w-12 h-12 text-[#77cd3af2] animate-spin" />
-            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic">
+          <div className="flex flex-col items-center justify-center py-40">
+            <FruitLoader />
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic mt-4">
               Gathering Freshness...
             </p>
           </div>
@@ -195,7 +205,6 @@ const Products = () => {
                     exit={{ opacity: 0, scale: 0.9 }}
                     className="group bg-white rounded-[40px] p-5 shadow-sm hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-500 border border-transparent hover:border-white relative"
                   >
-                    {/* Image */}
                     <div className="relative h-52 w-full mb-6 rounded-[30px] overflow-hidden bg-gray-50">
                       <img
                         src={product.images[0]?.url}
@@ -204,7 +213,6 @@ const Products = () => {
                       />
                     </div>
 
-                    {/* Info */}
                     <div className="px-2">
                       <h3 className="text-lg font-bold text-gray-800 mb-1 line-clamp-1">
                         {product.name}
@@ -218,7 +226,6 @@ const Products = () => {
                         </span>
                       </div>
 
-                      {/* Actions */}
                       <div className="flex gap-2 border-t border-gray-50 pt-5">
                         <button
                           onClick={() => handleView(product)}
@@ -245,57 +252,70 @@ const Products = () => {
               </AnimatePresence>
             </div>
 
-            {/* Pagination UI */}
+          
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-3 mt-16">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => prev - 1)}
-                  className="p-4 bg-white rounded-full shadow-sm disabled:opacity-30 hover:bg-[#77cd3af2] hover:text-white transition-all text-gray-400"
-                >
-                  <ChevronLeft size={20} />
-                </button>
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-16 px-2 gap-4">
+                {/* Phần hiển thị số trang bên trái */}
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                  Page{" "}
+                  <span className="text-gray-800 text-sm">{currentPage}</span> /{" "}
+                  {totalPages}
+                </p>
 
-                <div className="flex gap-2">
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={`w-12 h-12 rounded-full font-bold text-sm transition-all ${
-                        currentPage === i + 1
-                          ? "bg-[#77cd3af2] text-white shadow-lg shadow-green-100 scale-110"
-                          : "bg-white text-gray-400 hover:bg-gray-50"
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+                {/* Cụm nút bấm căn về bên phải */}
+                <div className="flex items-center gap-2">
+                  {/* Nút Back */}
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(prev - 1, 1))
+                    }
+                    className="w-12 h-12 flex items-center justify-center bg-white rounded-[20px] shadow-sm disabled:opacity-30 hover:bg-gray-50 transition-all text-gray-400 border border-gray-50"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+
+                  {/* Danh sách số trang có dấu ... */}
+                  <div className="flex items-center gap-2">
+                    {renderPageNumbers().map((p, i) =>
+                      p === "..." ? (
+                        <span key={i} className="text-gray-300 px-1 font-bold">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={i}
+                          onClick={() => setCurrentPage(p)}
+                          className={`w-12 h-12 rounded-[20px] font-bold text-sm transition-all ${
+                            currentPage === p
+                              ? "bg-[#77cd3af2] text-white shadow-lg shadow-green-100 scale-105"
+                              : "bg-white text-gray-400 hover:bg-gray-50 border border-gray-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ),
+                    )}
+                  </div>
+
+                  {/* Nút Next */}
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
+                    className="w-12 h-12 flex items-center justify-center bg-white rounded-[20px] shadow-sm disabled:opacity-30 hover:bg-gray-50 transition-all text-gray-400 border border-gray-50"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
                 </div>
-
-                <button
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((prev) => prev + 1)}
-                  className="p-4 bg-white rounded-full shadow-sm disabled:opacity-30 hover:bg-[#77cd3af2] hover:text-white transition-all text-gray-400"
-                >
-                  <ChevronRight size={20} />
-                </button>
               </div>
             )}
           </>
         )}
-
-        {/* Empty State */}
-        {/* {!loading && products?.length === 0 && (
-          <div className="text-center py-40 bg-white rounded-[50px] border border-dashed border-gray-100">
-            <ShoppingBasket className="mx-auto text-gray-200 mb-4" size={60} />
-            <p className="text-gray-400 italic">
-              No fresh products found in this garden.
-            </p>
-          </div>
-        )} */}
       </main>
 
-      {/* Modals - ĐÃ SỬA: Tên biến khớp với extraSlice có chữ "ed" */}
+      {/* Modals */}
       <AnimatePresence>
         {isCreateProductModalOpened && <CreateProductModal />}
         {isUpdateProductModalOpened && (

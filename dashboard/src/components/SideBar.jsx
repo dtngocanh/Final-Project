@@ -1,34 +1,35 @@
 import React from 'react';
 import {
   LayoutDashboard, ListOrdered, Package,
-  Users, User, LogOut, ShieldCheck, X
+  Users, User, LogOut, X
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { toggleComponent, toggleNavbar } from "../store/slices/extraSlice";
+import { NavLink } from "react-router-dom"; // QUAN TRỌNG: Dùng NavLink
+import { toggleNavbar } from "../store/slices/extraSlice";
 import { logout } from "../store/slices/authSlice";
 
 const SideBar = () => {
   const dispatch = useDispatch();
-  // CHỖ NÀY: Đổi 'navbar' thành 'isNavbarOpened' cho đúng với Slice của ní
-  const { openedComponent, isNavbarOpened } = useSelector((state) => state.extra);
+  const { isNavbarOpened } = useSelector((state) => state.extra);
   const { user } = useSelector((state) => state.auth);
 
+  // Định nghĩa route tương ứng với từng item
   const menuItems = [
-    { id: "Dashboard", icon: <LayoutDashboard size={20} />, label: "Dashboard" },
-    { id: "Orders", icon: <ListOrdered size={20} />, label: "Orders" },
-    { id: "Products", icon: <Package size={20} />, label: "Products" },
-    { id: "Users", icon: <Users size={20} />, label: "Users" },
-    { id: "Profile", icon: <User size={20} />, label: "Profile" },
+    { to: "/", icon: <LayoutDashboard size={20} />, label: "Dashboard" },
+    { to: "/orders", icon: <ListOrdered size={20} />, label: "Orders" },
+    { to: "/products", icon: <Package size={20} />, label: "Products" },
+    { to: "/users", icon: <Users size={20} />, label: "Users" },
+    { to: "/profile", icon: <User size={20} />, label: "Profile" },
   ];
 
-  const handleNavClick = (id) => {
-    dispatch(toggleComponent(id));
+  // Hàm xử lý khi click trên Mobile
+  const handleNavClick = () => {
     if (window.innerWidth < 1024) dispatch(toggleNavbar());
   };
 
   return (
     <>
-      {/* OVERLAY: Sử dụng isNavbarOpened */}
+      {/* OVERLAY */}
       {isNavbarOpened && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-[105] lg:hidden animate-in fade-in duration-300"
@@ -36,7 +37,7 @@ const SideBar = () => {
         />
       )}
 
-      {/* ASIDE: Sử dụng isNavbarOpened để trượt */}
+      {/* ASIDE */}
       <aside className={`
         fixed lg:sticky top-0 left-0 z-[110]
         w-72 h-screen 
@@ -68,29 +69,37 @@ const SideBar = () => {
         <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
           <p className="px-4 mb-4 text-[9px] uppercase tracking-[0.3em] text-gray-300 dark:text-gray-600 font-black">Main Menu</p>
 
-          {menuItems.map((item) => {
-            const isActive = openedComponent === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group ${isActive
-                    ? "bg-[#77cd3af2]/10 text-[#77cd3af2]"
-                    : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/[0.02] hover:text-gray-900 dark:hover:text-white"
-                  }`}
-              >
-                <div className="flex items-center gap-4">
-                  <span className={`transition-all duration-300 ${isActive ? "scale-110" : "group-hover:text-[#77cd3af2]"}`}>
-                    {item.icon}
-                  </span>
-                  <span className={`text-sm tracking-wide ${isActive ? "font-bold" : "font-medium"}`}>
-                    {item.label}
-                  </span>
-                </div>
-                {isActive && <div className="size-1.5 rounded-full bg-[#77cd3af2] shadow-[0_0_10px_#77cd3af2]" />}
-              </button>
-            );
-          })}
+          {menuItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={handleNavClick}
+              // NavLink cung cấp tham số isActive dựa trên URL hiện tại
+              className={({ isActive }) => `
+                w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group
+                ${isActive
+                  ? "bg-[#77cd3af2]/10 text-[#77cd3af2]"
+                  : "text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/[0.02] hover:text-gray-900 dark:hover:text-white"
+                }
+              `}
+            >
+              {({ isActive }) => (
+                <>
+                  <div className="flex items-center gap-4">
+                    <span className={`transition-all duration-300 ${isActive ? "scale-110" : "group-hover:text-[#77cd3af2]"}`}>
+                      {item.icon}
+                    </span>
+                    <span className={`text-sm tracking-wide ${isActive ? "font-bold" : "font-medium"}`}>
+                      {item.label}
+                    </span>
+                  </div>
+                  {isActive && (
+                    <div className="size-1.5 rounded-full bg-[#77cd3af2] shadow-[0_0_10px_#77cd3af2]" />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
         </nav>
 
         <div className="p-6 mt-auto border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">

@@ -178,3 +178,61 @@ export const getOrderDetails = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateOrder = async (req, res, next) => {
+  try {
+    // 1. Lấy newStatus lên đầu tiên để các dòng dưới có cái mà dùng
+    const newStatus = req.body.status;
+    
+    // 2. Tìm order trước để kiểm tra logic
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return next(new ErrorHandler("No Order found with this ID", 404));
+    }
+
+    // 3. Kiểm tra nếu đơn hàng đã giao rồi thì chặn
+    if (order.orderStatus === "Delivered") {
+      return next(new ErrorHandler("You have already delivered this order", 400));
+    }
+
+    // 4. Cập nhật các thay đổi vào object 'order' (nhưng chưa lưu vào DB)
+    order.orderStatus = newStatus;
+
+    if (newStatus === "Shipped") {
+      // Logic gửi email nếu cần
+    }
+
+    if (newStatus === "Delivered") {
+      order.deliveredAt = Date.now();
+      if (order.paymentInfo.method === "COD") {
+        order.paymentInfo.status = "Paid";
+        order.paymentInfo.paidAt = Date.now();
+      }
+    }
+
+    if (newStatus === "Canceled") {
+      const updateProductOps = order.orderItems.map((item) => ({
+        updateOne: {
+          filter: { _id: item.product },
+          update: {
+            $inc: { stock: item.quantity, salesCount: -item.quantity },
+          },
+        },
+      }));
+      await Product.bulkWrite(updateProductOps);
+    }
+
+    // 5. CHỐT HẠ: Lưu lại. 
+    // Thêm { validateBeforeSave: false } để "né" mấy cái lỗi thiếu tỉnh/huyện ở dữ liệu cũ
+    await order.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      message: `Order status updated to ${newStatus}`,
+      order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
