@@ -1,19 +1,30 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom"; 
 import { Menu, Bell, Search } from "lucide-react";
-import { toggleNavbar, toggleComponent } from "../store/slices/extraSlice";
+import { toggleNavbar } from "../store/slices/extraSlice"; 
 
 const Header = () => {
   const { user } = useSelector((state) => state.auth);
-  const { openedComponent } = useSelector((state) => state.extra);
   const dispatch = useDispatch();
+  
+  // 1. Lấy location hiện tại từ URL
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // 2. Hàm định dạng path sang tên hiển thị (VD: "/orders" -> "Orders")
+  const getBreadcrumb = () => {
+    const path = location.pathname.split("/")[1]; // Lấy chữ sau dấu gạch chéo đầu tiên
+    if (!path) return "Dashboard"; // Nếu là "/" thì trả về Dashboard
+    return path; // Trả về tên path (capitalize đã có class Tailwind lo)
+  };
 
   return (
     <header className="flex justify-between items-center mb-3 pb-2 pt-5 px-4 md:px-8 sticky top-0 z-[100] bg-white/80 dark:bg-[#050505]/80 backdrop-blur-xl transition-all font-['Fredoka']">
       
       {/* LEFT SIDE: Hamburger & Breadcrumbs */}
       <div className="flex items-center gap-3 md:gap-4">
-        {/* Nút Hamburger: Quan trọng nhất là z-[120] để không bị lớp nào đè */}
+        {/* Nút Hamburger */}
         <button 
           onClick={(e) => {
             e.stopPropagation();
@@ -29,8 +40,9 @@ const Header = () => {
             {user?.name || "Veganic Seller"}
           </span>
           <span className="text-gray-300 hidden sm:inline">/</span>
+          {/* 3. Hiển thị động theo URL thực tế */}
           <span className="text-gray-900 dark:text-white font-bold capitalize tracking-wide">
-            {openedComponent || "Dashboard"}
+            {getBreadcrumb()}
           </span>
         </p>
       </div>
@@ -38,7 +50,7 @@ const Header = () => {
       {/* RIGHT SIDE: Actions & Profile */}
       <div className="flex gap-2 md:gap-4 items-center">
         <div className="flex items-center gap-1">
-           <button className="p-2 text-gray-400 hover:text-[#77cd3af2] transition-colors">
+          <button className="p-2 text-gray-400 hover:text-[#77cd3af2] transition-colors">
             <Search size={18} />
           </button>
           <button className="p-2 text-gray-400 hover:text-[#77cd3af2] transition-colors relative">
@@ -49,7 +61,8 @@ const Header = () => {
 
         {/* Profile Avatar */}
         <div 
-          onClick={() => dispatch(toggleComponent("Profile"))}
+          // 4. Thay vì click đổi state Redux, ta điều hướng link sang "/profile" luôn
+          onClick={() => navigate("/profile")}
           className="relative cursor-pointer group ml-1"
         >
           <div className="p-0.5 rounded-full border-2 border-transparent group-hover:border-[#77cd3af2]/40 transition-all">

@@ -181,22 +181,42 @@ export const getOrderDetails = async (req, res, next) => {
 
 export const updateOrder = async (req, res, next) => {
   try {
-    // 1. Lấy newStatus lên đầu tiên để các dòng dưới có cái mà dùng
     const newStatus = req.body.status;
-    
-    // 2. Tìm order trước để kiểm tra logic
     const order = await Order.findById(req.params.id);
 
     if (!order) {
       return next(new ErrorHandler("No Order found with this ID", 404));
     }
 
-    // 3. Kiểm tra nếu đơn hàng đã giao rồi thì chặn
+    // 1. Nếu đơn hàng ĐÃ GIAO thì KHÔNG ĐƯỢC THAY ĐỔI TRẠNG THÁI NỮA
     if (order.orderStatus === "Delivered") {
       return next(new ErrorHandler("You have already delivered this order", 400));
     }
 
-    // 4. Cập nhật các thay đổi vào object 'order' (nhưng chưa lưu vào DB)
+    // 2. CHẶN SPAM: Nếu đơn hàng vốn dĩ ĐÃ HỦY RỒI thì không cho cập nhật gì nữa hết
+    if (order.orderStatus === "Canceled") {
+      return next(new ErrorHandler("This order has already been canceled", 400));
+    }
+
+    // 3. LOGIC HOÀN KHO: Chỉ hoàn kho khi trạng thái MỚI là Canceled 
+    // VÀ trạng thái CŨ chưa từng là Canceled (Đoạn check ở trên đã đảm bảo điều này)
+    if (newStatus === "Canceled") {
+      const updateProductOps = order.orderItems.map((item) => ({
+        updateOne: {
+          filter: { _id: item.product },
+          update: {
+            $inc: { stock: item.quantity, salesCount: -item.quantity },
+          },
+        },
+      }));
+      await Product.bulkWrite(updateProductOps);
+    }
+
+    // 4. LOGIC TRỪ KHO NGƯỢC LẠI (Nếu cần): 
+    // Nếu đơn hàng đang từ "Canceled" mà chuyển về trạng thái khác thì phải trừ kho.
+    // Tuy nhiên ở bước 2 mình đã chặn không cho chuyển từ Canceled đi đâu rồi nên không lo nữa.
+
+    // Cập nhật các thay đổi vào object 'order'
     order.orderStatus = newStatus;
 
     if (newStatus === "Shipped") {
@@ -211,20 +231,7 @@ export const updateOrder = async (req, res, next) => {
       }
     }
 
-    if (newStatus === "Canceled") {
-      const updateProductOps = order.orderItems.map((item) => ({
-        updateOne: {
-          filter: { _id: item.product },
-          update: {
-            $inc: { stock: item.quantity, salesCount: -item.quantity },
-          },
-        },
-      }));
-      await Product.bulkWrite(updateProductOps);
-    }
-
-    // 5. CHỐT HẠ: Lưu lại. 
-    // Thêm { validateBeforeSave: false } để "né" mấy cái lỗi thiếu tỉnh/huyện ở dữ liệu cũ
+    // Chốt hạ lưu vào DB
     await order.save({ validateBeforeSave: false });
 
     res.status(200).json({
