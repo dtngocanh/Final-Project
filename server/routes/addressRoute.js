@@ -1,7 +1,8 @@
 import express from "express";
 import authUser from "../middlewares/authUser.js";
 import axios from "axios";
-import { calcFee, getProvinces } from "../controllers/addressController.js";
+import { getProvinces } from "../controllers/addressController.js";
+import { calcFee } from "../controllers/calcFeeController.js";
 
 const addressRouter = express.Router();
 

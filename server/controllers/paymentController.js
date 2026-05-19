@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import Order from "../models/Order.js";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+import { calculateShippingFee } from "../services/ghnService.js";
 
 export const createCheckoutSession = async (req, res) => {
   try {
@@ -8,6 +9,13 @@ export const createCheckoutSession = async (req, res) => {
 
     const userId = req.user ? req.user._id.toString() : "GUEST_USER";
 
+    const shippingRs = await calculateShippingFee({
+      cartItems: orderItems,
+
+      to_district_id: shippingInfo.districtId,
+
+      to_ward_code: shippingInfo.wardCode,
+    });
     // console.log("1. Create Session for userId:", userId);
 
     const line_items = orderItems.map((item) => ({
@@ -42,6 +50,8 @@ export const createCheckoutSession = async (req, res) => {
       customer_email: shippingInfo.email || undefined,
       metadata: {
         userId: userId,
+        orderItems: JSON.stringify(compactItems),
+
         shippingInfo: JSON.stringify({
           fullName: shippingInfo.fullName,
           address: shippingInfo.address,
@@ -52,6 +62,9 @@ export const createCheckoutSession = async (req, res) => {
           districtId: shippingInfo.districtId,
           wardCode: shippingInfo.wardCode,
         }),
+        shippingFeeUSD: shippingRs.feeUSD.toString(),
+
+        shippingFeeVND: shippingRs.feeVND.toString(),
       },
     });
 
@@ -61,87 +74,3 @@ export const createCheckoutSession = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-export const confirmOrderPayment = async (req, res, next) => {
-  try {
-    const { sessionId } = req.body;
-
-    // 1. Lấy thông tin chi tiết từ Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-    if (session.payment_status !== "paid") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Payment not verified" });
-    }
-
-    const paymentIntentId = session.payment_intent;
-
-    // 2. Kiểm tra xem đơn hàng này đã được tạo trước đó chưa
-    const existingOrder = await Order.findOne({
-      "paymentInfo.id": paymentIntentId,
-    });
-    if (existingOrder) {
-      return res.status(200).json({
-        success: true,
-        message: "Payment already confirmed & processed",
-        order: existingOrder,
-      });
-    }
-
-    // 3. Lấy dữ liệu từ metadata ra để chuẩn bị ghi vào DB
-    const userId = session.metadata.userId;
-    const shippingInfo = JSON.parse(session.metadata.shippingInfo);
-    const orderItems = JSON.parse(session.metadata.orderItems);
-
-    const itemsPrice = orderItems.reduce(
-      (acc, item) => acc + item.price * item.quantity,
-      0,
-    );
-
-    // 4. Tạo đơn hàng CHÍNH THỨC
-    const order = await Order.create({
-      user: userId === "GUEST_USER" ? undefined : userId,
-      orderItems,
-      shippingInfo,
-      paymentInfo: {
-        id: paymentIntentId, // Lưu thẳng mã pi_... từ đầu
-        method: "Stripe",
-        status: "Paid",
-        paidAt: new Date(),
-      },
-      itemsPrice,
-      totalPrice: itemsPrice, // Tùy biến cộng thêm shippingPrice của bạn nếu có
-      orderStatus: "Processing",
-    });
-
-    // 5. Trực tiếp TRỪ KHO tại đây
-    const updateProductOps = orderItems.map((item) => ({
-      updateOne: {
-        filter: { _id: item.product },
-        update: {
-          $inc: {
-            stock: -item.quantity,
-            salesCount: item.quantity,
-          },
-        },
-      },
-    }));
-    await Product.bulkWrite(updateProductOps);
-
-    // 6. Xóa giỏ hàng của User
-    if (userId && userId !== "GUEST_USER") {
-      await User.findByIdAndUpdate(userId, { $set: { cartItems: [] } });
-    }
-
-    res.status(201).json({
-      success: true,
-      message: "Payment confirmed and order placed successfully",
-      order,
-    });
-  } catch (error) {
-    console.error("CONFIRM PAYMENT ERROR:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
-

@@ -18,7 +18,7 @@ import categoryRouter from "./routes/categoryRoute.js";
 import recRouter from "./routes/recommendationRoute.js";
 
 // Import Controllers & Middlewares
-import { stripeWebhook } from "./controllers/stripeController.js";
+import { stripeWebhook } from "./controllers/webhookController.js";
 import { errorMiddleware } from "./middlewares/error.js";
 import interactionRouter from "./routes/interactionRoute.js";
 
