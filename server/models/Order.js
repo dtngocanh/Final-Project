@@ -46,7 +46,7 @@ const paymentInfoSchema = new mongoose.Schema({
   id: String,
   status: {
     type: String,
-    enum: ["Paid", "Pending", "Failed"],
+    enum: ["Paid", "Pending", "Failed", "Refunded"],
   },
   method: {
     type: String,

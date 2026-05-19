@@ -1,3 +1,6 @@
+import Stripe from "stripe";
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
@@ -80,7 +83,7 @@ export const getUserOrders = async (req, res) => {
   }
 };
 
-export const cancelOrder = async (req, res) => {
+export const cancelOrder = async (req, res, next) => {
   try {
     const { orderId } = req.body;
     const userId = req.user._id;
@@ -102,6 +105,23 @@ export const cancelOrder = async (req, res) => {
       });
     }
 
+    if (
+      order.paymentInfo.method === "Stripe" &&
+      order.paymentInfo.status === "Paid"
+    ) {
+      const paymentIntentId = order.paymentInfo.id;
+
+      if (!paymentIntentId) {
+        return next(new ErrorHandler("Not found Payment Intent ID", 400));
+      }
+
+      await stripe.refunds.create({
+        payment_intent: paymentIntentId,
+        reason: "requested_by_customer",
+      });
+
+      order.paymentInfo.status = "Refunded";
+    }
     const updateProductOps = order.orderItems.map((item) => ({
       updateOne: {
         filter: { _id: item.product },
@@ -190,15 +210,19 @@ export const updateOrder = async (req, res, next) => {
 
     // 1. Nếu đơn hàng ĐÃ GIAO thì KHÔNG ĐƯỢC THAY ĐỔI TRẠNG THÁI NỮA
     if (order.orderStatus === "Delivered") {
-      return next(new ErrorHandler("You have already delivered this order", 400));
+      return next(
+        new ErrorHandler("You have already delivered this order", 400),
+      );
     }
 
     // 2. CHẶN SPAM: Nếu đơn hàng vốn dĩ ĐÃ HỦY RỒI thì không cho cập nhật gì nữa hết
     if (order.orderStatus === "Canceled") {
-      return next(new ErrorHandler("This order has already been canceled", 400));
+      return next(
+        new ErrorHandler("This order has already been canceled", 400),
+      );
     }
 
-    // 3. LOGIC HOÀN KHO: Chỉ hoàn kho khi trạng thái MỚI là Canceled 
+    // 3. LOGIC HOÀN KHO: Chỉ hoàn kho khi trạng thái MỚI là Canceled
     // VÀ trạng thái CŨ chưa từng là Canceled (Đoạn check ở trên đã đảm bảo điều này)
     if (newStatus === "Canceled") {
       const updateProductOps = order.orderItems.map((item) => ({
@@ -212,7 +236,7 @@ export const updateOrder = async (req, res, next) => {
       await Product.bulkWrite(updateProductOps);
     }
 
-    // 4. LOGIC TRỪ KHO NGƯỢC LẠI (Nếu cần): 
+    // 4. LOGIC TRỪ KHO NGƯỢC LẠI (Nếu cần):
     // Nếu đơn hàng đang từ "Canceled" mà chuyển về trạng thái khác thì phải trừ kho.
     // Tuy nhiên ở bước 2 mình đã chặn không cho chuyển từ Canceled đi đâu rồi nên không lo nữa.
 

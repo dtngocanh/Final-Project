@@ -36,6 +36,7 @@ export const placeOrder = createAsyncThunk(
       const res = await axiosInstance.post(endpoint, orderData);
 
       if (!isCOD && res.data.url) {
+        // const sessionId = res.data.id;
         window.location.href = res.data.url;
       } else if (isCOD) {
         return res.data;

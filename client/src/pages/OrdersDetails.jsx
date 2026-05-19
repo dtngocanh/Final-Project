@@ -11,6 +11,8 @@ import {
   Star,
   RefreshCcw,
   MessageSquare,
+  AlertTriangle,
+  CalendarX,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import FloatingDecor from "../components/Fruit/FloatingDecor";
@@ -42,6 +44,8 @@ const OrderDetail = () => {
     orderDetail.orderStatus === "Canceled"
       ? -1
       : steps.indexOf(orderDetail.orderStatus);
+
+  const isCanceled = orderDetail.orderStatus === "Canceled";
 
   return (
     <main className="min-h-screen pt-24 pb-16 bg-white dark:bg-[#060606] relative overflow-hidden font-fredoka transition-colors duration-700">
@@ -77,9 +81,7 @@ const OrderDetail = () => {
             </div>
             <h1 className="text-4xl md:text-4xl tracking-tighter dark:text-white uppercase">
               Order{" "}
-              <span className="border-b-2 border-[#77cd3af2]/30">
-                details
-              </span>
+              <span className="border-b-2 border-[#77cd3af2]/30">details</span>
             </h1>
           </div>
           <div className="text-right border-l-2 border-[#77cd3a] pl-6 relative z-10">
@@ -99,8 +101,59 @@ const OrderDetail = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2 space-y-10">
-            {/* Tracker Section */}
-            {orderDetail.orderStatus !== "Canceled" && (
+            {isCanceled ? (
+              <motion.section
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-50/50 dark:bg-red-950/10 backdrop-blur-xl rounded-[32px] border border-red-100 dark:border-red-900/20 p-8 relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500 blur-[80px] rounded-full opacity-10 -z-0" />
+
+                <div className="flex flex-col sm:flex-row gap-5 items-start relative z-10">
+                  <div className="w-12 h-12 rounded-2xl bg-red-500 text-white flex items-center justify-center shadow-lg shadow-red-500/20 flex-shrink-0">
+                    <AlertTriangle size={22} />
+                  </div>
+                  <div className="space-y-3 flex-1">
+                    <h3 className="text-lg text-red-600 dark:text-red-400 uppercase tracking-wide">
+                      This order was canceled
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                      Your order has been completely cancelled. If this was a
+                      mistake, or you wish to order these items again, you can
+                      use the{" "}
+                      <span className="font-bold text-black dark:text-white">
+                        "Reorder"
+                      </span>{" "}
+                      button on each item below to quickly rebuild your cart.
+                    </p>
+
+                    {orderDetail.cancelReason && (
+                      <div className="mt-2 p-3.5 bg-white dark:bg-white/[0.02] border border-red-100/50 dark:border-red-900/20 rounded-2xl">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-red-500 block mb-1">
+                          Reason for cancellation:
+                        </span>
+                        <span className="text-xs text-gray-700 dark:text-gray-300 font-medium italic">
+                          "{orderDetail.cancelReason}"
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Hiển thị thời gian hủy nếu có cập nhật */}
+                    <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase tracking-wider pt-1">
+                      <CalendarX size={12} />
+                      <span>
+                        Canceled on:{" "}
+                        {new Date(orderDetail.updatedAt).toLocaleDateString(
+                          "en-US",
+                          { month: "short", day: "numeric", year: "numeric" },
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.section>
+            ) : (
+              /* Tracker Section  */
               <section className="bg-gray-50/50 dark:bg-white/[0.02] backdrop-blur-xl rounded-[32px] border border-gray-100 dark:border-white/5 p-10 relative overflow-hidden">
                 <div className="flex justify-between relative z-10">
                   {steps.map((step, idx) => (
@@ -143,7 +196,6 @@ const OrderDetail = () => {
                 </div>
               </section>
             )}
-
             {/* Items Summary Section */}
             <section className="space-y-4">
               <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-400 px-2">
@@ -223,37 +275,42 @@ const OrderDetail = () => {
 
           {/* Sidebar Section */}
           <div className="space-y-6">
-            <section className="relative overflow-hidden rounded-[35px] border border-gray-100 dark:border-white/10 p-8 shadow-2xl bg-white dark:bg-black/20 group">
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#77cd3a] rounded-full blur-[70px] opacity-20 group-hover:opacity-40 transition-opacity duration-700 z-0" />
-              <h3 className="text-[10px] font-black uppercase tracking-[0.4em] mb-10 text-gray-400 relative z-10">
+            <section className="relative overflow-hidden rounded-[28px] border border-gray-100/70 dark:border-white/10 p-6 bg-white dark:bg-black/20 group shadow-none">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#77cd3a] rounded-full blur-[70px] opacity-15 group-hover:opacity-30 transition-opacity duration-700 z-0" />
+
+              <h3 className="text-[9px] font-black uppercase tracking-[0.4em] mb-7 text-gray-400 relative z-10">
                 Shipment details
               </h3>
-              <div className="space-y-7 relative z-10">
-                <div className="flex gap-5 items-start">
-                  <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-gray-100/50 dark:bg-white/5 flex items-center justify-center text-[#77cd3a] border border-gray-200 dark:border-white/10">
-                    <User size={18} />
+
+              <div className="space-y-5 relative z-10">
+                {/* Khối Khách hàng */}
+                <div className="flex gap-4 items-center">
+                  <div className="w-9 h-9 flex-shrink-0 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-[#77cd3a] border border-gray-100 dark:border-white/10">
+                    <User size={16} />
                   </div>
                   <div>
-                    <p className="text-[9px] uppercase font-bold text-gray-400 mb-1">
+                    <p className="text-[8px] uppercase font-black tracking-wider text-gray-400 mb-0.5">
                       Customer
                     </p>
-                    <p className="text-md font-bold uppercase tracking-wider dark:text-white">
+                    <p className="text-sm font-bold uppercase tracking-wide dark:text-white">
                       {orderDetail.shippingInfo.fullName}
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-5 items-start">
-                  <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-gray-100/50 dark:bg-white/5 flex items-center justify-center text-[#77cd3a] border border-gray-200 dark:border-white/10">
-                    <MapPin size={18} />
+
+                {/* Khối Địa chỉ */}
+                <div className="flex gap-4 items-start">
+                  <div className="w-9 h-9 flex-shrink-0 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-[#77cd3a] border border-gray-100 dark:border-white/10">
+                    <MapPin size={16} />
                   </div>
                   <div>
-                    <p className="text-[9px] uppercase font-bold text-gray-400 mb-1">
+                    <p className="text-[8px] uppercase font-black tracking-wider text-gray-400 mb-0.5">
                       Shipping Address
                     </p>
-                    <p className="text-xs leading-relaxed dark:text-white/80 uppercase font-medium">
+                    <p className="text-[11px] leading-normal dark:text-white/70 uppercase font-medium tracking-wide">
                       {orderDetail.shippingInfo.address},{" "}
                       {orderDetail.shippingInfo.city},{" "}
-                      {orderDetail.shippingInfo.country},
+                      {orderDetail.shippingInfo.country}
                     </p>
                   </div>
                 </div>
@@ -283,20 +340,37 @@ const OrderDetail = () => {
                 <div className="p-2.5 rounded-xl bg-[#77cd3a]/10 text-[#77cd3a]">
                   <CreditCard size={16} />
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">
+
+                <div className="flex flex-col gap-1.5 relative z-10 font-fredoka">
+                  {/* Label nhỏ phía trên */}
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400/80 dark:text-gray-500">
                     Payment Status
                   </span>
-                  <span className="text-base font-bold uppercase tracking-widest text-[#77cd3a]">
-                    {orderDetail?.paymentInfo?.status}
-                    <span className="text-gray-400 font-medium lowercase">
-                      {" "}
-                      via{" "}
+
+                  {/* Khối hiển thị trạng thái chính */}
+                  <div className="flex items-center flex-wrap gap-2 text-sm font-bold uppercase tracking-wider">
+                    {/* Dynamic Status Badge */}
+                    <span
+                      className={`px-2.5 py-0.5 rounded-lg text-[11px] font-black tracking-widest ${
+                        orderDetail?.paymentInfo?.status === "Paid"
+                          ? "bg-[#77cd3a]/10 text-[#77cd3a]"
+                          : orderDetail?.paymentInfo?.status === "Pending"
+                            ? "bg-amber-500/10 text-amber-500 animate-pulse"
+                            : "bg-red-500/10 text-red-500" // Dành cho các trạng thái Refunded, Canceled, Failed
+                      }`}
+                    >
+                      {orderDetail?.paymentInfo?.status}
                     </span>
-                    <span className="font-black">
+
+                    {/* Phương thức thanh toán (via...) */}
+                    <span className="text-gray-400 dark:text-gray-500 font-medium lowercase text-xs">
+                      via
+                    </span>
+
+                    <span className="font-black text-gray-700 dark:text-white border-b border-gray-200 dark:border-white/10 pb-0.5 text-xs">
                       {orderDetail?.paymentInfo?.method}
                     </span>
-                  </span>
+                  </div>
                 </div>
               </div>
             </section>
