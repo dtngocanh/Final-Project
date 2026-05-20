@@ -36,6 +36,11 @@ import { fetchAllUsers } from "../store/slices/adminSlice";
 
 import FloatingVegetables from "./Fruit/FloatingVegetables";
 
+import MonthlyGoalsCard from "./dashboard-components/MonthlyGoalsCard";
+import RecentOrdersTable from "./dashboard-components/RecentOrdersTable";
+import RecentActivityList from "./dashboard-components/RecentActivityList";
+import { Link } from "react-router-dom";
+
 const Dashboard = () => {
   const dispatch = useDispatch();
 
@@ -155,7 +160,7 @@ const Dashboard = () => {
                 <greeting.icon size={20} />
               </div>
               <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">
-                {greeting.text},  {user?.name || "Veganic Seller"}
+                {greeting.text}, {user?.name || "Veganic Seller"}
               </span>
             </div>
             <h1 className="text-4xl font-light">
@@ -212,104 +217,121 @@ const Dashboard = () => {
           />
         </div>
 
+        {/* MAIN GRID LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* ORDER ANALYSIS CHART */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-2 bg-white p-8 rounded-[40px] shadow-sm border border-gray-100"
-          >
-            <h3 className="text-xl font-bold text-gray-800 mb-8 flex items-center gap-2">
-              <TrendingUp className="text-[#77cd3af2]" size={20} /> Logistics
-              Overview
-            </h3>
-            <div className="h-[320px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.orderAnalysis}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#f0f0f0"
-                  />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "#999", fontWeight: 500 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: "#999" }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "#f8faf9" }}
-                    contentStyle={{
-                      borderRadius: "20px",
-                      border: "none",
-                      boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-                    }}
-                  />
-                  <Bar dataKey="count" radius={[12, 12, 0, 0]} barSize={45}>
-                    {stats.orderAnalysis.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </motion.div>
+          {/* LEFT COLUMN */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* ORDER ANALYSIS CHART */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="lg:col-span-2 bg-white p-8 rounded-[40px] shadow-sm border border-gray-100"
+            >
+              <h3 className="text-xl font-bold text-gray-800 mb-8 flex items-center gap-2">
+                <TrendingUp className="text-[#77cd3af2]" size={20} /> Logistics
+                Overview
+              </h3>
+              <div className="h-[320px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.orderAnalysis}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#f0f0f0"
+                    />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: "#999", fontWeight: 500 }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: "#999" }}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "#f8faf9" }}
+                      contentStyle={{
+                        borderRadius: "20px",
+                        border: "none",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[12, 12, 0, 0]} barSize={45}>
+                      {stats.orderAnalysis.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+            <RecentOrdersTable orders={orders} />
+          </div>
+          {/* RIGHT COLUMN */}
+          <div className="space-y-8">
+            <MonthlyGoalsCard
+              revenue={stats.revenue}
+              totalOrders={orders?.length || 0}
+            />
+            {/* NEW LIGHT-MODE STOCK ALERTS */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-white rounded-[40px] p-8 shadow-sm border border-orange-100 relative overflow-hidden"
+            >
+              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <AlertTriangle className="text-orange-500" size={20} />{" "}
+                Inventory Alert
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">Low stock products</p>
 
-          {/* NEW LIGHT-MODE STOCK ALERTS */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="bg-white rounded-[40px] p-8 shadow-sm border border-orange-100 relative overflow-hidden"
-          >
-            <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <AlertTriangle className="text-orange-500" size={20} /> Inventory
-              Alert
-            </h3>
-
-            <div className="space-y-4 relative z-10">
-              {stats.lowStockItems.length > 0 ? (
-                stats.lowStockItems.slice(0, 5).map((item) => (
-                  <div
-                    key={item._id}
-                    className="flex items-center gap-4 bg-orange-50/50 p-3 rounded-2xl border border-orange-100/50 hover:bg-orange-50 transition-all"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-white p-1 shadow-sm">
-                      <img
-                        src={item.images?.[0]?.url}
-                        alt=""
-                        className="w-full h-full object-cover rounded-lg"
-                      />
+              <div className="space-y-4 relative z-10">
+                {stats.lowStockItems.length > 0 ? (
+                  stats.lowStockItems.slice(0, 3).map((item) => (
+                    <div
+                      key={item._id}
+                      className="flex items-center gap-4 bg-orange-50/50 p-3 rounded-2xl border border-orange-100/50 hover:bg-orange-50 transition-all"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-white p-1 shadow-sm">
+                        <img
+                          src={item.images?.[0]?.url}
+                          alt=""
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-gray-700 truncate">
+                          {item.name}
+                        </p>
+                        <p className="text-[10px] text-orange-600 font-bold uppercase tracking-widest">
+                          Only {item.stock} in stock
+                        </p>
+                      </div>
+                      <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-gray-700 truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-[10px] text-orange-600 font-bold uppercase tracking-widest">
-                        Only {item.stock} in stock
-                      </p>
-                    </div>
-                    <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                  ))
+                ) : (
+                  <div className="py-20 text-center text-gray-400 italic text-sm">
+                    All products are well stocked
                   </div>
-                ))
-              ) : (
-                <div className="py-20 text-center text-gray-400 italic text-sm">
-                  The stock is in safe status
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <button className="w-full mt-8 py-4 bg-orange-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 shadow-lg shadow-orange-200 transition-all">
-              Manage Inventory
-            </button>
+              <Link
+                to="/inventory"
+                className="mt-6 flex items-center justify-center w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold transition-all shadow-md shadow-orange-100"
+              >
+                Manage Inventory
+              </Link>
 
-            {/* Light Decoration */}
-            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-orange-100 opacity-20 rounded-full blur-3xl"></div>
-          </motion.div>
+              {/* Light Decoration */}
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-100/30 rounded-full blur-3xl"></div>
+            </motion.div>
+
+            <RecentActivityList orders={orders} />
+          </div>
         </div>
       </main>
     </div>

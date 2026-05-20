@@ -54,7 +54,7 @@ export const createNewProduct = createAsyncThunk(
 export const updateProduct = createAsyncThunk(
   "products/updateProduct",
   async ({ id, formData }, thunkAPI) => {
-    try {      
+    try {
       const res = await axiosInstance.patch(`/product/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -110,11 +110,13 @@ export const importProducts = createAsyncThunk(
         if (res.data.failedCount > 0) {
           // Trường hợp có dòng thành công, có dòng thất bại (do sai Category chẳng hạn)
           toast.warning(
-            `Import xong: ${res.data.successCount} thành công, ${res.data.failedCount} lỗi.`
+            `Import xong: ${res.data.successCount} thành công, ${res.data.failedCount} lỗi.`,
           );
           console.table(res.data.errors); // Hiện bảng lỗi ở Console cho ní dễ soi
         } else {
-          toast.success(`Hàng đã về vườn! Thành công ${res.data.successCount} sản phẩm.`);
+          toast.success(
+            `Hàng đã về vườn! Thành công ${res.data.successCount} sản phẩm.`,
+          );
         }
 
         // Luôn fetch lại danh sách để cập nhật những món đã thành công
@@ -126,11 +128,40 @@ export const importProducts = createAsyncThunk(
         return thunkAPI.rejectWithValue(res.data.message);
       }
     } catch (error) {
-      const message = error.response?.data?.message || "Lỗi kết nối server rồi ní!";
+      const message =
+        error.response?.data?.message || "Lỗi kết nối server rồi ní!";
       toast.error(message);
       return thunkAPI.rejectWithValue(message);
     }
-  }
+  },
+);
+
+export const replenishProductStock = createAsyncThunk(
+  "product/replenishStock",
+  async ({ productId, quantity }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/admin/products/replenish", {
+        productId,
+        quantity,
+      });
+      return response.data.product;
+    } catch (error) {
+      return rejectWithValue(error.response.data.message);
+    }
+  },
+);
+export const restockProductLogs = createAsyncThunk(
+  "product/restockLogs",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get("/admin/products/restock-logs");
+      console.log(response.data.logs);
+      
+      return response.data.logs;
+    } catch (error) {
+      return rejectWithValue(error.response.data.message);
+    }
+  },
 );
 
 // --- SLICE CONFIGURATION ---
@@ -142,6 +173,7 @@ const productsSlice = createSlice({
     products: [],
     totalProducts: 0,
     error: null,
+    restockLogs: [],
   },
   reducers: {
     // Standard synchronous reducers can go here
@@ -163,6 +195,28 @@ const productsSlice = createSlice({
       })
       .addCase(fetchAllProducts.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload;
+      })
+
+      .addCase(replenishProductStock.fulfilled, (state, action) => {
+        // Find the updated product in the state array
+        const index = state.products.findIndex(
+          (p) => p._id === action.payload._id,
+        );
+        // Replace old product data with the updated one
+        if (index !== -1) {
+          state.products[index] = action.payload;
+        }
+      })
+
+      .addCase(restockProductLogs.pending, (state) => {
+        state.loading = true;
+      })
+
+      .addCase(restockProductLogs.fulfilled, (state, action) => {
+        state.restockLogs = action.payload;
+      })
+      .addCase(restockProductLogs.rejected, (state, action) => {
         state.error = action.payload;
       })
 

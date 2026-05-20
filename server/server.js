@@ -16,6 +16,7 @@ import paymentRouter from "./routes/paymentRoute.js";
 import aiRouter from "./routes/aiRoute.js";
 import categoryRouter from "./routes/categoryRoute.js";
 import recRouter from "./routes/recommendationRoute.js";
+import productAdRouter from "./routes/admin/productRoute.js";
 
 // Import Controllers & Middlewares
 import { stripeWebhook } from "./controllers/webhookController.js";
@@ -72,6 +73,7 @@ const startServer = async () => {
     app.use("/api/interaction", interactionRouter);
     app.use("/api/ai", aiRouter);
     app.use("/api/recommendations", recRouter);
+    app.use("/api/admin/products",productAdRouter);
 
     // 6. Xử lý lỗi tập trung
     app.use(errorMiddleware);

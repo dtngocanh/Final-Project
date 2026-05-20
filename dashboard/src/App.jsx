@@ -14,6 +14,8 @@ import Products from "./components/Products";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import InventoryOverview from "./components/dashboard-components/InventoryOverview";
+
 import { getUser } from "./store/slices/authSlice";
 
 function App() {
@@ -55,6 +57,7 @@ function App() {
           <Route path="users" element={<Users />} />
           <Route path="products" element={<Products />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="inventory" element={<InventoryOverview />} />
         </Route>
       </Routes>
       <ToastContainer theme="dark" position="bottom-right" />
