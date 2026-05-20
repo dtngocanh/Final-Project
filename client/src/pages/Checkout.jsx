@@ -24,6 +24,7 @@ import { useEffect } from "react";
 import { calcFee, fetchProvinces } from "../store/slices/addressSlice";
 import AddressSelection from "../components/Payment/AddressSelection";
 import { trackClickThunk } from "../store/slices/interactionSlice";
+import {toast} from "react-toastify";
 
 const Checkout = () => {
   const dispatch = useDispatch();
@@ -86,7 +87,7 @@ const Checkout = () => {
     setShippingDetails({ ...shippingDetails, [e.target.name]: e.target.value });
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (activeStep === 0) {
       const newErrors = {};
       const requiredFields = [
@@ -138,50 +139,41 @@ const Checkout = () => {
         shippingPrice: shippingFee,
         itemsPrice: subtotal,
       };
-      dispatch(placeOrder(orderData))
-        .unwrap()
-        .then(() => {
-          // SAVE INTERACTIONS
-          cart.forEach((item) => {
-            dispatch(
-              trackClickThunk({
-                productId: item.product._id,
-                action: "order",
-              }),
-            )
-              // .unwrap()
-              // .then((payload) => {
-              //   console.log(
-              //     `Lưu interaction thành công cho SP ${item.product.name}:`,
-              //     payload,
-              //   );
-              // })
-              // .catch((error) => {
-              //   console.error(
-              //     `Lỗi khi lưu interaction cho SP ${item.product.name}:`,
-              //     error,
-              //   );
-              // });
-          });
-          // RESET STATE
-          dispatch(clearCart());
-          dispatch(resetAddressState());
-          dispatch(resetOrder());
-          // DEFAULT STATE
-          setShippingDetails({
-            fullName: authUser?.name || "",
-            email: authUser?.email || "",
-            phone: authUser?.phone || "",
-            address: "",
-            provinceId: "",
-            districtId: "",
-            wardCode: "",
-            country: "Vietnam",
-          });
-          if (orderData.paymentMethod === "COD") {
-            navigate("/success");
-          }
+      try {
+        await dispatch(placeOrder(orderData)).unwrap();
+
+        // SAVE INTERACTIONS
+        cart.forEach((item) => {
+          dispatch(
+            trackClickThunk({
+              productId: item.product._id,
+              action: "order",
+            }),
+          );
         });
+
+        // RESET STATE
+        dispatch(clearCart());
+        dispatch(resetAddressState());
+        dispatch(resetOrder());
+
+        // DEFAULT STATE
+        setShippingDetails({
+          fullName: authUser?.name || "",
+          email: authUser?.email || "",
+          phone: authUser?.phone || "",
+          address: "",
+          provinceId: "",
+          districtId: "",
+          wardCode: "",
+          country: "Vietnam",
+        });
+        if (orderData.paymentMethod === "COD") {
+          navigate("/success");
+        }
+      } catch (error) {
+        toast.error(error);
+      }
     }
   };
 

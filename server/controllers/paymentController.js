@@ -1,7 +1,9 @@
 import Stripe from "stripe";
 import Order from "../models/Order.js";
+import Product from "../models/Product.js";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 import { calculateShippingFee } from "../services/ghnService.js";
+import { createStripeLineItems } from "../services/paymentService.js";
 
 export const createCheckoutSession = async (req, res) => {
   try {
@@ -16,22 +18,54 @@ export const createCheckoutSession = async (req, res) => {
 
       to_ward_code: shippingInfo.wardCode,
     });
-    // console.log("1. Create Session for userId:", userId);
 
-    const line_items = orderItems.map((item) => ({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: item.name,
-          images: item.image ? [item.image] : [],
-          metadata: {
-            productId: item.product.toString(),
-          },
-        },
-        unit_amount: Math.round(item.price * 100),
-      },
-      quantity: item.quantity,
-    }));
+    if (!orderItems || orderItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No items found in your order",
+      });
+    }
+
+    if (!shippingRs || shippingRs.feeUSD == null || shippingRs.feeVND == null) {
+      return res.status(400).json({
+        success: false,
+        message: "Unable to calculate shipping fee",
+      });
+    }
+
+    // CHECK STOCK
+    for (const item of orderItems) {
+      const product = await Product.findById(item.product);
+
+      // product bị xoá
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `${item.name} not found`,
+        });
+      }
+
+      // hết hàng
+      if (product.stock === 0) {
+        return res.status(400).json({
+          success: false,
+          message: `${product.name} is out of stock`,
+        });
+      }
+
+      // quantity vượt stock
+      if (product.stock < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Only ${product.stock} ${product.name} left in stock`,
+        });
+      }
+    }
+
+    const line_items = await createStripeLineItems({
+      orderItems,
+      shippingResult: shippingRs,
+    });
 
     const compactItems = orderItems.map((item) => ({
       product: item.product.toString(),

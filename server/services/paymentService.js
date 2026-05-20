@@ -1,42 +1,72 @@
+import Product from "../models/Product.js";
+
 export const createStripeLineItems = async ({
   orderItems,
   shippingResult,
 }) => {
+  const line_items = [];
 
-  const line_items = orderItems.map((item) => ({
-    price_data: {
-      currency: "usd",
+  for (const item of orderItems) {
+    const product = await Product.findById(item.product);
 
-      product_data: {
-        name: item.name,
+    // PRODUCT NOT FOUND
+    if (!product) {
+      throw new Error(`${item.name} not found`);
+    }
 
-        images: item.image
-          ? [item.image]
-          : [],
+    // INVALID QUANTITY
+    if (item.quantity <= 0) {
+      throw new Error("Invalid quantity");
+    }
 
-        metadata: {
-          productId: item.product.toString(),
+    // OUT OF STOCK
+    if (product.stock === 0) {
+      throw new Error(`${product.name} is out of stock`);
+    }
+
+    // OVER STOCK
+    if (product.stock < item.quantity) {
+      throw new Error(
+        `Only ${product.stock} ${product.name} left in stock`
+      );
+    }
+
+    line_items.push({
+      price_data: {
+        currency: "usd",
+
+        product_data: {
+          name: product.name,
+
+          images: product.images?.[0]?.url
+            ? [product.images[0].url]
+            : [],
+
+          metadata: {
+            productId: product._id.toString(),
+          },
         },
+
+        // PRICE FROM DATABASE
+        unit_amount: Math.round(product.price * 100),
       },
 
-      unit_amount: Math.round(item.price * 100),
-    },
+      quantity: item.quantity,
+    });
+  }
 
-    quantity: item.quantity,
-  }));
-
-  // shipping item
+  // SHIPPING ITEM
   line_items.push({
     price_data: {
       currency: "usd",
 
       product_data: {
-        name:
-          `Shipping (${shippingResult.service_name})`,
+        name: `Shipping (${shippingResult.service_name})`,
       },
 
-      unit_amount:
-        Math.round(shippingResult.feeUSD * 100),
+      unit_amount: Math.round(
+        shippingResult.feeUSD * 100
+      ),
     },
 
     quantity: 1,

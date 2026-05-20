@@ -43,9 +43,9 @@ export const placeOrder = createAsyncThunk(
       }
       return res.data;
     } catch (error) {
-      const errorMsg = error.response?.data?.message || "Payment failed";
-      toast.error(errorMsg);
-      return thunkAPI.rejectWithValue(errorMsg);
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Cannot Place Order",
+      );
     }
   },
 );
@@ -66,7 +66,6 @@ export const cancelOrder = createAsyncThunk(
   },
 );
 
-
 const orderSlice = createSlice({
   name: "order",
   initialState: {
@@ -79,7 +78,6 @@ const orderSlice = createSlice({
       : {},
     error: null,
     orderDetail: null,
-
   },
   reducers: {
     setOrderStep: (state, action) => {
@@ -132,8 +130,7 @@ const orderSlice = createSlice({
         if (i !== -1) {
           state.myOrders[i].orderStatus = "Canceled";
         }
-      })
-;
+      });
   },
 });
 

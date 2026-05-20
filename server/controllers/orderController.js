@@ -6,28 +6,81 @@ import Product from "../models/Product.js";
 import User from "../models/User.js";
 
 import ErrorHandler from "../utils/errorHandler.js";
+import { calculateShippingFee } from "../services/ghnService.js";
 
 export const placeOrderCOD = async (req, res, next) => {
   try {
     const userId = req.user._id;
 
-    const { orderItems, shippingInfo, itemsPrice, shippingPrice, totalPrice } =
-      req.body;
+    const { orderItems, shippingInfo } = req.body;
 
+    //itemsPrice, shippingPrice, totalPrice
     if (!orderItems || orderItems.length === 0) {
       return next(new ErrorHandler("No items found in your order", 400));
     }
 
+    // Validate + Calc Subtotal
+    let calculatedItemsPrice = 0;
+
+    const validatedOrderItems = [];
+
+    for (const item of orderItems) {
+      const product = await Product.findById(item.product);
+
+      if (!product) {
+        return next(new ErrorHandler("Product not found", 404));
+      }
+
+      if (item.quantity <= 0) {
+        return next(new ErrorHandler("Invalid quantity", 400));
+      }
+
+      if (product.stock === 0) {
+        return next(new ErrorHandler(`${product.name} is out of stock`, 400));
+      }
+
+      if (product.stock < item.quantity) {
+        return next(
+          new ErrorHandler(
+            `Only ${product.stock} ${product.name} left in stock`,
+            400,
+          ),
+        );
+      }
+
+      const itemTotal = product.price * item.quantity;
+
+      calculatedItemsPrice += itemTotal;
+
+      validatedOrderItems.push({
+        product: product._id,
+        name: product.name,
+        price: product.price,
+        quantity: item.quantity,
+        image: product.images?.[0]?.url || "",
+      });
+    }
+
+    const shippingRs = await calculateShippingFee({
+      cartItems: validatedOrderItems,
+      to_district_id: shippingInfo.districtId,
+      to_ward_code: shippingInfo.wardCode,
+    });
+
+    const shippingPrice = shippingRs.feeUSD;
+
+    const totalPrice = calculatedItemsPrice + shippingPrice;
+
     const order = await Order.create({
       user: userId,
-      orderItems,
+      orderItems: validatedOrderItems,
       shippingInfo,
       paymentInfo: {
         method: "COD",
         status: "Pending",
         // paidAt: bỏ trống, sẽ cập nhật khi giao hàng thành công
       },
-      itemsPrice,
+      itemsPrice: calculatedItemsPrice,
       shippingPrice,
       totalPrice,
       orderStatus: "Processing",
