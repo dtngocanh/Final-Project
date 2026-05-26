@@ -72,7 +72,7 @@ export const createCheckoutSession = async (req, res) => {
       name: item.name,
       price: item.price,
       quantity: item.quantity,
-      image: item.image,
+      // image: item.image,
     }));
 
     const session = await stripe.checkout.sessions.create({

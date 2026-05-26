@@ -17,24 +17,40 @@ export const processStripeOrder = async (session) => {
     });
 
     if (existingOrder) {
-      //   console.log("Order already exists");
-
       return existingOrder;
     }
 
     // GET METADATA
     const userId = session.metadata.userId;
-
     const shippingInfo = JSON.parse(session.metadata.shippingInfo);
-
-    const orderItems = JSON.parse(session.metadata.orderItems);
+    
+    // Mảng orderItems tối giản được lấy từ Stripe metadata (chỉ gồm: product, price, quantity)
+    const minimalistOrderItems = JSON.parse(session.metadata.orderItems);
 
     const shippingPrice = Number(session.metadata.shippingFeeUSD || 0);
-
     const shippingPriceVND = Number(session.metadata.shippingFeeVND || 0);
 
     // GET LINE ITEMS FROM STRIPE
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+
+    // =================================================================
+    // FIX: TỰ ĐỘNG BÙ ĐẮP DỮ LIỆU 'NAME' VÀ 'IMAGE' TỪ DATABASE
+    // Do metadata bị giới hạn ký tự nên đã phải loại bỏ name/image từ trước khi gửi lên Stripe
+    // =================================================================
+    const orderItems = [];
+    for (const item of minimalistOrderItems) {
+      const dbProduct = await Product.findById(item.product);
+      
+      orderItems.push({
+        product: item.product,
+        quantity: item.quantity,
+        price: item.price,
+        // Điền lại dữ liệu chuẩn từ DB để lưu vào Model Order
+        name: dbProduct ? dbProduct.name : "Unknown Product",
+        image: dbProduct && dbProduct.images?.[0]?.url ? dbProduct.images[0].url : "https://via.placeholder.com/150"
+      });
+    }
+    // =================================================================
 
     // CALCULATE ITEMS PRICE
     const itemsPrice = orderItems.reduce(
@@ -43,15 +59,13 @@ export const processStripeOrder = async (session) => {
     );
 
     // TOTAL PRICE
-    // const totalPrice = session.amount_total / 100;
-
     const totalPrice = Number((itemsPrice + shippingPrice).toFixed(2));
 
     // CREATE ORDER
     const order = await Order.create({
       user: userId && userId !== "GUEST_USER" ? userId : null,
 
-      orderItems,
+      orderItems, // Mảng orderItems đã được phục hồi đầy đủ name và image chuẩn
 
       shippingInfo,
 
@@ -102,16 +116,11 @@ export const processStripeOrder = async (session) => {
           cartItems: [],
         },
       });
-
-      //   console.log("Cart cleared");
     }
-
-    // console.log("Stripe order created");
 
     return order;
   } catch (error) {
     console.error("[PROCESS STRIPE ORDER ERROR]:", error);
-
     throw error;
   }
 };
