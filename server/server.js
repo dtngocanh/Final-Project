@@ -22,6 +22,7 @@ import productAdRouter from "./routes/admin/productRoute.js";
 import { stripeWebhook } from "./controllers/webhookController.js";
 import { errorMiddleware } from "./middlewares/error.js";
 import interactionRouter from "./routes/interactionRoute.js";
+import recipeRouter from "./routes/recipeRoute.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -74,6 +75,7 @@ const startServer = async () => {
     app.use("/api/ai", aiRouter);
     app.use("/api/recommendations", recRouter);
     app.use("/api/admin/products",productAdRouter);
+    app.use("/api/recipes",recipeRouter);
 
     // 6. Xử lý lỗi tập trung
     app.use(errorMiddleware);

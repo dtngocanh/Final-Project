@@ -7,37 +7,62 @@ export const fetchRecommendations = createAsyncThunk(
     try {
       // Added timestamp to prevent aggressive browser caching
       const res = await axiosInstance.get(`/recommendations?_t=${Date.now()}`);
-      
+
       // LOG TO DEBUG: Check your F12 console
       // console.log("API Response:", res.data);
 
       return {
         // MATCHING THE CONTROLLER: Controller returns 'list', not 'data'
-        list: Array.isArray(res.data.list) ? res.data.list : [], 
-        type: res.data.type || "trending"
+        list: Array.isArray(res.data.list) ? res.data.list : [],
+        type: res.data.type || "trending",
       };
     } catch (error) {
       return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Failed to fetch recommendations"
+        error.response?.data?.message || "Failed to fetch recommendations",
       );
     }
-  }
+  },
+);
+export const fetchRecipes = createAsyncThunk(
+  "product/fetchRecipes",
+
+  async (ingredients, thunkAPI) => {
+    try {
+      // ingredients = ["chicken", "tomato", "onion"]
+
+      const ingredientQuery = ingredients.join(",");
+
+      // console.log(ingredientQuery);
+      
+      const res = await axiosInstance.get(
+        `/recipes/suggest?ingredients=${ingredientQuery}&_t=${Date.now()}`,
+      );
+
+      return Array.isArray(res.data.meals) ? res.data.meals : [];
+
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to fetch recipes",
+      );
+    }
+  },
 );
 
 const recommendSlice = createSlice({
   name: "recommender",
   initialState: {
     list: [],
-    type: "trending", 
+    type: "trending",
     isLoading: false,
     error: null,
+    recipes: [],
   },
   reducers: {
     resetRecommender: (state) => {
       state.list = [];
       state.type = "trending";
       state.error = null;
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -54,7 +79,10 @@ const recommendSlice = createSlice({
       .addCase(fetchRecommendations.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-        state.list = []; 
+        state.list = [];
+      })
+      .addCase(fetchRecipes.fulfilled, (state, action) => {
+        state.recipes = action.payload;
       });
   },
 });

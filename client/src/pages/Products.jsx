@@ -103,6 +103,13 @@ const Products = () => {
     setSearchParams(searchParams);
     dispatch(setCategory(id));
   };
+
+  const displayCategoryNames = {
+    Fruits: "Fresh Fruits",
+    Vegetables: "Organic Vegetables",
+    Packages: "Beverage",
+    "Meats and Seafood": "Premium Meats & Seafood",
+  };
   return (
     <main className="min-h-screen pt-32 pb-24 bg-white dark:bg-[#060606] transition-all duration-700">
       <div className="max-w-[1200px] mx-auto px-6">
@@ -144,7 +151,7 @@ const Products = () => {
                       : ""
                   }
                 >
-                  {cat.name}
+                  {displayCategoryNames[cat.name] || cat.name}
                 </button>
               ))}
           </div>
@@ -208,9 +215,9 @@ const Products = () => {
         <section className="min-h-[500px]">
           {loading ? (
             // <div className="flex justify-center items-center py-40 text-center col-span-full">
-              <FruitLoader/>
-            // </div>
-          ) : filteredProducts.length > 0 ? (
+            <FruitLoader />
+          ) : // </div>
+          filteredProducts.length > 0 ? (
             /* Chỉ render thẻ div grid khi CÓ sản phẩm */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
               <AnimatePresence mode="popLayout">

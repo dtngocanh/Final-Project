@@ -25,10 +25,14 @@ import "swiper/css/navigation";
 
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { useCartActions } from "../hooks/useCartActions";
-import { fetchProductDetails, fetchRelatedProducts } from "../store/slices/productSlice";
+import {
+  fetchProductDetails,
+  fetchRelatedProducts,
+} from "../store/slices/productSlice";
 import BundleSection from "../components/ProductDetail/BundleSelection";
 import RelatedProducts from "../components/ProductDetail/RelatedProducts";
-
+import { fetchRecipes } from "../store/slices/recommendSlice";
+import RecipeList from "../components/Recipe/RecipeList";
 // import RecommendedProductCard from "../components/Products/RecommendedProductCard";
 // import RecipeSection from "../components/Products/RecipeSection";
 
@@ -44,9 +48,10 @@ const ProductDetail = () => {
     productDetails: product,
     loading,
     relatedProducts,
-    recipes,
   } = useSelector((state) => state.product);
   // console.log(relatedProducts);
+
+  const { recipes } = useSelector((state) => state.recommend);
 
   useEffect(() => {
     if (id) {
@@ -55,6 +60,16 @@ const ProductDetail = () => {
     }
   }, [id, dispatch]);
 
+  useEffect(() => {
+    if (product && relatedProducts?.length > 0) {
+      const ingredients = [
+        product.name,
+        ...relatedProducts.slice(0, 2).map((p) => p.name),
+      ];
+
+      dispatch(fetchRecipes(ingredients));
+    }
+  }, [product, relatedProducts, dispatch]);
   useEffect(() => {
     setSelectedImageIndex(0);
   }, [product]);
@@ -233,58 +248,11 @@ const ProductDetail = () => {
           </motion.div>
         </div>
 
-        {/* {relatedProducts && relatedProducts.length > 0 && (
-          <div className="mt-24 relative group">
-            <div className="flex flex-col mb-8">
-              <span className="text-[8px] text-[#77cd3a] font-black uppercase tracking-[0.5em] mb-2">
-                Curated for you
-              </span>
-              <h3 className="text-3xl font-extralight tracking-tighter dark:text-white">
-                Similar Selections
-              </h3>
-            </div>
-
-            <div className="hidden lg:flex gap-2 absolute top-0 right-0 z-20">
-              <button className="swiper-prev-btn p-2 rounded-full border border-gray-100 dark:border-white/10 hover:bg-[#77cd3a] hover:text-white transition-all">
-                <ChevronLeft size={16} />
-              </button>
-              <button className="swiper-next-btn p-2 rounded-full border border-gray-100 dark:border-white/10 hover:bg-[#77cd3a] hover:text-white transition-all">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-
-            <Swiper
-              modules={[Navigation]}
-              spaceBetween={24}
-              slidesPerView={1.5} // Mobile hiện 1.5 sản phẩm để biết còn nữa
-              navigation={{
-                nextEl: ".swiper-next-btn",
-                prevEl: ".swiper-prev-btn",
-              }}
-              breakpoints={{
-                640: { slidesPerView: 2 },
-                1024: { slidesPerView: 4 }, // Desktop hiện 4
-              }}
-              className="mySwiper"
-            >
-              {relatedProducts.map((item) => (
-                <SwiperSlide key={item._id}>
-                  <RecommendedProductCard item={item} navigate={navigate} />
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
-        )}
-
-        {recipes && recipes.length > 0 && (
-          <RecipeSection
-            product={product}
-            recipeProducts={recipes}
-            navigate={navigate}
-          />
-        )} */}
         <br />
         <BundleSection mainProduct={product} />
+        {recipes && recipes.length > 0 && (
+          <RecipeList recipes={recipes} navigate={navigate} />
+        )}
         <RelatedProducts products={relatedProducts} />
 
         <div className="mt-24 relative z-10">
