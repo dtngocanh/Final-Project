@@ -7,6 +7,7 @@ import User from "../models/User.js";
 
 import ErrorHandler from "../utils/errorHandler.js";
 import { calculateShippingFee } from "../services/ghnService.js";
+import { createOrderNotification } from "../helpers/notificationHelper.js";
 
 export const placeOrderCOD = async (req, res, next) => {
   try {
@@ -310,6 +311,8 @@ export const updateOrder = async (req, res, next) => {
 
     // Chốt hạ lưu vào DB
     await order.save({ validateBeforeSave: false });
+    
+    await createOrderNotification(order, newStatus);
 
     res.status(200).json({
       success: true,

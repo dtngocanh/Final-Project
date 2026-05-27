@@ -34,6 +34,7 @@ import ChatBot from "./components/Chat/Chatbot";
 import RecipeDetail from "./pages/RecipeDetail";
 import Recipes from "./pages/Recipes";
 import AllRecipes from "./pages/AllRecipes";
+import NotificationPage from "./pages/Notification";
 const App = () => {
   const { isTomatoMode } = useSelector((state) => state.ui);
   const dispatch = useDispatch();
@@ -81,6 +82,7 @@ const App = () => {
               <Route path="/recipe/:id" element={<RecipeDetail />} />
               <Route path="/recipes" element={<Recipes />} />
               <Route path="/all-recipes" element={<AllRecipes />} />
+              <Route path="/notifications" element={<NotificationPage/>} />
             </Routes>
             <ChatBot />
             <Footer />

@@ -78,7 +78,7 @@ const Orders = () => {
 
   // --- XỬ LÝ CẬP NHẬT TRẠNG THÁI ---
   const handleStatusChange = (id, newStatus) => {
-    dispatch(updateOrderStatus({ orderId: id, status: newStatus }));
+    dispatch(updateOrderStatus({ id: id, status: newStatus }));
   };
 
   const handleExportCSV = () => {

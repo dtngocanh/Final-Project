@@ -3,6 +3,7 @@ import { isAuth, login, logout, register, updateProfile } from "../controllers/u
 import authUser from "../middlewares/authUser.js";
 import { forgotPassword, resetPassword, updatePassword } from "../controllers/passwordController.js";
 import { getAllShopReviews, postReview, updateReview } from "../controllers/reviewController.js";
+import { getMyNotifications } from "../controllers/notificationController.js";
 
 const userRouter = express.Router();
 
@@ -20,6 +21,8 @@ userRouter.patch('/profile/update',authUser,updateProfile);
 userRouter.post('/review',authUser,postReview);
 userRouter.put('/review',authUser,updateReview);
 userRouter.get('/review',getAllShopReviews);
+
+userRouter.get('/noti',authUser, getMyNotifications);
 
 // Lấy gợi ý "Dành riêng cho bạn" (Dựa trên User ID - Collaborative Filtering)
 // userRouter.get('/recommendations/personalized', authUser, getPersonalizedRecs);
