@@ -10,22 +10,26 @@ import {
   Globe2,
   ChevronDown,
   ChevronUp,
+  ShoppingBag, 
 } from "lucide-react";
 
 import { motion } from "framer-motion";
 
 import { axiosInstance } from "../lib/axios.js";
 import ProductCard from "../components/Products/ProductCard.jsx";
+import { useCartActions } from "../hooks/useCartActions.jsx"
+import { toast } from "react-toastify"; 
 
 const RecipeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { handleCartAction } = useCartActions(); // Lấy hàm handle giỏ hàng
 
   const [showAllProducts, setShowAllProducts] = useState(false);
-
   const [recipe, setRecipe] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [matchedProducts, setMatchedProducts] = useState([]);
+  const [isAddingAll, setIsAddingAll] = useState(false); // State đợi khi đang xử lý add hàng loạt
 
   // FETCH RECIPE
   useEffect(() => {
@@ -78,7 +82,6 @@ const RecipeDetail = () => {
         );
 
         setMatchedProducts(res.data);
-        // console.log(res.data);
       } catch (error) {
         console.log(error);
       }
@@ -87,6 +90,37 @@ const RecipeDetail = () => {
     fetchProducts();
   }, [ingredients]);
 
+  // === LOGIC THÊM TOÀN BỘ SẢN PHẨM KHỚP ĐƯỢC VÀO GIỎ HÀNG ===
+  const handleAddAllToCart = async () => {
+    if (matchedProducts.length === 0) return;
+
+    setIsAddingAll(true);
+    try {
+      console.log("🛒 Đang thêm toàn bộ nguyên liệu khớp từ Veganic Mart vào giỏ hàng...");
+
+      // Lặp qua danh sách matchedProducts lấy từ API của bạn để format chuẩn dữ liệu đầu vào giỏ hàng
+      for (const product of matchedProducts) {
+        const formattedItem = {
+          _id: product._id,
+          name: product.name,
+          price: product.price || 0,
+          images: product.images || (product.image ? [product.image] : []),
+          stock: product.stock || 99,
+        };
+
+        // Gọi action ADD với số lượng mặc định là 1 cho từng item
+        await handleCartAction(formattedItem, "ADD", 1);
+      }
+
+      toast.success("All ingredients added to your bag! ");
+    } catch (error) {
+      console.error("Add All Ingredients Error:", error);
+      toast.error("Failed to add all ingredients!");
+    } finally {
+      setIsAddingAll(false);
+    }
+  };
+
   if (!recipe) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400">
@@ -94,7 +128,9 @@ const RecipeDetail = () => {
       </div>
     );
   }
+
   const youtubeEmbedUrl = recipe.strYoutube?.replace("watch?v=", "embed/");
+
   return (
     <main className="min-h-screen bg-white dark:bg-[#060606] pt-24 pb-20">
       <div className="max-w-5xl mx-auto px-5">
@@ -258,13 +294,33 @@ const RecipeDetail = () => {
                 ))}
               </div>
             </div>
-            {/* PRODUCTS */}
+
+            {/* PRODUCTS SECTIONS - ĐÃ CHÈN NÚT ADD ALL Ở ĐÂY */}
             {matchedProducts.length > 0 && (
               <section className="mb-8">
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center justify-between mb-5 gap-4">
                   <h3 className="text-xl font-medium dark:text-white">
                     Available In Veganic
                   </h3>
+
+                  {/* NÚT THÊM TẤT CẢ NGUYÊN LIỆU VÀO GIỎ HÀNG */}
+                  <button
+                    onClick={handleAddAllToCart}
+                    disabled={isAddingAll}
+                    className={`
+                      flex items-center gap-1.5
+                      px-3.5 py-1.5
+                      text-[9px] font-bold tracking-wider uppercase
+                      rounded-full border transition-all duration-300 shadow-sm
+                      ${isAddingAll
+                        ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "bg-[#77cd3a] text-white border-[#77cd3a] hover:bg-black hover:border-black dark:hover:bg-white dark:hover:text-black dark:hover:border-white"
+                      }
+                    `}
+                  >
+                    <ShoppingBag size={11} />
+                    {isAddingAll ? "Adding..." : "Add All To Cart"}
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
@@ -281,25 +337,27 @@ const RecipeDetail = () => {
                 </div>
               </section>
             )}
+
+            {/* VIEW MORE / SHOW LESS */}
             {matchedProducts.length > 6 && (
               <div className="flex justify-center mt-6 p-5">
                 <button
                   onClick={() => setShowAllProducts(!showAllProducts)}
                   className="
-        group
-        h-11 px-5
-        rounded-full
-        border border-[#77cd3a]/20
-        bg-[#77cd3a]/5
-        hover:bg-[#77cd3a]
-        text-[#77cd3a]
-        hover:text-white
-        transition-all duration-300
-        flex items-center gap-2
-        text-[11px]
-        uppercase tracking-[0.25em]
-        font-semibold
-      "
+                    group
+                    h-11 px-5
+                    rounded-full
+                    border border-[#77cd3a]/20
+                    bg-[#77cd3a]/5
+                    hover:bg-[#77cd3a]
+                    text-[#77cd3a]
+                    hover:text-white
+                    transition-all duration-300
+                    flex items-center gap-2
+                    text-[11px]
+                    uppercase tracking-[0.25em]
+                    font-semibold
+                  "
                 >
                   {showAllProducts ? (
                     <>
@@ -317,7 +375,8 @@ const RecipeDetail = () => {
                         className="group-hover:translate-y-0.5 transition"
                       />
                     </>
-                  )}
+                  )
+                  }
                 </button>
               </div>
             )}
@@ -361,25 +420,7 @@ const RecipeDetail = () => {
                 </button>
               )}
 
-              {/* {recipe.strYoutube && (
-                <button
-                  onClick={() => window.open(recipe.strYoutube, "_blank")}
-                  className="
-                    mt-8
-                    h-12 px-6
-                    rounded-2xl
-                    bg-[#77cd3a]
-                    text-white
-                    text-[11px]
-                    uppercase tracking-[0.2em]
-                    font-semibold
-                    flex items-center gap-3
-                  "
-                >
-                  <PlayCircle size={16} />
-                  Watch Tutorial
-                </button>
-              )} */}
+              {/* VIDEO TUTORIAL */}
               {recipe.strYoutube && (
                 <div className="mt-8">
                   <div className="flex items-center justify-between mb-4">
@@ -389,10 +430,10 @@ const RecipeDetail = () => {
 
                     <div
                       className="
-          flex items-center gap-2
-          text-[#77cd3a]
-          text-sm
-        "
+                        flex items-center gap-2
+                        text-[#77cd3a]
+                        text-sm
+                      "
                     >
                       <PlayCircle size={16} />
                       Cooking Guide
@@ -401,23 +442,22 @@ const RecipeDetail = () => {
 
                   <div
                     className="
-        overflow-hidden
-        rounded-[28px]
-        border border-gray-100
-        dark:border-white/5
-        bg-black
-      "
+                      overflow-hidden
+                      rounded-[28px]
+                      border border-gray-100
+                      dark:border-white/5
+                      bg-black
+                    "
                   >
                     <iframe
                       src={youtubeEmbedUrl}
                       title={recipe.strMeal}
-                      // allow="autoplay"
                       allowFullScreen
                       loading="lazy"
                       className="
-          w-full
-          aspect-video
-        "
+                        w-full
+                        aspect-video
+                      "
                     />
                   </div>
                 </div>

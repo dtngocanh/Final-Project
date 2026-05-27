@@ -14,9 +14,9 @@ const Header = () => {
 
   // 2. Hàm định dạng path sang tên hiển thị (VD: "/orders" -> "Orders")
   const getBreadcrumb = () => {
-    const path = location.pathname.split("/")[1]; // Lấy chữ sau dấu gạch chéo đầu tiên
-    if (!path) return "Dashboard"; // Nếu là "/" thì trả về Dashboard
-    return path; // Trả về tên path (capitalize đã có class Tailwind lo)
+    const path = location.pathname.split("/")[1]; 
+    if (!path) return "Dashboard"; 
+    return path; 
   };
 
   return (
