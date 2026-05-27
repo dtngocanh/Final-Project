@@ -9,6 +9,7 @@ import {
   HelpCircle,
   User,
   LogOut,
+  ChefHat
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -22,6 +23,7 @@ const menuItems = [
   { icon: Package, label: "Products", path: "/products" },
   { icon: ShoppingCart, label: "My Cart", path: "/cart" },
   { icon: List, label: "Order", path: "/orders" },
+  { icon: ChefHat, label: "Recipes", path: "/all-recipes" },
   { icon: Info, label: "Our Story", path: "/about" },
   { icon: Phone, label: "Get in Touch", path: "/contact" },
   { icon: HelpCircle, label: "FAQ", path: "/faq" },
