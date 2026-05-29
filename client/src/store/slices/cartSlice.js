@@ -1,90 +1,102 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { axiosInstance } from "../../lib/axios";
 
+// 1. Thunk: Lấy dữ liệu Giỏ hàng khi vào App/tải lại trang
+export const fetchCart = createAsyncThunk("cart/fetch", async (_, thunkAPI) => {
+  try {
+    const res = await axiosInstance.get("/cart/get");
+    return res.data; // Trả về { success: true, cartItems: [...], total_cart: ... }
+  } catch (error) {
+    return thunkAPI.rejectWithValue(error.response?.data?.message || "Fetch failed");
+  }
+});
+
+// 2. Thunk: Cập nhật Giỏ hàng (Tăng/Giảm số lượng, Xóa item đơn lẻ)
 export const updateCart = createAsyncThunk(
   "cart/update",
   async (cartItems, thunkAPI) => {
     try {
-      // 1. Format dữ liệu (biến đổi từ object sang ID cho Backend)
       const formattedCart = cartItems.map((item) => ({
         product: item.product._id,
         quantity: item.quantity,
       }));
 
-      // 2. Gửi lên Server
       const res = await axiosInstance.post("/cart/update", {
         cartItems: formattedCart,
       });
 
-      // 3. Trả về chính cái cartItems ban đầu để Slice cập nhật State
-      return cartItems;
+      return res.data; // Trả về data mới nhất từ DB sau khi update
     } catch (error) {
-      return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Update failed",
-      );
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Update failed");
     }
   },
 );
 
-export const fetchCart = createAsyncThunk("cart/fetch", async (_, thunkAPI) => {
-  try {
-    const res = await axiosInstance.get("/cart/get");
-    return res.data.cartItems;
-  } catch (error) {
-    const errorMessage =
-      error.response?.data?.message || error.message || "Fetch failed";
-    console.error(errorMessage);
-    return thunkAPI.rejectWithValue(errorMessage);
+// 3. THÊM MỚI TẠI ĐÂY - Thunk: Thêm gói Combo giảm giá 10%
+export const addComboToCart = createAsyncThunk(
+  "cart/addCombo",
+  async ({ mainProductId, comboProductIds }, thunkAPI) => {
+    try {
+      const res = await axiosInstance.post("/cart/add-combo", {
+        mainProductId,
+        comboProductIds,
+      });
+      
+      // Backend của bạn khi xử lý add-combo xong phải trả về cấu trúc chuẩn:
+      // { success: true, cartItems: [...], total_cart: ... }
+      return res.data; 
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Add combo failed");
+    }
   }
-});
+);
 
 const cartSlice = createSlice({
   name: "cart",
   initialState: {
     cart: [],
     loading: false,
+    totalCart: 0,
   },
   reducers: {
-    addToCartLocal(state, action) {
-      const { product, quantity } = action.payload;
-      const existingItem = state.cart.find(
-        (item) => item.product._id === product._id,
-      );
-
-      if (existingItem) {
-        existingItem.quantity += quantity;
-      } else {
-        state.cart.push({ product, quantity });
-      }
-    },
-    //4.  Xóa sạch giỏ hàng
     clearCart(state) {
       state.cart = [];
+      state.totalCart = 0;
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchCart.pending, (state) => {
         state.loading = true;
-        // console.log("DEBUG: Cart Loading...");
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.loading = false;
-        state.cart = action.payload || [];
+        state.cart = action.payload.cartItems || [];
+        state.totalCart = action.payload.total_cart || 0;
       })
-      .addCase(fetchCart.rejected, (state, action) => {
+      .addCase(fetchCart.rejected, (state) => {
         state.loading = false;
-        // console.log("DEBUG: Cart Loading Failed:", action.payload);
       })
+      
       .addCase(updateCart.fulfilled, (state, action) => {
-        // Update state using sent data
-        state.cart = action.payload;
+        state.cart = action.payload.cartItems || [];
+        state.totalCart = action.payload.total_cart || 0;
+      })
+
+      .addCase(addComboToCart.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(addComboToCart.fulfilled, (state, action) => {
+        state.loading = false;
+        // Gom dữ liệu mới tinh từ Backend trả về đập thẳng vào State Redux
+        state.cart = action.payload.cartItems || [];
+        state.totalCart = action.payload.total_cart || 0;
+      })
+      .addCase(addComboToCart.rejected, (state) => {
+        state.loading = false;
       });
   },
 });
 
-// Export các actions để dùng ở Component
 export const { clearCart } = cartSlice.actions;
-
-// Export reducer để khai báo trong store
 export default cartSlice.reducer;

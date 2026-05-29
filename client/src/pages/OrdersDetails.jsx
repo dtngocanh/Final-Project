@@ -55,7 +55,7 @@ const OrderDetail = () => {
         {/* Navigation */}
         <button
           onClick={() => navigate(-1)}
-          className="group flex items-center gap-2 text-gray-400 hover:text-[#77cd3a] mb-8 transition-colors"
+          className="group flex items-center gap-2 text-gray-400 hover:text-[#77cd3a] mb-8 transition-colors cursor-pointer"
         >
           <ChevronLeft
             size={18}
@@ -86,7 +86,7 @@ const OrderDetail = () => {
           </div>
           <div className="text-right border-l-2 border-[#77cd3a] pl-6 relative z-10">
             <div className="absolute top-0 right-0 w-20 h-20 bg-[#77cd3a] blur-[50px] rounded-full opacity-10" />
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1 font-mono relative z-10">
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-1 relative z-10">
               Date placed
             </p>
             <p className="text-xl dark:text-white font-medium relative z-10">
@@ -138,14 +138,13 @@ const OrderDetail = () => {
                       </div>
                     )}
 
-                    {/* Hiển thị thời gian hủy nếu có cập nhật */}
                     <div className="flex items-center gap-2 text-gray-400 text-[10px] uppercase tracking-wider pt-1">
                       <CalendarX size={12} />
                       <span>
                         Canceled on:{" "}
                         {new Date(orderDetail.updatedAt).toLocaleDateString(
                           "en-US",
-                          { month: "short", day: "numeric", year: "numeric" },
+                          { month: "short", day: "numeric", year: "numeric" }
                         )}
                       </span>
                     </div>
@@ -196,80 +195,120 @@ const OrderDetail = () => {
                 </div>
               </section>
             )}
+
             {/* Items Summary Section */}
             <section className="space-y-4">
               <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-400 px-2">
                 Order Items ({orderDetail?.orderItems?.length})
               </h2>
-              {orderDetail?.orderItems?.map((item, idx) => (
-                <motion.div
-                  key={item._id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="flex flex-col sm:flex-row sm:items-center gap-6 bg-gray-50/40 dark:bg-white/[0.01] backdrop-blur-sm rounded-[30px] p-5 border border-gray-100 dark:border-white/5 group transition-all"
-                >
-                  <Link
-                    to={`/product/${item.product._id}`}
-                    className="w-24 h-24 rounded-2xl bg-white dark:bg-black overflow-hidden shadow-inner border border-gray-100 dark:border-white/5 flex-shrink-0"
+              {orderDetail?.orderItems?.map((item, idx) => {
+                // LOGIC PHÂN TÁCH SECTION COMBO / STANDARD KHÁCH ĐÃ MUA:
+                const isComboPurchase = item.price < (item.product?.price || item.price);
+
+                return (
+                  <motion.div
+                    key={item._id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="flex flex-col sm:flex-row sm:items-center gap-6 bg-gray-50/40 dark:bg-white/[0.01] backdrop-blur-sm rounded-[30px] p-5 border border-gray-100 dark:border-white/5 group transition-all"
                   >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
-                  </Link>
-
-                  <div className="flex-1">
                     <Link
-                      to={`/product/${item.product._id}`}
-                      className="text-md font-bold dark:text-white uppercase tracking-tight hover:text-[#77cd3a] transition-colors"
+                      to={`/product/${item.product?._id || ""}`}
+                      className="w-24 h-24 rounded-2xl bg-white dark:bg-black overflow-hidden shadow-inner border border-gray-100 dark:border-white/5 flex-shrink-0"
                     >
-                      {item.name}
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
                     </Link>
-                    <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-[0.2em]">
-                      Unit: ${item.price.toFixed(2)} | Qty: {item.quantity}
-                    </p>
-                  </div>
 
-                  <div className="flex flex-col items-end gap-3 min-w-[160px]">
-                    <p className="text-lg font-bold dark:text-white">
-                      ${(item.price * item.quantity).toFixed(2)}
-                    </p>
-                    <div className="flex gap-2">
-                      {(orderDetail?.orderStatus === "Canceled" ||
-                        orderDetail?.orderStatus === "Delivered") && (
-                        <button
-                          onClick={() =>
-                            navigate(`/product/${item.product._id}`)
-                          }
-                          className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 text-gray-500 hover:text-[#77cd3a] rounded-xl border border-gray-100 dark:border-white/5 transition-all shadow-sm active:scale-95 group"
-                        >
-                          <RefreshCcw
-                            size={14}
-                            className="group-hover:rotate-180 transition-transform duration-500"
-                          />
-                          <span className="text-[10px] font-bold uppercase tracking-wider">
-                            Reorder
+                    <div className="flex-1">
+                      <Link
+                        to={`/product/${item.product?._id || ""}`}
+                        className="text-md font-bold dark:text-white uppercase tracking-tight hover:text-[#77cd3a] transition-colors"
+                      >
+                        {item.name}
+                      </Link>
+                      
+                      {/* Cụm hiển thị phân tách giá Combo vs Thường */}
+                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                        {isComboPurchase ? (
+                          <span className="text-[8px] font-black bg-[#77cd3a]/10 text-[#77cd3a] px-2 py-0.5 rounded uppercase tracking-wider">
+                            Combo
                           </span>
-                        </button>
-                      )}
+                        ) : (
+                          <span className="text-[8px] font-black bg-gray-100 dark:bg-white/5 text-gray-400 px-2 py-0.5 rounded uppercase tracking-wider">
+                            Standard
+                          </span>
+                        )}
 
-                      {orderDetail.orderStatus === "Delivered" && (
-                        <Link
-                          // Sửa link để lấy đúng ID và thêm hash #reviews để tự động cuộn
-                          to={`/product/${item.product._id}`}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-[#77cd3a] text-black rounded-xl text-[9px] font-black uppercase tracking-tighter hover:bg-[#86e041] transition-all shadow-lg shadow-[#77cd3a]/20 active:scale-95 group/btn overflow-hidden relative inline-flex"
-                        >
-                          <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite]" />
-                          <Star size={12} fill="currentColor" />
-                          <span>Review Item</span>
-                        </Link>
-                      )}
+                        <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em]">
+                          Unit: ${item.price.toFixed(2)}
+                          {isComboPurchase && item.product?.price && (
+                            <span className="line-through text-gray-400/40 ml-1.5 font-normal">
+                              ${item.product.price.toFixed(2)}
+                            </span>
+                          )}
+                          <span className="text-gray-300 dark:text-white/10 mx-1">|</span> Qty: {item.quantity}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+
+                    <div className="flex flex-col items-end gap-3 min-w-[160px]">
+                      {/* Khối hiển thị tổng tiền cho item */}
+                      <div className="flex items-baseline gap-2">
+                        {isComboPurchase && item.product?.price ? (
+                          <>
+                            <span className="text-xs line-through text-gray-400/40">
+                              ${(item.product.price * item.quantity).toFixed(2)}
+                            </span>
+                            <span className="text-lg font-bold text-[#77cd3a]">
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </span>
+                          </>
+                        ) : (
+                          <p className="text-lg font-bold dark:text-white">
+                            ${(item.price * item.quantity).toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        {(orderDetail?.orderStatus === "Canceled" ||
+                          orderDetail?.orderStatus === "Delivered") && (
+                          <button
+                            onClick={() =>
+                              navigate(`/product/${item.product?._id || ""}`)
+                            }
+                            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 text-gray-500 hover:text-[#77cd3a] rounded-xl border border-gray-100 dark:border-white/5 transition-all shadow-sm active:scale-95 group cursor-pointer"
+                          >
+                            <RefreshCcw
+                              size={14}
+                              className="group-hover:rotate-180 transition-transform duration-500"
+                            />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">
+                              Reorder
+                            </span>
+                          </button>
+                        )}
+
+                        {orderDetail.orderStatus === "Delivered" && (
+                          <Link
+                            to={`/product/${item.product?._id || ""}#reviews`}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[#77cd3a] text-black rounded-xl text-[9px] font-black uppercase tracking-tighter hover:bg-[#86e041] transition-all shadow-lg shadow-[#77cd3a]/20 active:scale-95 group/btn overflow-hidden relative inline-flex"
+                          >
+                            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite]" />
+                            <Star size={12} fill="currentColor" />
+                            <span>Review Item</span>
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </section>
           </div>
 
@@ -283,7 +322,6 @@ const OrderDetail = () => {
               </h3>
 
               <div className="space-y-5 relative z-10">
-                {/* Khối Khách hàng */}
                 <div className="flex gap-4 items-center">
                   <div className="w-9 h-9 flex-shrink-0 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-[#77cd3a] border border-gray-100 dark:border-white/10">
                     <User size={16} />
@@ -298,7 +336,6 @@ const OrderDetail = () => {
                   </div>
                 </div>
 
-                {/* Khối Địa chỉ */}
                 <div className="flex gap-4 items-start">
                   <div className="w-9 h-9 flex-shrink-0 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-[#77cd3a] border border-gray-100 dark:border-white/10">
                     <MapPin size={16} />
@@ -342,27 +379,23 @@ const OrderDetail = () => {
                 </div>
 
                 <div className="flex flex-col gap-1.5 relative z-10 font-fredoka">
-                  {/* Label nhỏ phía trên */}
                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400/80 dark:text-gray-500">
                     Payment Status
                   </span>
 
-                  {/* Khối hiển thị trạng thái chính */}
                   <div className="flex items-center flex-wrap gap-2 text-sm font-bold uppercase tracking-wider">
-                    {/* Dynamic Status Badge */}
                     <span
                       className={`px-2.5 py-0.5 rounded-lg text-[11px] font-black tracking-widest ${
                         orderDetail?.paymentInfo?.status === "Paid"
                           ? "bg-[#77cd3a]/10 text-[#77cd3a]"
                           : orderDetail?.paymentInfo?.status === "Pending"
-                            ? "bg-amber-500/10 text-amber-500 animate-pulse"
-                            : "bg-red-500/10 text-red-500" // Dành cho các trạng thái Refunded, Canceled, Failed
+                          ? "bg-amber-500/10 text-amber-500 animate-pulse"
+                          : "bg-red-500/10 text-red-500"
                       }`}
                     >
                       {orderDetail?.paymentInfo?.status}
                     </span>
 
-                    {/* Phương thức thanh toán (via...) */}
                     <span className="text-gray-400 dark:text-gray-500 font-medium lowercase text-xs">
                       via
                     </span>

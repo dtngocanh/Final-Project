@@ -3,11 +3,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toggleCart } from "../../store/slices/popupSlice";
 import { useCartActions } from "../../hooks/useCartActions";
+
 const CartSidebar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isCartOpen } = useSelector((state) => state.popup);
-  const { cart } = useSelector((state) => state.cart);     // 1. Lấy giỏ hàng hiện tại từ Redux
+  const { cart, totalCart } = useSelector((state) => state.cart); // 🔥 LẤY THÊM totalCart TỪ REDUX
 
   const { theme } = useSelector((state) => state.auth);
 
@@ -17,12 +18,15 @@ const CartSidebar = () => {
 
   const { handleCartAction } = useCartActions();
 
-
-  const total = cart?.reduce(
-    (sum, item) => sum + item?.product.price * item?.quantity,
+  // 1. TÍNH TOÁN GIÁ TRỊ TỔNG ĐƠN HÀNG CHUẨN XÁC
+  // Tính tổng giá gốc ban đầu của toàn bộ giỏ hàng
+  const originalTotal = cart?.reduce(
+    (sum, item) => sum + (item?.product?.price || 0) * item?.quantity,
     0
   ) || 0;
 
+  // Tổng tiền thực tế sau giảm giá combo (Lấy từ DB thông qua Redux, phòng hờ fallback về giá gốc nếu chưa có dữ liệu)
+  const actualTotal = totalCart > 0 ? totalCart : originalTotal;
 
   if (!isCartOpen) return null;
 
@@ -30,7 +34,7 @@ const CartSidebar = () => {
     <>
       {/* OVERLAY: Đồng bộ với Sidebar Menu */}
       <div
-        className="fixed inset-0 bg-white/40 dark:bg-gray-950/60 z-[100]  transition-all duration-500 animate-in fade-in"
+        className="fixed inset-0 bg-white/40 dark:bg-gray-950/60 z-[100] transition-all duration-500 animate-in fade-in"
         onClick={handleClose}
       />
 
@@ -56,42 +60,83 @@ const CartSidebar = () => {
         {/* LIST ITEMS: Cuộn mượt mà */}
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 scrollbar-hide">
           {cart.length > 0 ? (
-            cart.map((item) => (
-              <div key={item._id} className="group relative flex gap-6 items-start animate-in fade-in slide-in-from-bottom-2">
-                {/* Product Image */}
-                <div className="w-24 h-24 rounded-2xl bg-gray-50 dark:bg-white/5 overflow-hidden flex-shrink-0 border border-gray-100 dark:border-white/10">
-                  <img src={item.product.images?.[0]?.url} alt={item.product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                </div>
+            cart.map((item) => {
+              const product = item?.product || {};
+              
+              // 🔥 LOGIC KIỂM TRA ITEM COMBO: Nếu giá lưu trữ trong giỏ hàng nhỏ hơn giá gốc của sản phẩm
+              const isComboItem = item.price && item.price < product.price;
+              const displayPrice = item.price || product.price || 0;
 
-                {/* Details */}
-                <div className="flex-1 space-y-1">
-                  <h3 className="font-medium text-gray-900 dark:text-white text-lg truncate">{item.product.name}</h3>
-                  <p className="text-sm text-gray-400 italic font-serif">Freshly picked</p>
-
-                  <div className="flex items-center justify-between mt-4">
-                    {/* Quantity Selector */}
-                    <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-full px-2 py-1 gap-4">
-                      <button onClick={() => handleCartAction(item.product, "UPDATE_QTY", -1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
-                        <Minus size={14} />
-                      </button>
-                      <span className="text-sm font-medium dark:text-white w-4 text-center">{item.quantity}</span>
-                      <button onClick={() => handleCartAction(item.product, "UPDATE_QTY", 1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                    <span className="font-bold dark:text-white">${(item.product.price * item.quantity).toLocaleString()}</span>
+              return (
+                <div key={item._id} className="group relative flex gap-6 items-start animate-in fade-in slide-in-from-bottom-2">
+                  {/* Product Image */}
+                  <div className="w-24 h-24 rounded-2xl bg-gray-50 dark:bg-white/5 overflow-hidden flex-shrink-0 border border-gray-100 dark:border-white/10">
+                    <img src={product.images?.[0]?.url} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                   </div>
-                </div>
 
-                {/* Remove Button */}
-                <button
-                  onClick={() => handleCartAction(item.product, "REMOVE")}
-                  className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all"
-                >
-                  <Trash2 size={18} strokeWidth={1.5} />
-                </button>
-              </div>
-            ))
+                  {/* Details */}
+                  <div className="flex-1 space-y-1">
+                    <h3 className="font-medium text-gray-900 dark:text-white text-base truncate pr-4">{product.name}</h3>
+                    
+                    {/* Hiển thị Tag phân loại mini cho Sidebar thoáng */}
+                    <div className="flex items-center gap-1.5">
+                      {isComboItem ? (
+                        <span className="text-[8px] font-bold bg-[#77cd3a]/10 text-[#77cd3a] px-1.5 py-0.5 rounded uppercase">Combo</span>
+                      ) : (
+                        <span className="text-[8px] font-bold bg-gray-100 dark:bg-white/5 text-gray-400 px-1.5 py-0.5 rounded uppercase">Item</span>
+                      )}
+                      <span className="text-xs text-gray-400">${displayPrice}</span>
+                      {isComboItem && (
+                        <span className="text-[10px] text-gray-400/40 line-through">${product.price}</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-4">
+                      {/* Quantity Selector */}
+                      <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-full px-2 py-1 gap-4">
+                        <button onClick={() => handleCartAction(product, "UPDATE_QTY", -1)} className="p-1 hover:text-[#77cd3af2] transition-colors">
+                          <Minus size={14} />
+                        </button>
+                        <span className="text-sm font-medium dark:text-white w-4 text-center">{item.quantity}</span>
+                        <button 
+                          onClick={() => handleCartAction(product, "UPDATE_QTY", 1)} 
+                          disabled={item.quantity >= product.stock}
+                          className={`p-1 hover:text-[#77cd3af2] transition-colors ${item.quantity >= product.stock ? "opacity-20 cursor-not-allowed" : ""}`}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+
+                      {/* Hiển thị tổng tiền món lẻ hay món combo tương ứng */}
+                      <div className="flex items-baseline gap-1.5">
+                        {isComboItem ? (
+                          <>
+                            <span className="text-[11px] line-through text-gray-400/40">
+                              ${(product.price * item.quantity).toLocaleString()}
+                            </span>
+                            <span className="font-bold text-[#77cd3af2]">
+                              ${(displayPrice * item.quantity).toLocaleString()}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-bold dark:text-white">
+                            ${(product.price * item.quantity).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Remove Button */}
+                  <button
+                    onClick={() => handleCartAction(product, "REMOVE")}
+                    className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all cursor-pointer"
+                  >
+                    <Trash2 size={18} strokeWidth={1.5} />
+                  </button>
+                </div>
+              );
+            })
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
               <div className="w-20 h-20 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center border border-dashed border-gray-200 dark:border-white/10">
@@ -107,15 +152,29 @@ const CartSidebar = () => {
           <div className="flex justify-between items-end mb-8">
             <div className="space-y-1">
               <p className="text-[10px] text-gray-400 uppercase tracking-[0.3em] font-bold">Subtotal</p>
-              <p className="text-xs italic text-[#77cd3af2]">Taxes and shipping calculated at checkout</p>
+              {originalTotal > actualTotal && (
+                <p className="text-[11px] font-medium text-red-500">
+                  Saved: -${(originalTotal - actualTotal).toLocaleString()}
+                </p>
+              )}
             </div>
-            <p className="text-3xl font-light dark:text-white">${total.toLocaleString()}</p>
+            
+            <div className="text-right">
+              {originalTotal > actualTotal && (
+                <p className="text-xs line-through text-gray-400/40 mb-0.5">
+                  ${originalTotal.toLocaleString()}
+                </p>
+              )}
+              <p className="text-3xl font-light dark:text-white">
+                ${actualTotal.toLocaleString()}
+              </p>
+            </div>
           </div>
 
           <button onClick={() => {
             handleClose();
-            navigate("/checkout", { state: { subtotal: total } })
-          }} className="relative w-full group overflow-hidden rounded-2xl bg-black dark:bg-[#77cd3af2] py-5 transition-all hover:scale-[1.02] active:scale-95">
+            navigate("/checkout", { state: { subtotal: actualTotal } }) // 🔥 TRUYỀN GIÁ THỰC TẾ SANG THANH TOÁN
+          }} className="relative w-full group overflow-hidden rounded-2xl bg-black dark:bg-[#77cd3af2] py-5 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer">
             <div className="relative z-10 flex items-center justify-center gap-3 text-white dark:text-black font-bold tracking-widest text-xs uppercase">
               <span>Continue to checkout</span>
             </div>

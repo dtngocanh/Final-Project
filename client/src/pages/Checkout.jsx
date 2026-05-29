@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   setOrderStep,
   placeOrder,
@@ -295,12 +295,14 @@ const ConfirmStep = ({ shippingDetails, cart, totalAmount, paymentMethod }) => {
 
 /* ===================== MAIN CHECKOUT COMPONENT ===================== */
 const Checkout = () => {
+  const location = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const steps = ["Shipping", "Payment", "Confirmation"];
 
   const { authUser } = useSelector((state) => state.auth);
-  const { cart } = useSelector((state) => state.cart);
+  const { cart, totalCart } = useSelector((state) => state.cart);
+  
   const { provinces, districts, wards, shippingFee, loadingAddress } =
     useSelector((state) => state.address);
   const { activeStep, loading, shippingInfo, placingOrder } = useSelector(
@@ -322,13 +324,11 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState("Stripe");
   const [errors, setErrors] = useState({});
 
-  const subtotal =
-    cart?.reduce((acc, item) => {
-      const price = item.price || item.product?.price || 0;
-      return acc + price * item.quantity;
-    }, 0) || 0;
+  const subtotal = totalCart > 0 
+    ? totalCart 
+    : (location.state?.subtotal || cart?.reduce((acc, item) => acc + (item.price || item.product?.price || 0) * item.quantity, 0) || 0);
     
-  const totalAmount = subtotal + shippingFee;
+  const totalAmount = Number((subtotal + shippingFee).toFixed(2));
 
   useEffect(() => {
     const { districtId, wardCode } = shippingDetails;
