@@ -104,39 +104,47 @@ const Products = () => {
     dispatch(setCategory(id));
   };
 
-  const displayCategoryNames = {
-    Fruits: "Fresh Fruits",
-    Vegetables: "Organic Vegetables",
-    Packages: "Beverage",
-    "Meats and Seafood": "Premium Meats & Seafood",
-  };
   return (
     <main className="min-h-screen pt-32 pb-24 bg-white dark:bg-[#060606] transition-all duration-700">
       <div className="max-w-[1200px] mx-auto px-6">
         {/* HEADER */}
-        <header className="mb-16 flex items-baseline justify-between border-b border-gray-100 dark:border-white/5 pb-10">
-          <h1 className="text-5xl font-extralight tracking-tighter uppercase dark:text-white">
+        <header className="mb-12 flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-8">
+          {/* LOGO: Tối giản, tinh tế, hạ size để sang trọng hơn */}
+          <h1 className="text-4xl font-extralight tracking-wide uppercase text-neutral-800 dark:text-neutral-100">
             Fresh{" "}
-            <span className="font-serif italic lowercase text-gray-400">
-              Market
+            <span className="font-serif italic lowercase text-[#77cd3a] ml-1">
+              market
             </span>
           </h1>
+
+          {/* BUTTON AI: Dạng Text-Link cao cấp, ẩn mình tinh tế và chuyển màu mượt mà khi hover */}
           <button
             onClick={() => setIsAIModalOpen(true)}
-            className="flex items-center gap-2 text-[#77cd3a] text-[10px] font-bold uppercase tracking-widest hover:opacity-70 transition-opacity"
+            className="group flex items-center gap-2 text-xs font-semibold tracking-widest text-neutral-400 hover:text-[#77cd3a] transition-colors duration-300"
           >
-            <Sparkles size={14} /> AI Assistant
+            <Sparkles
+              size={14}
+              className="text-neutral-300 group-hover:text-[#77cd3a] transition-all duration-300 group-hover:scale-110"
+            />
+            <span className="uppercase text-[11px]">AI Assistant</span>
+            {/* Chấm xanh pulse nhẹ báo hiệu tính năng thông minh sẵn sàng */}
+            <span className="h-1.5 w-1.5 rounded-full bg-[#77cd3a] opacity-80 group-hover:animate-ping" />
           </button>
         </header>
 
         {/* FILTER BAR */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16 relative border-y border-gray-100 dark:border-white/5 py-8">
-          <div className="flex gap-10 overflow-x-auto no-scrollbar">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 relative border-y border-gray-100 dark:border-white/5 py-6">
+          {/* Left: Categories Menu */}
+          <div className="flex items-center text-sm gap-8 overflow-x-auto no-scrollbar scroll-smooth">
             <button
               onClick={() => handleCategoryChange("All")}
-              className={selectedCategory === "All" ? "active" : ""}
+              className={`whitespace-nowrap pb-1 border-b-2 transition-all duration-300 uppercase tracking-wider text-xs font-medium ${
+                selectedCategory === "All"
+                  ? "border-[#77cd3a] text-[#77cd3a] font-bold"
+                  : "border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+              }`}
             >
-              All
+              All Products
             </button>
 
             {categories
@@ -145,27 +153,29 @@ const Products = () => {
                 <button
                   key={cat._id}
                   onClick={() => handleCategoryChange(cat._id)}
-                  className={
+                  className={`whitespace-nowrap pb-1 border-b-2 transition-all duration-300 uppercase tracking-wider text-xs font-medium ${
                     selectedCategory === cat._id
-                      ? "text-[#77cd3a] font-bold"
-                      : ""
-                  }
+                      ? "border-[#77cd3a] text-[#77cd3a] font-bold"
+                      : "border-transparent text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+                  }`}
                 >
-                  {displayCategoryNames[cat.name] || cat.name}
+                  {cat.name}
                 </button>
               ))}
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="relative group">
+          {/* Right: Actions Controls */}
+          <div className="flex items-center justify-between md:justify-end gap-5">
+            {/* Search Box: Thiết kế dạng line sang trọng, mở rộng nhẹ nhàng khi focus */}
+            <div className="relative flex items-center border-b border-gray-200 dark:border-white/10 focus-within:border-[#77cd3a] py-1 transition-all duration-300">
               <Search
-                size={18}
-                className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#77cd3a]"
+                size={16}
+                className="text-neutral-400 transition-colors duration-300 group-focus-within:text-[#77cd3a]"
               />
               <input
                 type="text"
-                placeholder="Search..."
-                value={filters.search}
+                placeholder="Search product..."
+                value={filters.search || ""}
                 onChange={(e) => {
                   const val = e.target.value;
                   if (val) {
@@ -173,30 +183,39 @@ const Products = () => {
                   } else {
                     searchParams.delete("q");
                   }
-                  setSearchParams(searchParams); // Cập nhật URL ngay lập tức
+                  setSearchParams(searchParams);
                 }}
-                className="bg-transparent border-none outline-none pl-6 text-sm w-32 focus:w-48 transition-all dark:text-white"
+                className="bg-transparent border-none outline-none pl-3 text-xs w-28 focus:w-40 transition-all duration-300 text-neutral-800 dark:text-neutral-200 placeholder-neutral-400 font-medium"
               />
             </div>
 
-            {/* Rating Dropdown Đã tách */}
-            <RatingDropdown
-              filters={filters}
-              setFilters={setFilters}
-              isOpen={openFilter === "rating"}
-              setOpen={() =>
-                setOpenFilter(openFilter === "rating" ? null : "rating")
-              }
-            />
+            {/* Controls Group */}
+            <div className="flex items-center gap-3">
+              {/* Rating Dropdown component */}
+              <RatingDropdown
+                filters={filters}
+                setFilters={setFilters}
+                isOpen={openFilter === "rating"}
+                setOpen={() =>
+                  setOpenFilter(openFilter === "rating" ? null : "rating")
+                }
+              />
 
-            <button
-              onClick={() =>
-                setOpenFilter(openFilter === "more" ? null : "more")
-              }
-              className={`p-2 rounded-full border transition-all ${openFilter === "more" ? "border-[#77cd3a] text-[#77cd3a]" : "border-gray-100 dark:border-white/5 text-gray-400"}`}
-            >
-              <SlidersHorizontal size={14} />
-            </button>
+              {/* Advanced Filter Toggle Button */}
+              <button
+                onClick={() =>
+                  setOpenFilter(openFilter === "more" ? null : "more")
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium tracking-wide transition-all duration-300 ${
+                  openFilter === "more"
+                    ? "border-[#77cd3a] bg-[#77cd3a]/5 text-[#77cd3a]"
+                    : "border-neutral-200 dark:border-white/10 text-neutral-500 hover:border-neutral-400 dark:text-neutral-400 dark:hover:border-neutral-200"
+                }`}
+              >
+                <SlidersHorizontal size={12} />
+                <span>Filters</span>
+              </button>
+            </div>
           </div>
 
           {/* Expanded Panel Đã tách */}
