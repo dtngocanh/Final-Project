@@ -18,13 +18,13 @@ const getWeight = (item) => {
       return 300;
 
     case "Meats and Seafood":
-      return 500;
+      return 1000;
 
     case "Fruits":
       return 1000;
 
     case "Packages":
-      return 200;
+      return 500;
 
     default:
       return 500;
