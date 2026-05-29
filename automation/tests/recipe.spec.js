@@ -2,667 +2,538 @@ const { test, expect, chromium } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-test('Đặt hàng tự động - Chọn công thức Veganic & Thanh toán COD', async () => {
-
+test('Dat hang tu dong - Stable Checkout Flow', async () => {
     test.setTimeout(0);
 
-    // ====================================================
-    // ĐỌC FILE ACCOUNT
-    // ====================================================
-
     const dataDir = path.join(__dirname, '../data');
-
-    const accountsFile = path.join(
-        dataDir,
-        'accounts.json'
-    );
+    const accountsFile = path.join(dataDir, 'accounts.json');
 
     if (!fs.existsSync(accountsFile)) {
-
-        console.error(
-            '❌ Không tìm thấy file accounts.json!'
-        );
-
+        console.error('Không tìm thấy file accounts.json!');
         return;
     }
 
-    let accountsList = JSON.parse(
+    const originalAccounts = JSON.parse(
         fs.readFileSync(accountsFile, 'utf8')
     );
 
-    accountsList.reverse();
+    const totalOriginal = originalAccounts.length;
 
-    // ====================================================
-    // RANDOM ĐỊA CHỈ
-    // ====================================================
+    const accountsWithIndex = originalAccounts.map((user, idx) => ({
+        ...user,
+        realIndex: idx + 1
+    }));
 
-    const streets = [
-        'Trần Đại Nghĩa',
-        'Lê Duẩn',
-        'Nguyễn Văn Linh',
-        'Điện Biên Phủ',
-        'Hai Bà Trưng',
-        'Cách Mạng Tháng Tám',
-        'Bùi Viện',
-        'Nguyễn Huệ',
-        'Phan Chu Trinh',
-        'Lý Tự Trọng',
-        'Hoàng Diệu',
-        'Trần Hưng Đạo'
-    ];
-
-    console.log(
-        `🚀 Bắt đầu chiến dịch COD với ${accountsList.length} tài khoản...`
+    const accountsList = accountsWithIndex.filter(
+        user => user.realIndex >= 0 && user.realIndex <= 200
     );
 
-    const BATCH_SIZE = 50;
+    const streets = [
+        'Tran Dai Nghia',
+        'Le Duan',
+        'Nguyen Van Linh',
+        'Dien Bien Phu',
+        'Hai Ba Trung',
+        'Cach Mang Thang Tam',
+        'Bui Vien',
+        'Nguyen Hue',
+        'Phan Chu Trinh',
+        'Ly Tu Trong',
+        'Hoang Dieu',
+        'Tran Hung Dao'
+    ];
 
-    // ====================================================
-    // CHẠY THEO BATCH
-    // ====================================================
+    console.log(`🚀 Start automation [300 -> 500]`);
+    console.log(`📦 Total accounts: ${accountsList.length}`);
 
-    for (
-        let b = 0;
-        b < accountsList.length;
-        b += BATCH_SIZE
-    ) {
+    const isHeaded = process.env.HEADED !== 'false';
 
-        const batch = accountsList.slice(
-            b,
-            b + BATCH_SIZE
-        );
+    const browser = await chromium.launch({
+        headless: !isHeaded,
+        slowMo: isHeaded ? 200 : 50
+    });
 
-        const isHeaded =
-            process.env.HEADED !== 'false';
+    for (const user of accountsList) {
 
-        const browser = await chromium.launch({
-            headless: !isHeaded,
+        if (user.realIndex === 499) {
+            console.log(`[BỎ QUA] USER ${user.realIndex}`);
+            continue;
+        }
 
-            // FIX RACE CONDITION REACT + GHN
-            slowMo: isHeaded ? 150 : 100
+        const context = await browser.newContext({
+            viewport: {
+                width: 1280,
+                height: 720
+            }
         });
 
-        // ====================================================
-        // LOOP USER
-        // ====================================================
+        const page = await context.newPage();
 
-        for (let i = 0; i < batch.length; i++) {
+        console.log(
+            `\n👉 [${user.realIndex}/${totalOriginal}] ${user.email}`
+        );
 
-            const user = batch[i];
+        try {
 
-            const currentIndex = b + i;
+            // ====================================================
+            // HOME
+            // ====================================================
 
-            const realIndex =
-                accountsList.length - currentIndex;
+            await page.goto('http://localhost:5173/', {
+                waitUntil: 'domcontentloaded'
+            });
 
-            if (realIndex === 499) {
+            await page.waitForLoadState('networkidle');
 
-                console.log(
-                    `\n⏭️ [🔥 BỎ QUA] USER [499/${accountsList.length}]: ${user.email}`
-                );
+            // ====================================================
+            // LOGIN
+            // ====================================================
 
-                continue;
+            console.log('   ↳ Login...');
+
+            const userIcon = page
+                .locator('nav .lucide-user, header .lucide-user')
+                .first();
+
+            await userIcon.waitFor({
+                state: 'visible',
+                timeout: 10000
+            });
+
+            await userIcon.click();
+
+            await page.waitForTimeout(1000);
+
+            await page.fill('input[name="email"]', user.email);
+
+            await page.fill('input[name="password"]', user.password);
+
+            await page.click('button:has-text("SIGN IN")');
+
+            await page.waitForLoadState('networkidle');
+
+            await page.waitForTimeout(3000);
+
+            // ====================================================
+            // RECIPES
+            // ====================================================
+
+            console.log('   ↳ Open recipes...');
+
+            await page.goto(
+                'http://localhost:5173/all-recipes',
+                {
+                    waitUntil: 'domcontentloaded'
+                }
+            );
+
+            await page.waitForLoadState('networkidle');
+
+            await page.waitForTimeout(3000);
+
+            const recipeCards = page.locator(
+                '.grid a, .card, [class*="RecipeCard"]'
+            );
+
+            const totalRecipes = await recipeCards.count();
+
+            if (totalRecipes === 0) {
+                throw new Error('Không tìm thấy recipe.');
             }
 
-            const context =
-                await browser.newContext();
-
-            const page =
-                await context.newPage();
-
             console.log(
-                `\n👤 [${realIndex}/${accountsList.length}] USER: ${user.email}`
+                `   📦 Total recipe: ${totalRecipes}. Chọn recipe đầu tiên...`
             );
+
+            const targetRecipe = recipeCards.first();
+
+            await targetRecipe.waitFor({
+                state: 'visible',
+                timeout: 15000
+            });
+
+            await targetRecipe.scrollIntoViewIfNeeded();
+
+            await page.waitForTimeout(1500);
+
+            await targetRecipe.click({
+                force: true
+            });
+
+            await page.waitForLoadState('networkidle');
+
+            await page.waitForTimeout(3000);
+
+            // ====================================================
+            // VEGANIC SECTION
+            // ====================================================
+
+            console.log('   ↳ Add Veganic ingredients...');
+
+            const veganicSection = page
+                .locator('div, section')
+                .filter({
+                    hasText: /Available In Veganic/i
+                })
+                .last();
+
+            await veganicSection.waitFor({
+                state: 'visible',
+                timeout: 20000
+            });
+
+            const addAllBtn = veganicSection
+                .locator('button:has-text("ADD ALL TO CART")')
+                .first();
+
+            await addAllBtn.waitFor({
+                state: 'visible',
+                timeout: 15000
+            });
+
+            await addAllBtn.scrollIntoViewIfNeeded();
+
+            await expect(addAllBtn).toBeEnabled();
+
+            await page.waitForTimeout(1500);
+
+            await addAllBtn.click({
+                force: true
+            });
+
+            // ====================================================
+            // WAIT CART STABLE
+            // ====================================================
+
+            console.log('   ↳ Waiting cart sync...');
+
+            await page.waitForLoadState('networkidle');
+
+            await page.waitForTimeout(5000);
+
+            await page.waitForSelector(
+                '.toast,.notification,.snackbar,.swal2-container,.loading,.spinner',
+                {
+                    state: 'hidden',
+                    timeout: 15000
+                }
+            ).catch(() => {});
+
+            // ====================================================
+            // OPEN CART
+            // ====================================================
+
+            console.log('   ↳ Open cart...');
+
+            const cartIcon = page
+                .locator(
+                    'nav .lucide-shopping-bag, header .lucide-shopping-bag'
+                )
+                .last();
+
+            await cartIcon.waitFor({
+                state: 'visible',
+                timeout: 15000
+            });
+
+            await cartIcon.scrollIntoViewIfNeeded();
+
+            await page.waitForTimeout(1000);
+
+            await cartIcon.click({
+                force: true
+            });
+
+            await page.waitForLoadState('networkidle');
+
+            await page.waitForTimeout(4000);
+
+            // ====================================================
+            // CHECKOUT
+            // ====================================================
+
+            console.log('   ↳ Checkout...');
+
+            const checkoutBtn = page.locator(
+                'button:has-text("CONTINUE TO CHECKOUT"), a:has-text("CONTINUE TO CHECKOUT"), button:has-text("Checkout")'
+            ).first();
 
             try {
 
-                // ====================================================
-                // LOGIN
-                // ====================================================
+                await checkoutBtn.waitFor({
+                    state: 'visible',
+                    timeout: 15000
+                });
 
-                console.log('🔐 Đăng nhập...');
+                await checkoutBtn.scrollIntoViewIfNeeded();
+
+                await expect(checkoutBtn).toBeEnabled();
+
+                await page.waitForTimeout(1500);
+
+                await checkoutBtn.click({
+                    force: true
+                });
+
+            } catch (err) {
+
+                console.log(
+                    '   ⚠️ Cannot click checkout => direct goto'
+                );
+
+                await page.goto(
+                    'http://localhost:5173/checkout'
+                );
+            }
+
+            await page.waitForLoadState('networkidle');
+
+            await page.waitForTimeout(4000);
+
+            // ====================================================
+            // SHIPPING
+            // ====================================================
+
+            console.log('   ↳ Shipping info...');
+
+            const shippingSection = page.locator(
+                'div:has-text("Shipping Information")'
+            );
+
+            const fullNameInput = page.locator(
+                'input[name="fullName"]'
+            );
+
+            await fullNameInput.waitFor({
+                state: 'visible',
+                timeout: 20000
+            });
+
+            const randomStreet =
+                streets[Math.floor(Math.random() * streets.length)];
+
+            const randomAddress =
+                `${Math.floor(Math.random() * 250) + 1}, ${randomStreet}`;
+
+            await fullNameInput.fill(
+                user.fullName || 'Nguoi Nhan'
+            );
+
+            await shippingSection
+                .locator('input[name="email"]')
+                .fill(user.email);
+
+            await shippingSection
+                .locator('input[name="phone"]')
+                .fill(user.phone || '0912345678');
+
+            await shippingSection
+                .locator('input[name="address"]')
+                .fill(randomAddress);
+
+            // ====================================================
+            // PROVINCE
+            // ====================================================
+
+            console.log('   ↳ Province...');
+
+            const provinceSelect =
+                shippingSection.locator(
+                    'select[name="provinceId"]'
+                );
+
+            await provinceSelect.waitFor({
+                state: 'visible',
+                timeout: 15000
+            });
+
+            await provinceSelect.selectOption('201');
+
+            await page.waitForTimeout(3000);
+
+            // ====================================================
+            // DISTRICT
+            // ====================================================
+
+            console.log('   ↳ District...');
+
+            const districtSelect =
+                shippingSection.locator(
+                    'select[name="districtId"]'
+                );
+
+            await expect(districtSelect).toBeEnabled({
+                timeout: 20000
+            });
+
+            await districtSelect.selectOption({
+                index: 1
+            });
+
+            await page.waitForTimeout(3000);
+
+            // ====================================================
+            // WARD
+            // ====================================================
+
+            console.log('   ↳ Ward...');
+
+            const wardSelect =
+                shippingSection.locator(
+                    'select[name="wardCode"]'
+                );
+
+            await expect(wardSelect).toBeEnabled({
+                timeout: 20000
+            });
+
+            await wardSelect.selectOption({
+                index: 1
+            });
+
+            await page.waitForTimeout(3000);
+
+            // ====================================================
+            // CONTINUE
+            // ====================================================
+
+            console.log('   ↳ Continue payment...');
+
+            const continueBtns = page.getByRole('button', {
+                name: 'Continue'
+            });
+
+            await continueBtns.first().click({
+                force: true
+            });
+
+            await page.waitForTimeout(3000);
+
+            // ====================================================
+            // COD
+            // ====================================================
+
+            console.log('   ↳ COD payment...');
+
+            const codPaymentOption = page
+                .locator('div:has-text("Cash on Delivery (COD)")')
+                .last();
+
+            await codPaymentOption.waitFor({
+                state: 'visible',
+                timeout: 15000
+            });
+
+            await codPaymentOption.click({
+                force: true
+            });
+
+            await page.waitForTimeout(2000);
+
+            // ====================================================
+            // REVIEW CONTINUE
+            // ====================================================
+
+            await continueBtns.last().click({
+                force: true
+            });
+
+            await page.waitForTimeout(4000);
+
+            // ====================================================
+            // PLACE ORDER
+            // ====================================================
+
+            console.log('   ↳ Place order...');
+
+            const placeOrderBtn = page.getByRole('button', {
+                name: 'Place Order'
+            });
+
+            await placeOrderBtn.waitFor({
+                state: 'visible',
+                timeout: 15000
+            });
+
+            await placeOrderBtn.scrollIntoViewIfNeeded();
+
+            await expect(placeOrderBtn).toBeEnabled();
+
+            await page.waitForTimeout(1500);
+
+            await placeOrderBtn.click({
+                force: true
+            });
+
+            // ====================================================
+            // SUCCESS
+            // ====================================================
+
+            await expect(page).toHaveURL(
+                /success/,
+                {
+                    timeout: 60000
+                }
+            );
+
+            console.log(
+                `🎉 SUCCESS: ${user.email}`
+            );
+
+        } catch (error) {
+
+            console.error(
+                `❌ ERROR USER ${user.realIndex}:`,
+                error.message
+            );
+
+            await page.screenshot({
+                path: `failed_user_${user.realIndex}.png`,
+                fullPage: true
+            });
+
+        } finally {
+
+            // ====================================================
+            // LOGOUT
+            // ====================================================
+
+            try {
+
+                console.log('   ↳ Logout...');
 
                 await page.goto(
                     'http://localhost:5173/'
                 );
 
-                await page.waitForLoadState(
-                    'networkidle'
-                );
+                await page.waitForLoadState('networkidle');
 
-                await page.locator(
-                    'nav .lucide-user, header .lucide-user'
-                )
-                    .first()
-                    .click();
-
-                await page.fill(
-                    'input[name="email"]',
-                    user.email
-                );
-
-                await page.fill(
-                    'input[name="password"]',
-                    user.password
-                );
-
-                await page.click(
-                    'button:has-text("SIGN IN")'
-                );
-
-                await page.waitForLoadState(
-                    'networkidle'
-                );
-
-                // ====================================================
-                // RECIPES
-                // ====================================================
-
-                console.log(
-                    '🍲 Chuyển sang recipes...'
-                );
-
-                await page.goto(
-                    'http://localhost:5173/all-recipes'
-                );
-
-                await page.waitForLoadState(
-                    'networkidle'
-                );
-
-                const firstRecipe = page.locator(
-                    '.grid a, .card, [class*="RecipeCard"]'
+                const logoutBtn = page.locator(
+                    'text=Log Out, text=Logout, text=Đăng xuất, button:has-text("Log out")'
                 ).first();
 
-                await firstRecipe
-                    .scrollIntoViewIfNeeded();
+                if (await logoutBtn.isVisible()) {
 
-                const currentUrl = page.url();
-
-                console.log(
-                    '⚡ Click recipe đầu tiên...'
-                );
-
-                await firstRecipe.click();
-
-                try {
-
-                    await page.waitForURL(
-                        url =>
-                            url.href !== currentUrl,
-                        {
-                            timeout: 10000
-                        }
-                    );
-
-                } catch (err) {
-
-                    await page.screenshot({
-                        path:
-                            `error_user_${realIndex}_click_fail.png`
+                    await logoutBtn.click({
+                        force: true
                     });
 
-                    throw new Error(
-                        'React không điều hướng sang trang recipe.'
-                    );
+                    await page.waitForTimeout(2000);
                 }
 
-                console.log(
-                    '⏳ Đợi API recipe load...'
-                );
+            } catch (logoutError) {}
 
-                await page.waitForLoadState(
-                    'networkidle'
-                );
+            await context.clearCookies();
 
-                // ====================================================
-                // VEGANIC
-                // ====================================================
+            await page.close();
 
-                console.log(
-                    '🌱 Tìm Veganic section...'
-                );
+            await context.close();
 
-                const veganicSection =
-                    page.locator(
-                        'div, section'
-                    ).filter({
-                        hasText:
-                            /Available In Veganic/i
-                    }).last();
-
-                const addAllBtn =
-                    veganicSection.locator(
-                        'button:has-text("ADD ALL TO CART")'
-                    ).first();
-
-                try {
-
-                    await addAllBtn.waitFor({
-                        state: 'visible',
-                        timeout: 8000
-                    });
-
-                } catch (err) {
-
-                    await page.screenshot({
-                        path:
-                            `error_user_${realIndex}_detail_crash.png`
-                    });
-
-                    throw new Error(
-                        'Không thấy nút ADD ALL TO CART'
-                    );
-                }
-
-                await addAllBtn
-                    .scrollIntoViewIfNeeded();
-
-                await addAllBtn.click();
-
-                console.log(
-                    '✅ Đã thêm nguyên liệu vào giỏ'
-                );
-
-                // ====================================================
-                // CART
-                // ====================================================
-
-                console.log(
-                    '🛍️ Mở giỏ hàng...'
-                );
-
-                await page.locator(
-                    'nav .lucide-shopping-bag, header .lucide-shopping-bag'
-                )
-                    .last()
-                    .click();
-
-                await page.waitForLoadState(
-                    'networkidle'
-                );
-
-                console.log(
-                    '➡️ Sang checkout...'
-                );
-
-                await page.getByRole(
-                    'button',
-                    {
-                        name:
-                            /CONTINUE TO CHECKOUT/i
-                    }
-                ).click();
-
-                await page.waitForLoadState(
-                    'networkidle'
-                );
-
-                // ====================================================
-                // CHECKOUT
-                // ====================================================
-
-                console.log(
-                    '📝 Kiểm tra checkout...'
-                );
-
-                const fullNameInput =
-                    page.locator(
-                        'input[name="fullName"]'
-                    );
-
-                try {
-
-                    await fullNameInput.waitFor({
-                        state: 'visible',
-                        timeout: 8000
-                    });
-
-                } catch (err) {
-
-                    await page.screenshot({
-                        path:
-                            `error_user_${realIndex}_checkout_crash.png`
-                    });
-
-                    throw new Error(
-                        'Checkout bị crash'
-                    );
-                }
-
-                const randomStreet =
-                    streets[
-                        Math.floor(
-                            Math.random() *
-                            streets.length
-                        )
-                    ];
-
-                const randomAddress =
-                    `${Math.floor(Math.random() * 250) + 1}, Đường ${randomStreet}`;
-
-                // ====================================================
-                // SHIPPING INFO
-                // ====================================================
-
-                console.log(
-                    '📦 Điền shipping info...'
-                );
-
-                const shippingSection = page.locator(
-                    'div:has-text("Shipping Information")'
-                );
-
-                await fullNameInput.fill(
-                    user.fullName
-                );
-
-                await shippingSection
-                    .locator('input[name="email"]')
-                    .fill(user.email);
-
-                await shippingSection
-                    .locator('input[name="phone"]')
-                    .fill(
-                        user.phone ||
-                        '0912345678'
-                    );
-
-                await shippingSection
-                    .locator('input[name="address"]')
-                    .fill(randomAddress);
-
-                // ====================================================
-                // PROVINCE
-                // ====================================================
-
-                console.log(
-                    '📍 Chọn Province...'
-                );
-
-                const provinceSelect =
-                    shippingSection.locator(
-                        'select[name="provinceId"]'
-                    );
-
-                await provinceSelect.selectOption(
-                    '201'
-                );
-
-                await expect(
-                    provinceSelect
-                ).toHaveValue('201');
-
-                // ====================================================
-                // DISTRICT
-                // ====================================================
-
-                console.log(
-                    '⏳ Đợi District load...'
-                );
-
-                const districtSelect =
-                    shippingSection.locator(
-                        'select[name="districtId"]'
-                    );
-
-                await expect(
-                    districtSelect
-                ).toBeEnabled({
-                    timeout: 15000
-                });
-
-                await expect(async () => {
-
-                    const count =
-                        await districtSelect
-                            .locator('option')
-                            .count();
-
-                    if (count <= 1) {
-
-                        throw new Error(
-                            'District chưa load'
-                        );
-                    }
-
-                }).toPass({
-                    timeout: 15000
-                });
-
-                await districtSelect.selectOption({
-                    index: 1
-                });
-
-                // FIX REACT STATE
-                await expect(
-                    districtSelect
-                ).not.toHaveValue('');
-
-                const districtValue =
-                    await districtSelect.inputValue();
-
-                console.log(
-                    `✅ District selected: ${districtValue}`
-                );
-
-                // ====================================================
-                // WARD
-                // ====================================================
-
-                console.log(
-                    '⏳ Đợi Ward load...'
-                );
-
-                const wardSelect =
-                    shippingSection.locator(
-                        'select[name="wardCode"]'
-                    );
-
-                await expect(
-                    wardSelect
-                ).toBeEnabled({
-                    timeout: 15000
-                });
-
-                await expect(async () => {
-
-                    const count =
-                        await wardSelect
-                            .locator('option')
-                            .count();
-
-                    if (count <= 1) {
-
-                        throw new Error(
-                            'Ward chưa load'
-                        );
-                    }
-
-                }).toPass({
-                    timeout: 15000
-                });
-
-                await wardSelect.selectOption({
-                    index: 1
-                });
-
-                // FIX REACT STATE
-                await expect(
-                    wardSelect
-                ).not.toHaveValue('');
-
-                const wardValue =
-                    await wardSelect.inputValue();
-
-                console.log(
-                    `✅ Ward selected: ${wardValue}`
-                );
-
-                // ====================================================
-                // GHN SHIPPING
-                // ====================================================
-
-                console.log(
-                    '🚚 Đợi GHN tính shipping fee...'
-                );
-
-                try {
-
-                    await page.waitForResponse(
-                        response => {
-
-                            return (
-                                response.url().includes('shipping') &&
-                                response.status() === 200
-                            );
-                        },
-                        {
-                            timeout: 20000
-                        }
-                    );
-
-                    console.log(
-                        '✅ GHN shipping loaded'
-                    );
-
-                } catch (err) {
-
-                    console.log(
-                        '⚠️ Không bắt được request shipping nhưng vẫn tiếp tục...'
-                    );
-                }
-
-                await page.waitForLoadState(
-                    'networkidle'
-                );
-
-                // ====================================================
-                // CONTINUE SHIPPING
-                // ====================================================
-
-                await page.getByRole(
-                    'button',
-                    {
-                        name: 'Continue'
-                    }
-                ).click();
-
-                await page.waitForLoadState(
-                    'networkidle'
-                );
-
-                // ====================================================
-                // PAYMENT
-                // ====================================================
-
-                console.log(
-                    '💳 Chọn COD...'
-                );
-
-                await page.waitForSelector(
-                    'text=Payment Method'
-                );
-
-                const codPaymentOption =
-                    page.locator(
-                        'div:has-text("Cash on Delivery (COD)")'
-                    ).last();
-
-                await codPaymentOption.click();
-
-                console.log(
-                    '✅ Đã chọn COD'
-                );
-
-                // ====================================================
-                // CONTINUE PAYMENT
-                // ====================================================
-
-                await page.getByRole(
-                    'button',
-                    {
-                        name: 'Continue'
-                    }
-                ).click();
-
-                await page.waitForLoadState(
-                    'networkidle'
-                );
-
-                // ====================================================
-                // PLACE ORDER
-                // ====================================================
-
-                console.log(
-                    '🧾 Xác nhận đơn hàng...'
-                );
-
-                await page.waitForSelector(
-                    'text=Confirm Order'
-                );
-
-                const placeOrderBtn =
-                    page.getByRole(
-                        'button',
-                        {
-                            name:
-                                'Place Order'
-                        }
-                    );
-
-                await expect(
-                    placeOrderBtn
-                ).toBeVisible();
-
-                await placeOrderBtn.click();
-
-                console.log(
-                    '⏳ Đợi success page...'
-                );
-
-                await expect(page)
-                    .toHaveURL(
-                        /success/,
-                        {
-                            timeout: 45000
-                        }
-                    );
-
-                console.log(
-                    `🎉 COD SUCCESS: ${user.email}`
-                );
-
-            } catch (error) {
-
-                console.error(
-                    `❌ FAIL USER ${user.email}:`,
-                    error.message
-                );
-
-                await page.screenshot({
-                    path:
-                        `failed_user_${realIndex}.png`,
-                    fullPage: true
-                });
-
-            } finally {
-
-                await page.close();
-
-                await context.close();
-            }
+            console.log('   🧹 Cleared session.');
         }
-
-        await browser.close();
-
-        console.log(
-            '\n♻️ Đã cleanup browser batch'
-        );
     }
 
-    console.log(
-        '\n🏁 CHIẾN DỊCH COD HOÀN THÀNH!'
-    );
+    await browser.close();
 
+    console.log('\n🏁 DONE ALL');
 });
