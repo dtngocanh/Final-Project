@@ -19,7 +19,8 @@ export const chatWithAI = async (req, res) => {
 
     // 2. Gọi sang FastAPI
     // Lưu ý: Đảm bảo port 8000 đã được bật và FastAPI đang chạy
-    const response = await axios.post("http://localhost:8000/chat", 
+    // const response = await axios.post("http://localhost:8000/chat", 
+    const response = await axios.post("https://freshmart-chat.onrender.com", 
       {
         message,
         session_id: sessionId
