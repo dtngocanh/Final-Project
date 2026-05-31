@@ -27,7 +27,14 @@ import recipeRouter from "./routes/recipeRoute.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
-const allowedOrigins = [process.env.FRONTEND_URL, process.env.ADMIN_URL];
+// const allowedOrigins = [process.env.FRONTEND_URL, process.env.ADMIN_URL];
+
+const allowedOrigins = [
+  'https://freshmart-8gbr.onrender.com',       
+  'https://freshmart-dashboard.onrender.com',  
+  'http://localhost:5173',                     
+  'http://localhost:5174'
+];
 
 // 1. Stripe Webhook 
 app.post(
@@ -43,18 +50,33 @@ app.use(cookieParser());
 app.use(fileUpload());
 
 // 3. Cấu hình CORS
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error("Not allowed by CORS"));
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Cho phép các request không có origin (như Postman hoặc lệnh curl nội bộ)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Bị chặn bởi cấu hình CORS của Freshmart!'));
+    }
+  },
+  credentials: true // Bắt buộc phải có để gửi kèm cookie/token (withCredentials)
+}));
+
 
 const startServer = async () => {
   try {
