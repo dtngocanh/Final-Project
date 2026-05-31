@@ -1,17 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
 import { toast } from "react-toastify";
+import { axiosInstance } from "../../lib/axios";
 
-const API_URL = "http://localhost:4000/api/admin";
+// const API_URL = "http://localhost:4000/api/admin";
 
 // 1. Thunk: Lấy tất cả người dùng (Có phân trang)
 export const fetchAllUsers = createAsyncThunk(
   "admin/fetchAllUsers",
   async ({ page = 1, search = "", role = "" }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(
-        `${API_URL}/users?page=${page}&search=${search}&role=${role}`,
-        { withCredentials: true },
+      const response = await axiosInstance.get(
+        `/admin/users?page=${page}&search=${search}&role=${role}`,
+        
       ); //?page=${page}
       return response.data; // { success, message, count, data: [...] }
     } catch (error) {
@@ -25,7 +25,7 @@ export const deleteUser = createAsyncThunk(
   "admin/deleteUser",
   async (id, { rejectWithValue }) => {
     try {
-      const res = await axios.delete(`${API_URL}/users/delete/${id}`, {
+      const res = await axiosInstance.delete(`/admin/users/delete/${id}`, {
         withCredentials: true,
       });
       toast.success(res.data.message)
@@ -42,7 +42,7 @@ export const fetchAdminDashboard = createAsyncThunk(
   "admin/fetchDashboard",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/dashboard`, {
+      const response = await axiosInstance.get(`/admin/dashboard`, {
         withCredentials: true,
       });
       return response.data;
