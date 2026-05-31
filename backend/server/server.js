@@ -31,7 +31,7 @@ const allowedOrigins = [process.env.FRONTEND_URL, process.env.ADMIN_URL];
 
 // 1. Stripe Webhook 
 app.post(
-  "/api/payment/webhook",
+  "/payment/webhook",
   express.raw({ type: "application/json" }),
   stripeWebhook
 );
@@ -65,19 +65,19 @@ const startServer = async () => {
     // 5. Định nghĩa các Route chính
     app.get("/", (req, res) => res.send("API Veganic Mart is working"));
 
-    app.use("/api/user", userRouter);
-    app.use("/api/admin", adminRouter);
-    app.use("/api/product", productRouter);
-    app.use("/api/cart", cartRouter);
-    app.use("/api/address", addressRouter);
-    app.use("/api/order", orderRouter);
-    app.use("/api/payment", paymentRouter);
-    app.use("/api/category", categoryRouter);
-    app.use("/api/interaction", interactionRouter);
-    app.use("/api/ai", aiRouter);
-    app.use("/api/recommendations", recRouter);
-    app.use("/api/admin/products",productAdRouter);
-    app.use("/api/recipes",recipeRouter);
+    app.use("/user", userRouter);
+    app.use("/admin", adminRouter);
+    app.use("/product", productRouter);
+    app.use("/cart", cartRouter);
+    app.use("/address", addressRouter);
+    app.use("/order", orderRouter);
+    app.use("/payment", paymentRouter);
+    app.use("/category", categoryRouter);
+    app.use("/interaction", interactionRouter);
+    app.use("/ai", aiRouter);
+    app.use("/recommendations", recRouter);
+    app.use("/admin/products",productAdRouter);
+    app.use("/recipes",recipeRouter);
 
     // 6. Xử lý lỗi tập trung
     app.use(errorMiddleware);
