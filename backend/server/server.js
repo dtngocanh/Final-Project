@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import connectDB from "./configs/db.js";
 import connectCloudinary from "./configs/cloudinary.js";
+import fileUpload from 'express-fileupload';
 
 // Import Routes
 import userRouter from "./routes/userRoute.js";
@@ -39,6 +40,7 @@ app.post(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(fileUpload());
 
 // 3. Cấu hình CORS
 app.use(

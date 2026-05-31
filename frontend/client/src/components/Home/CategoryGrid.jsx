@@ -17,10 +17,12 @@ const floatingVariants = {
 };
 const CategoryGrid = () => {
   const categoryImages = {
-    "Meats and Seafood": "/seafood.png",
-    Fruits: "/apple.png",
-    Vegetables: "/xalach.png",
-    Packages: "/juice.png",
+    Seafood: "/seafood.png",
+    "Fresh Meat": "/meat.png",
+    Fruits: "/mango.png",
+    Vegetables: "/broli.png",
+    Packages: "/milk.png",
+    "Convenience Foods": "/honey.png",
   };
 
   const dispatch = useDispatch();

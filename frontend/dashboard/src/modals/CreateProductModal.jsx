@@ -191,7 +191,7 @@ const CreateProductModal = () => {
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#77cd3af2]">
               {getCategoryIcon(formData.category)}
             </div>
-            <select
+            {/* <select
               className="w-full pl-12 pr-4 py-4 bg-white/50 border border-gray-100 rounded-[22px] outline-none text-sm appearance-none cursor-pointer"
               value={formData.category}
               onChange={(e) =>
@@ -203,6 +203,35 @@ const CreateProductModal = () => {
                 <option key={cat._id} value={cat._id}>
                   {cat.name}
                 </option>
+              ))}
+            </select> */}
+            <select
+              className="w-full pl-12 pr-4 py-4 bg-white/50 border border-gray-100 rounded-[22px] outline-none text-sm appearance-none cursor-pointer"
+              value={formData.category}
+              onChange={(e) =>
+                setFormData({ ...formData, category: e.target.value })
+              }
+            >
+              <option value="">Select Category</option>
+              {categories.map((cat) => (
+                <React.Fragment key={cat._id}>
+                  {/* 1. Hiển thị Danh mục Cha (Level 0)*/}
+                  <option value={cat._id} className="font-bold text-gray-900">
+                    {cat.name}
+                  </option>
+
+                  {/* 2. Kiểm tra nếu có danh mục con */}
+                  {cat.subcategories &&
+                    cat.subcategories.map((sub) => (
+                      <option
+                        key={sub._id}
+                        value={sub._id}
+                        className="text-gray-600"
+                      >
+                        &nbsp;&nbsp;&nbsp;&nbsp;{sub.name}
+                      </option>
+                    ))}
+                </React.Fragment>
               ))}
             </select>
           </div>

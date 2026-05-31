@@ -15,7 +15,7 @@ const getWeight = (item) => {
 
   switch (item.categoryName) {
     case "Vegetables":
-      return 300;
+      return 500;
 
     case "Meats and Seafood":
       return 1000;
@@ -24,12 +24,29 @@ const getWeight = (item) => {
       return 1000;
 
     case "Packages":
-      return 500;
+      return 750;
 
     default:
       return 500;
   }
 };
+
+// const getWeight = (item) => {
+//   if (item.weight) return item.weight;
+
+//   const categoryIdStr = item.categoryId?.toString(); 
+
+//   switch (categoryIdStr) {
+//     case "69dda0160eec98d26c650d36":  // Packages
+//       return 500;
+
+//     case "6a1921ff9388a017488ab5fa": // Herbs & Seasonings
+//       return 200;
+
+//     default:
+//       return 1000;
+//   }
+// };
 
 export const calculateShippingFee = async ({
   cartItems,

@@ -110,10 +110,9 @@ const Products = () => {
         {/* HEADER */}
         <header className="mb-12 flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-8">
           {/* LOGO: Tối giản, tinh tế, hạ size để sang trọng hơn */}
-          <h1 className="text-4xl font-extralight tracking-wide uppercase text-neutral-800 dark:text-neutral-100">
-            Fresh{" "}
-            <span className="font-serif italic lowercase text-[#77cd3a] ml-1">
-              market
+          <h1 className="text-4xl text-[#77cd3a] font-extralight tracking-wide uppercase text-neutral-800 dark:text-neutral-100">
+            <span className="text-[#77cd3a] ml-1">
+              FreshMart
             </span>
           </h1>
 

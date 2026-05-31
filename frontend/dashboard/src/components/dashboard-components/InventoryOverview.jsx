@@ -3,7 +3,10 @@ import { motion } from "framer-motion";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux"; // 1. Import useSelector để lấy data từ Redux
-import { fetchAllProducts, restockProductLogs } from "../../store/slices/productsSlice";
+import {
+  fetchAllProducts,
+  restockProductLogs,
+} from "../../store/slices/productsSlice";
 import PurchaseOrderModal from "./PurchaseOrderModal";
 import { useState } from "react";
 
@@ -39,13 +42,16 @@ const InventoryOverview = () => {
     products.forEach((product) => {
       const stock = product.stock || 0;
       const price = product.price || 0;
-      const category = product.categoryName || "Uncategorized";
+
+      const category =
+        typeof product.category === "object" && product.category?.name
+          ? product.category.name
+          : product.categoryName || "Uncategorized";
 
       totalQty += stock;
       totalValue += stock * price;
       if (stock === 0) stockOutCount++;
 
-      // Gom nhóm số lượng theo danh mục (Category)
       if (!categoryData[category]) {
         categoryData[category] = 0;
       }
@@ -180,7 +186,7 @@ const InventoryOverview = () => {
               Attention Needed
             </span>
           </div>
-          <div >
+          <div>
             <table className="w-full text-left text-xs whitespace-nowrap">
               <thead>
                 <tr className="text-gray-400 font-black uppercase text-[10px] tracking-wider border-b border-gray-50">
@@ -201,10 +207,10 @@ const InventoryOverview = () => {
                       </td>
                       <td className="py-3.5">
                         <span className="px-2.5 py-0.5 rounded-xl font-bold text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100">
-                          {/* {typeof prod.category === "object"
+                          {typeof prod.category === "object"
                             ? prod.category.name
-                            : prod.category || "General"} */}
-                            {prod.categoryName}
+                            : prod.category || "General"}
+                          {/* {prod.categoryName} */}
                         </span>
                       </td>
                       <td
