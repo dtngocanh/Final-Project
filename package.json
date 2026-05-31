@@ -8,7 +8,7 @@
     "client": "cd frontend/client && npm run dev",
     "dashboard": "cd frontend/dashboard && npm run dev",
     "chat": "python backend/chat/chat_api.py",
-    "stripe": "cd backend/server && stripe listen --forward-to localhost:4000/api/payment/webhook",
+    "stripe": "cd backend/server && stripe listen --forward-to localhost:4000/payment/webhook",
     
     "all": "concurrently --kill-others \"npm run server\" \"npm run client\" \"npm run dashboard\" \"npm run chat\" \"npm run stripe\""
   },

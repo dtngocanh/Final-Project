@@ -1,5 +1,4 @@
 import Stripe from "stripe";
-
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
@@ -20,37 +19,51 @@ export const processStripeOrder = async (session) => {
       return existingOrder;
     }
 
-    // GET METADATA
-    const userId = session.metadata.userId;
-    const shippingInfo = JSON.parse(session.metadata.shippingInfo);
-    
-    // Mảng orderItems tối giản được lấy từ Stripe metadata (chỉ gồm: product, price, quantity)
-    const minimalistOrderItems = JSON.parse(session.metadata.orderItems);
+    const metadata = session.metadata || {};
 
-    const shippingPrice = Number(session.metadata.shippingFeeUSD || 0);
-    const shippingPriceVND = Number(session.metadata.shippingFeeVND || 0);
+    // 1. GET METADATA ( userId )
+    const userId = metadata.userId;
+
+    const shippingInfo = {
+      fullName: metadata.fullName || "N/A",
+      phone: metadata.phone || "N/A",
+      address: metadata.address || "N/A",
+      districtId: metadata.districtId ? Number(metadata.districtId) : undefined,
+      wardCode: metadata.wardCode || "",
+      country: metadata.country || "Vietnam",
+      provinceId: metadata.provinceId ? Number(metadata.provinceId) : 202
+    };
+
+    // 3. AN TOÀN CHO ORDER ITEMS
+    const rawOrderItems = metadata.orderItems
+      ? JSON.parse(metadata.orderItems)
+      : [];
+
+    const shippingPrice = Number(metadata.shippingFeeUSD || 0);
+    const shippingPriceVND = Number(metadata.shippingFeeVND || 0);
 
     // GET LINE ITEMS FROM STRIPE
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
 
-    // =================================================================
-    // FIX: TỰ ĐỘNG BÙ ĐẮP DỮ LIỆU 'NAME' VÀ 'IMAGE' TỪ DATABASE
-    // Do metadata bị giới hạn ký tự nên đã phải loại bỏ name/image từ trước khi gửi lên Stripe
-    // =================================================================
     const orderItems = [];
-    for (const item of minimalistOrderItems) {
-      const dbProduct = await Product.findById(item.product);
-      
+    for (const item of rawOrderItems) {
+      const productId = item.p || item.product;
+      const quantity = item.q || item.quantity;
+
+      const dbProduct = await Product.findById(productId);
+      const price = item.pr || item.price || (dbProduct ? dbProduct.price : 0);
+
       orderItems.push({
-        product: item.product,
-        quantity: item.quantity,
-        price: item.price,
-        // Điền lại dữ liệu chuẩn từ DB để lưu vào Model Order
+        product: productId,
+        quantity: quantity,
+        price: price,
         name: dbProduct ? dbProduct.name : "Unknown Product",
-        image: dbProduct && dbProduct.images?.[0]?.url ? dbProduct.images[0].url : "https://via.placeholder.com/150"
+        image:
+          dbProduct && dbProduct.images?.[0]?.url
+            ? dbProduct.images[0].url
+            : "https://via.placeholder.com/150",
       });
     }
-    // =================================================================
 
     // CALCULATE ITEMS PRICE
     const itemsPrice = orderItems.reduce(
@@ -64,29 +77,18 @@ export const processStripeOrder = async (session) => {
     // CREATE ORDER
     const order = await Order.create({
       user: userId && userId !== "GUEST_USER" ? userId : null,
-
-      orderItems, // Mảng orderItems đã được phục hồi đầy đủ name và image chuẩn
-
+      orderItems,
       shippingInfo,
-
       paymentInfo: {
         id: paymentIntentId,
-
         method: "Stripe",
-
         status: "Paid",
-
         paidAt: new Date(),
       },
-
       itemsPrice,
-
       shippingPrice,
-
       shippingPriceVND,
-
       totalPrice,
-
       orderStatus: "Processing",
     });
 
@@ -96,11 +98,9 @@ export const processStripeOrder = async (session) => {
         filter: {
           _id: item.product,
         },
-
         update: {
           $inc: {
             stock: -item.quantity,
-
             salesCount: item.quantity,
           },
         },
