@@ -60,10 +60,11 @@ export const productList = async (req, res, next) => {
       query.category = { $in: cateIds };
     }
 
-    // Execute the database query with population and sorting
     const products = await Product.find(query)
+      .select("name description price images category stock ratings")
       .populate("category", "name parent level")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     // Return the response to the client
     res.json({
@@ -115,7 +116,7 @@ export const searchProducts = async (req, res) => {
       const categoryIds = await getCategoryIdsWithSub(categoryId);
       pipeline.push({
         $match: {
-          category: { $in: categoryIds }, 
+          category: { $in: categoryIds },
         },
       });
     }
@@ -154,12 +155,11 @@ export const productById = async (req, res, next) => {
     let relatedProducts = [];
     let recipeRelatedProducts = [];
 
-
     // 5. Send unified response back to the client
     res.json({
       success: true,
       product: product,
-     });
+    });
   } catch (error) {
     next(error);
   }
@@ -276,8 +276,6 @@ export const changeStock = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
-
-
 
 // TUI LM LỎ LỎ
 // import product list
