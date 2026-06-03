@@ -8,6 +8,8 @@ import {
   ChevronRight,
   Star,
   Leaf,
+  Carrot,
+  Citrus,
 } from "lucide-react";
 import FloatingDecor from "../Fruit/FloatingDecor.jsx";
 import { useCartActions } from "../../hooks/useCartActions";
@@ -26,7 +28,6 @@ const RecommendSlider = () => {
     dispatch(fetchRecommendations());
   }, [dispatch]);
 
-  // FILTER VALID PRODUCTS
   const products = useMemo(() => {
     return (list || []).filter((p) => p && p._id && p.stock > 0);
   }, [list]);
@@ -34,8 +35,7 @@ const RecommendSlider = () => {
   const scroll = (direction) => {
     if (scrollRef.current) {
       const clientWidth = scrollRef.current.clientWidth;
-      const amount =
-        direction === "left" ? -clientWidth * 0.75 : clientWidth * 0.75;
+      const amount = direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
 
       scrollRef.current.scrollBy({
         left: amount,
@@ -44,234 +44,216 @@ const RecommendSlider = () => {
     }
   };
 
+  // ĐÃ SỬA: Tối ưu responsive hoàn hảo cho Tag biến động theo kích thước card
+  const renderProductTag = (product) => {
+    let tagText = product.tag;
+    let tagClass = "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
+
+    if (!tagText) {
+      if (product.discount > 0) {
+        tagText = `-${product.discount}%`;
+        tagClass = "bg-rose-500 text-white font-medium";
+      } else if (product.ratings >= 4.8) {
+        // Sử dụng cấu trúc hiển thị thông minh: mobile hiện "Best", desktop hiện "Best Seller"
+        tagText = (
+          <>
+            <span className="inline sm:hidden">Best</span>
+            <span className="hidden sm:inline">Best Seller</span>
+          </>
+        );
+        tagClass = "bg-[#77cd3a] text-white font-medium";
+      } else {
+        return null;
+      }
+    }
+
+    return (
+      <span className={`absolute top-2 right-2 sm:top-3 sm:right-3 z-10 px-1.5 py-0.5 sm:px-2.5 rounded-full text-[8px] sm:text-[9px] font-bold tracking-wider sm:tracking-wide uppercase select-none shadow-xs backdrop-blur-md max-w-[70px] sm:max-w-none truncate text-center ${tagClass}`}>
+        {tagText}
+      </span>
+    );
+  };
+
   if (!isLoading && products.length === 0) return null;
 
   return (
-    <section className="relative py-10 md:py-20 bg-white dark:bg-[#020202] overflow-hidden transition-colors duration-1000">
+    <section className="relative py-12 md:py-20 bg-white dark:bg-[#020202] overflow-hidden transition-colors duration-1000">
       <FloatingDecor />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 relative z-10">
+        
         {/* HEADER */}
-        {/* <div className="flex flex-col items-center mb-8 md:mb-14 text-center space-y-4">
-          <div className="flex flex-col items-center">
-            <div className="relative mb-3">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{
-                  duration: 12,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-                className="absolute -inset-1.5 border border-dashed border-[#77cd3a]/30 rounded-full pointer-events-none"
-              />
-              <img
-                src="/logohaha.png"
-                alt="logo"
-                className="w-8 h-8 md:w-10 md:h-10 object-contain relative z-10"
-              />
-            </div>
-            <span className="text-[9px] font-bold tracking-[0.5em] text-[#77cd3a] uppercase select-none">
-              Personalized Picks
-            </span>
-          </div>
-
-          <div className="relative max-w-2xl mx-auto">
-            <h3 className="text-2xl md:text-5xl font-extralight tracking-tight text-gray-950 dark:text-white leading-tight">
-              <span className="flex items-center justify-center gap-3 font-serif italic text-neutral-400 dark:text-neutral-500 select-none">
-                <span className="h-[1px] w-6 md:w-12 bg-neutral-200 dark:bg-white/10" />
-                Just for you
-                <span className="h-[1px] w-6 md:w-12 bg-neutral-200 dark:bg-white/10" />
-              </span>
-            </h3>
-          </div>
-        </div> */}
         <div className="flex flex-col items-center mb-10 md:mb-16 text-center select-none">
-          {/* KHU VỰC LOGO & BADGE GỢI Ý */}
-          <div className="flex flex-col items-center mb-5">
-            <div className="relative w-12 h-12 md:w-14 md:h-14 flex items-center justify-center mb-3">
-              {/* VÒNG GLOW SANG TRỌNG CHẠY QUANH LOGO THAY CHO NÉT ĐỨT CŨ */}
+          <div className="flex flex-col items-center mb-4">
+            <div className="relative w-12 h-12 flex items-center justify-center mb-2">
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{
-                  duration: 6,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-[#77cd3a]/40 via-[#77cd3a]/5 to-transparent p-[1.5px] pointer-events-none mask-composite"
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-[#77cd3a]/30 via-transparent to-transparent p-[1px]"
                 style={{
-                  WebkitMask:
-                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                   WebkitMaskComposite: "xor",
                   maskComposite: "exclude",
                 }}
               />
-
-              {/* Hiệu ứng đập nhẹ nhàng theo nhịp thở tăng độ sinh động */}
-              <motion.div
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="absolute inset-1.5 rounded-full bg-[#77cd3a]/5 dark:bg-[#77cd3a]/10 blur-sm pointer-events-none"
-              />
-
-              <img
-                src="/logohaha.png"
-                alt="logo"
-                className="w-8 h-8 md:w-9 md:h-9 object-contain relative z-10"
-              />
+              <img src="/logohaha.png" alt="logo" className="w-6 h-6 object-contain relative z-10" />
             </div>
-
-            {/* TEXT BADGE - GIẢM SPACING ĐỂ KHÔNG BỊ RỜI RẠC */}
-            <span className="text-[10px] font-bold tracking-[0.35em] text-[#77cd3a] uppercase">
+            <span className="text-[10px] font-bold tracking-[0.3em] text-[#77cd3a] uppercase">
               Personalized Picks
             </span>
           </div>
 
-          {/* TIÊU ĐỀ CHÍNH "JUST FOR YOU" ĐƯỢC THIẾT KẾ LẠI */}
-          <div className="relative max-w-2xl mx-auto w-full">
-            <h3 className="text-3xl md:text-5xl font-extrabold tracking-tight text-gray-950 dark:text-white leading-tight flex items-center justify-center gap-4">
-              {/* THANH GẠCH TRÁI - TINH CHỈNH ĐỘ DÀY VÀ BO TRÒN */}
-              <span className="h-[2px] w-8 md:w-16 bg-gradient-to-r from-transparent to-neutral-300 dark:to-neutral-700 rounded-full hidden sm:block" />
-
-              {/* CHỮ CHÍNH ĐỔ GRADIENT SANG TRỌNG */}
-              <span className="bg-gradient-to-b from-neutral-950 via-neutral-800 to-neutral-700 dark:from-white dark:via-neutral-200 dark:to-neutral-400 bg-clip-text text-transparent font-fredoka">
-                Just for you
-              </span>
-
-              {/* THANH GẠCH PHẢI */}
-              <span className="h-[2px] w-8 md:w-16 bg-gradient-to-l from-transparent to-neutral-300 dark:to-neutral-700 rounded-full hidden sm:block" />
+          <div className="relative max-w-2xl mx-auto w-full space-y-2">
+            <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-neutral-950 dark:text-white flex items-center justify-center gap-3">
+              <span className="h-[1px] w-6 md:w-12 bg-neutral-200 dark:bg-neutral-800 rounded-full hidden sm:block" />
+              <span className="font-fredoka text-neutral-900 dark:text-neutral-100">Just for you</span>
+              <span className="h-[1px] w-6 md:w-12 bg-neutral-200 dark:bg-neutral-800 rounded-full hidden sm:block" />
             </h3>
-
-            {/* THÊM MỘT DÒNG SUBTITLE NHỎ CHO ĐỠ BỊ TRỐNG TRẢI */}
-            <p className="text-[11px] md:text-xs text-neutral-400 dark:text-neutral-500 font-medium tracking-wide mt-2 max-w-sm mx-auto">
-              Products are recommended based on your preferences.
+            
+            <p className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 max-w-md mx-auto font-normal leading-relaxed tracking-wide">
+              Handpicked organic products tailored to your healthy lifestyle.
             </p>
           </div>
         </div>
 
-        {/* SLIDER CONTAINER */}
+        {/* SLIDER WRAPPER */}
         <div className="relative group/slider">
-          {/* LEFT BUTTON (Desktop only) */}
-          <div className="absolute top-[42%] -left-4 z-20 hidden md:block opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300">
-            <button
-              onClick={() => scroll("left")}
-              className="p-3 rounded-full bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md text-neutral-600 dark:text-neutral-300 hover:text-[#77cd3a] shadow-md border border-neutral-100 dark:border-white/5 transition-all"
-              aria-label="Scroll Left"
-            >
-              <ChevronLeft size={22} strokeWidth={2} />
-            </button>
-          </div>
+          
+          {/* NAVIGATION BUTTONS */}
+          <button
+            onClick={() => scroll("left")}
+            className="absolute top-1/2 -left-5 -translate-y-1/2 z-20 hidden lg:flex p-2.5 rounded-full bg-white dark:bg-neutral-950 shadow-md border border-neutral-200/50 dark:border-neutral-800 text-neutral-500 hover:text-[#77cd3a] opacity-0 group-hover/slider:opacity-100 transition-all duration-300"
+            aria-label="Scroll Left"
+          >
+            <ChevronLeft size={18} strokeWidth={2} />
+          </button>
 
-          {/* RIGHT BUTTON (Desktop only) */}
-          <div className="absolute top-[42%] -right-4 z-20 hidden md:block opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300">
-            <button
-              onClick={() => scroll("right")}
-              className="p-3 rounded-full bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md text-neutral-600 dark:text-neutral-300 hover:text-[#77cd3a] shadow-md border border-neutral-100 dark:border-white/5 transition-all"
-              aria-label="Scroll Right"
-            >
-              <ChevronRight size={22} strokeWidth={2} />
-            </button>
-          </div>
+          <button
+            onClick={() => scroll("right")}
+            className="absolute top-1/2 -right-5 -translate-y-1/2 z-20 hidden lg:flex p-2.5 rounded-full bg-white dark:bg-neutral-950 shadow-md border border-neutral-200/50 dark:border-neutral-800 text-neutral-500 hover:text-[#77cd3a] opacity-0 group-hover/slider:opacity-100 transition-all duration-300"
+            aria-label="Scroll Right"
+          >
+            <ChevronRight size={18} strokeWidth={2} />
+          </button>
 
-          {/* GRID MULTI-ROW SLIDER */}
+          {/* SLIDER CONTENT */}
           <div
             ref={scrollRef}
-            className="mobile-slider grid grid-flow-col grid-rows-2 gap-x-4 gap-y-6 md:gap-x-[24px] md:gap-y-[32px] overflow-x-auto pb-6 px-1"
+            className="mobile-slider grid grid-flow-col grid-rows-1 md:grid-rows-2 gap-4 md:gap-6 overflow-x-auto pb-6 pt-2 px-1"
           >
             {products.map((product) => (
               <div
                 key={product._id}
-                className="mobile-card flex-shrink-0 group/card"
+                className="w-[155px] sm:w-[185px] md:w-[225px] lg:w-[245px] flex-shrink-0 snap-start group/card h-full"
               >
-                {/* FIX CHIỀU CAO FLEXBOX ĐỒNG ĐỀU */}
-                <div className="relative flex flex-col h-full bg-neutral-50 dark:bg-neutral-900/30 border border-neutral-100 dark:border-white/5 rounded-[2rem] overflow-hidden transition-all duration-300 group-hover/card:bg-white dark:group-hover/card:bg-neutral-800/40 group-hover/card:shadow-xl group-hover/card:shadow-black/[0.02]">
-                  {/* UPPER PART: IMAGE AREA WITH STABLE HEIGHT */}
-                  <div className="relative w-full aspect-square md:p-5 p-4 flex items-center justify-center bg-neutral-100/30 dark:bg-neutral-900/40 rounded-t-[2rem]">
-                    {/* RATING BADGE */}
-                    <div className="absolute top-4 left-4 z-10 flex items-center gap-1 bg-white/95 dark:bg-neutral-900/95 px-2 py-1 rounded-full border border-neutral-100 dark:border-white/5 backdrop-blur-sm select-none">
-                      <Star
-                        size={10}
-                        fill="#77cd3a"
-                        className="text-[#77cd3a]"
-                      />
-                      <span className="text-[10px] font-bold text-neutral-500 dark:text-neutral-300">
-                        {product.ratings?.toFixed(1) || "0.0"}
-                      </span>
+                {/* CONTAINER CARD */}
+                <div className="flex flex-col h-full bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800/60 rounded-2xl md:rounded-[1.75rem] overflow-hidden transition-all duration-400 ease-out hover:border-[#77cd3a]/40 hover:shadow-[0_20px_40px_rgba(119,205,58,0.08)] relative">
+                  
+                  {/* BACKGROUND GRADIENT */}
+                  <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-[#77cd3a]/4 via-transparent to-transparent group-hover/card:from-[#77cd3a]/18 group-hover/card:via-[#77cd3a]/4 transition-all duration-500 pointer-events-none z-0" />
+                  
+                  {/* HỆ THỐNG ICON RAU CỦ TRÔI NỔI NGHỆ THUẬT */}
+                  <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-all duration-700 pointer-events-none z-10 overflow-hidden">
+                    <div className="absolute bottom-14 -left-1 w-5 h-5 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 -rotate-12 transform group-hover/card:animate-float-slow">
+                      <Carrot size={18} />
+                    </div>
+                    
+                    <div className="absolute top-1/2 -right-2 w-5 h-5 text-[#77cd3a]/20 dark:text-[#77cd3a]/10 rotate-45 transform group-hover/card:animate-float-fast">
+                      <Citrus size={16} />
+                    </div>
+                    
+                    <div className="absolute top-16 left-2 w-4 h-4 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 rotate-12 transform group-hover/card:animate-float-medium">
+                      <Leaf size={14} fill="currentColor" />
                     </div>
 
-                    {/* PRODUCT IMAGE LINK - FIX CENTER & SCALE */}
+                    <div className="absolute bottom-16 right-3 w-1.5 h-1.5 rounded-full bg-[#77cd3a]/30 group-hover/card:animate-pulse" />
+                  </div>
+
+                  {/* UPPER PART: IMAGE BOX */}
+                  <div className="relative w-full aspect-[4/3] md:aspect-square p-3 sm:p-4 md:p-5 flex items-center justify-center rounded-t-2xl md:rounded-t-[1.75rem] overflow-hidden z-10">
+                    
+                    {/* RATING BADGE */}
+                    <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 flex items-center gap-0.5 bg-white/90 dark:bg-neutral-950/90 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-neutral-600 dark:text-neutral-400 border border-neutral-200/30 dark:border-neutral-800/50 backdrop-blur-md">
+                      <Star size={8} fill="#77cd3a" className="text-[#77cd3a]" />
+                      <span>{product.ratings?.toFixed(1) || "0.0"}</span>
+                    </div>
+
+                    {/* DYNAMIC STATUS TAG */}
+                    {renderProductTag(product)}
+
+                    {/* PRODUCT IMAGE */}
                     <Link
                       to={`/product/${product._id}`}
-                      className="w-full h-full flex items-center justify-center overflow-hidden"
+                      className="w-full h-full flex items-center justify-center p-2 relative z-10"
                     >
                       <img
-                        src={
-                          product.images?.[0]?.url ||
-                          product.image ||
-                          "/placeholder.png"
-                        }
+                        src={product.images?.[0]?.url || product.image || "/placeholder.png"}
                         alt={product.name}
-                        className="max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out md:group-hover/card:scale-105"
+                        className="max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-screen dark:invert"
                         loading="lazy"
                       />
                     </Link>
 
-                    {/* QUICK ADD TO CART */}
+                    {/* QUICK ADD TO CART BUTTON */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         handleCartAction(product, "ADD", 1);
                       }}
-                      className="absolute bottom-4 right-4 w-9 h-9 md:w-10 md:h-10 bg-gray-900 dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center shadow-md md:translate-y-2 md:opacity-0 md:group-hover/card:translate-y-0 md:group-hover/card:opacity-100 transition-all duration-300 hover:!bg-[#77cd3a] hover:!text-white z-20"
+                      className="absolute bottom-3 right-3 w-8 h-8 md:w-9 md:h-9 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full flex items-center justify-center shadow-xs md:opacity-0 group-hover/card:opacity-100 transition-all duration-300 hover:!bg-[#77cd3a] hover:!text-white z-20"
                       aria-label="Add to cart"
                     >
-                      <Plus size={16} />
+                      <Plus size={14} strokeWidth={2.5} />
                     </button>
                   </div>
 
-                  {/* LOWER PART: TEXT INFO AREA (Đẩy xuống đáy đồng bộ) */}
-                  <div className="p-4 pt-2 flex flex-col items-center text-center justify-between flex-grow">
-                    <div className="w-full">
-                      <h4 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1 truncate w-full group-hover/card:text-[#77cd3a] transition-colors duration-200">
-                        {product.name}
-                      </h4>
-
-                      <div className="flex items-center justify-center gap-1 text-[9px] uppercase tracking-wider text-[#77cd3a] mb-2 font-medium select-none w-full">
-                        <Leaf size={9} className="flex-shrink-0" />
-                        <span className="truncate max-w-[150px]">
-                          {product.reason || "For you"}
+                  {/* LOWER PART: INFOS */}
+                  <div className="p-3 sm:p-4 flex flex-col justify-between flex-1 min-h-[95px] md:min-h-[110px] relative z-20 bg-transparent">
+                    <div className="w-full space-y-1">
+                      {/* WHY RECOMMEND TAG */}
+                      <div className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-semibold">
+                        <Leaf size={8} className="text-[#77cd3a] flex-shrink-0" />
+                        <span className="truncate max-w-full">
+                          {product.reason || "Organic Pick"}
                         </span>
                       </div>
+
+                      {/* PRODUCT NAME */}
+                      <h4 className="text-xs md:text-sm font-semibold text-neutral-800 dark:text-neutral-200 tracking-tight truncate transition-colors duration-200 group-hover/card:text-neutral-950 dark:group-hover/card:text-white">
+                        {product.name}
+                      </h4>
                     </div>
 
-                    <span className="text-xs md:text-sm font-bold text-neutral-600 dark:text-neutral-400 mt-auto">
-                      ${Number(product.price || 0).toFixed(2)}
-                    </span>
+                    {/* PRICE ROW */}
+                    <div className="pt-2 mt-auto border-t border-neutral-100 dark:border-neutral-800/40 flex items-center justify-between">
+                      <span className="text-xs md:text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                        ${Number(product.price || 0).toFixed(2)}
+                      </span>
+                      
+                      <span className="text-[10px] font-semibold text-[#77cd3a] opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 hidden sm:inline-block">
+                        Detail →
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
 
             {/* SHOW ALL BLOCK */}
-            <div className="flex-shrink-0 w-[140px] row-span-2 flex flex-col items-center justify-center snap-start pl-4">
-              <Link
-                to="/products"
-                className="group/all flex flex-col items-center gap-2"
-              >
-                <div className="w-12 h-12 rounded-full border border-dashed border-neutral-300 dark:border-neutral-700 flex items-center justify-center group-hover/all:border-[#77cd3a] transition-colors">
+            <div className="flex-shrink-0 w-[110px] sm:w-[130px] flex flex-col items-center justify-center snap-start pl-2 md:row-span-2">
+              <Link to="/products" className="group/all flex flex-col items-center gap-1.5">
+                <div className="w-9 h-9 md:w-11 md:h-11 rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 flex items-center justify-center group-hover/all:border-[#77cd3a] group-hover/all:bg-[#77cd3a]/5 transition-all duration-300">
                   <ArrowRight
-                    size={18}
+                    size={14}
                     className="text-neutral-400 group-hover/all:text-[#77cd3a] transition-transform group-hover/all:translate-x-0.5"
                   />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 group-hover/all:text-[#77cd3a] select-none text-center">
-                  Show All
+                <span className="text-[9px] font-bold uppercase tracking-widest text-neutral-400 group-hover/all:text-[#77cd3a] select-none text-center">
+                  View All
                 </span>
               </Link>
             </div>
+
           </div>
         </div>
       </div>
@@ -282,51 +264,29 @@ const RecommendSlider = () => {
           scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch; 
           touch-action: pan-x; 
+          scrollbar-width: none;
+          -ms-overflow-style: none;
         }
-        
         .mobile-slider::-webkit-scrollbar {
           display: none; 
         }
         
-        .mobile-slider {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        @keyframes floatSlow {
+          0%, 100% { transform: translateY(0px) rotate(-12deg); }
+          50% { transform: translateY(-7px) rotate(-18deg); }
+        }
+        @keyframes floatMedium {
+          0%, 100% { transform: translateY(0px) translateX(0px) rotate(12deg); }
+          50% { transform: translateY(-5px) translateX(4px) rotate(8deg); }
+        }
+        @keyframes floatFast {
+          0%, 100% { transform: translateY(0px) rotate(45deg); }
+          50% { transform: translateY(-9px) rotate(35deg); }
         }
 
-        /* RESPONSIVE LAYOUT */
-        @media (max-width: 349px) {
-          .mobile-card {
-            width: 165px;
-            height: 250px;
-          }
-        }
-
-        @media (min-width: 350px) and (max-width: 767px) {
-          .mobile-card {
-            scroll-snap-align: start;
-            width: 185px; 
-            height: 275px;
-            will-change: transform;
-            transform: translateZ(0); 
-          }
-        }
-
-        @media (min-width: 768px) and (max-width: 1023px) {
-          .mobile-card {
-            scroll-snap-align: start;
-            width: 220px;
-            height: 315px;
-          }
-        }
-
-        /* TỐI ƯU CỰC ĐẸP CHO ĐỒNG ĐỀU TRÊN DESKTOP */
-        @media (min-width: 1024px) {
-          .mobile-card {
-            scroll-snap-align: start;
-            width: 245px; 
-            height: 345px; /* Khóa cứng chiều cao tổng thể của Card */
-          }
-        }
+        .animate-float-slow { animation: floatSlow 4.5s ease-in-out infinite; }
+        .animate-float-medium { animation: floatMedium 3.5s ease-in-out infinite; }
+        .animate-float-fast { animation: floatFast 2.8s ease-in-out infinite; }
       `}</style>
     </section>
   );

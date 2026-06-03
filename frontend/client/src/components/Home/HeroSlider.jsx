@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { Sparkles, MoveRight } from "lucide-react";
 
 const slides = [
   {
@@ -11,13 +11,13 @@ const slides = [
     slideNum: "01",
     description: "Cold-pressed essence from sun-drenched Mediterranean groves.",
     productImg: "/cabage.png",
-    bgLight: "linear-gradient(135deg, #fdfcfb 0%, #f4f9f0 100%)",
-    bgDark: "radial-gradient(circle at 50% 50%, #232b1d 0%, #212020 100%)",
+    bgLight: "radial-gradient(circle at 50% 50%, #f6fbf3 0%, #ebf5e4 100%)",
+    bgDark: "radial-gradient(circle at 50% 50%, #11180c 0%, #040504 100%)",
     accent: "#77cd3a",
     decors: [
-      { img: "/kale.png", t: "10%", l: "15%", s: 50 },
-      { img: "/xalach.png", b: "10%", r: "15%", s: 90 },
-      { img: "/broli.png", t: "50%", l: "5%", s: 40, blur: "1px" },
+      { img: "/kale.png", t: "10%", l: "15%", s: 60, targetX: -40, targetY: -40 },
+      { img: "/xalach.png", b: "12%", r: "15%", s: 85, targetX: 50, targetY: 50 },
+      { img: "/broli.png", t: "65%", l: "10%", s: 50, targetX: -50, targetY: 30 }
     ],
   },
   {
@@ -27,234 +27,248 @@ const slides = [
     slideNum: "02",
     description: "A burst of antioxidants gathered from deep misty mountains.",
     productImg: "/staw.png",
-    bgLight: "linear-gradient(135deg, #fff5f5 0%, #fff0f6 100%)",
-    bgDark: "linear-gradient(135deg, #21171a 0%, #1a1010 100%)",
+    bgLight: "radial-gradient(circle at 50% 50%, #fff0f3 0%, #ffdeee 100%)",
+    bgDark: "radial-gradient(circle at 50% 50%, #1e0b0e 0%, #050203 100%)",
     accent: "#ff4d6d",
     decors: [
-      { img: "/berry.png", t: "8%", r: "20%", s: 60 },
-      {
-        img: "/staw.png",
-        b: "8%",
-        l: "12%",
-        s: 55,
-      },
-      { img: "/cheri1.png", t: "45%", l: "12%", s: 40 },
-      { img: "/cheri2.png", t: "10%", r: "70%", s: 80 },
-      { img: "/cheri2.png", b: "10%", l: "70%", s: 40 },
-      { img: "/cheri1.png", b: "40%", r: "-10%", s: 70 },
+      { img: "/berry.png", t: "8%", r: "18%", s: 55, targetX: 40, targetY: -40 },
+      { img: "/staw.png", b: "10%", l: "15%", s: 50, targetX: -40, targetY: 40 },
+      { img: "/cheri1.png", t: "60%", l: "12%", s: 45, targetX: -40, targetY: -10 }
     ],
   },
   {
     id: 3,
-    title: "Citrus",
-    serifTitle: "Energy",
+    title: "Prime",
+    serifTitle: "Cuts",
     slideNum: "03",
-    description:
-      "Pure sunshine in a bottle, designed to revitalize your ritual.",
-    productImg: "/123orange.png",
-    bgLight: "linear-gradient(135deg, #fff9e6 0%, #fff4cc 100%)",
-    bgDark: "linear-gradient(135deg, #252114 0%, #271a1a 100%)",
-    accent: "#f9a825",
+    description: "Premium, sustainably sourced cuts rich in protein and flavor.",
+    productImg: "/meat123.png",
+    bgLight: "radial-gradient(circle at 50% 50%, #fdf5f5 0%, #f5e1e1 100%)",
+    bgDark: "radial-gradient(circle at 50% 50%, #240a0c 0%, #060102 100%)",
+    accent: "#e63946",
     decors: [
-      { img: "/quat.png", t: "10%", l: "12%", s: 70 },
-      { img: "/slice.png", b: "10%", r: "12%", s: 80 },
-      { img: "/mango.png", t: "50%", l: "5%", s: 60 },
+      { img: "/meat.png", t: "12%", r: "16%", s: 60, targetX: 40, targetY: -40 },
+      { img: "/bacon.png", b: "14%", l: "14%", s: 45, targetX: -40, targetY: 40 },
+      { img: "/chicken.png", t: "65%", l: "12%", s: 45, targetX: -50, targetY: 20 }
     ],
   },
+  {
+    id: 4,
+    title: "Eco",
+    serifTitle: "Parcel",
+    slideNum: "04",
+    description: "Thoughtfully crafted gift packages wrapped in 100% biodegradable materials.",
+    productImg: "/bg1.png",
+    bgLight: "radial-gradient(circle at 50% 50%, #fbf9f5 0%, #f1ebe1 100%)",
+    bgDark: "radial-gradient(circle at 50% 50%, #1a1610 0%, #050403 100%)",
+    accent: "#dda15e",
+    decors: [
+      { img: "/lemon.png", t: "8%", l: "15%", s: 50, targetX: -40, targetY: -40 },
+      { img: "/melon.png", b: "12%", r: "18%", s: 60, targetX: 40, targetY: 40 },
+      { img: "/milk.png", t: "35%", r: "12%", s: 45, targetX: 50, targetY: 0 }
+    ],
+  }
 ];
 
-const InteractiveFruit = ({ item, mousePos, index }) => {
-  const [isClicked, setIsClicked] = useState(false);
-  const handlePop = () => {
-    if (isClicked) return;
-    setIsClicked(true);
-    setTimeout(() => setIsClicked(false), 800);
-  };
-
-  return (
-    <motion.div
-      className="absolute z-20 cursor-pointer touch-none select-none"
-      style={{
-        top: item.t,
-        right: item.r,
-        bottom: item.b,
-        left: item.l,
-        filter: item.blur || "none",
-      }}
-      animate={{
-        x: mousePos.x * (index % 2 === 0 ? 0.015 : -0.015),
-        y: [0, -10, 0],
-      }}
-      transition={{
-        y: { duration: 4 + index, repeat: Infinity, ease: "easeInOut" },
-      }}
-      onClick={handlePop}
-    >
-      <motion.img
-        src={item.img}
-        className="drop-shadow-lg"
-        style={{ width: item.s }}
-        animate={
-          isClicked
-            ? {
-                scale: [1, 1.4, 0.8, 1.2, 1],
-                y: [0, -50, 10, -5, 0],
-                rotate: [0, 15, -15, 0],
-              }
-            : {}
-        }
-      />
-    </motion.div>
-  );
-};
+// Trục chuyển cảnh mượt mà có độ lướt quán tính cao cấp
+const fluidTransition = { type: "tween", ease: [0.25, 1, 0.5, 1], duration: 0.85 };
 
 const HeroSlider = () => {
   const [current, setCurrent] = useState(0);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    const checkDark = () =>
-      setIsDark(document.documentElement.classList.contains("dark"));
+    const checkDark = () => setIsDark(document.documentElement.classList.contains("dark"));
     checkDark();
     const observer = new MutationObserver(checkDark);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
   }, []);
 
+  // Tự động thay đổi slide sau mỗi 5 giây
   useEffect(() => {
-    const timer = setInterval(
-      () => setCurrent((prev) => (prev + 1) % slides.length),
-      7000,
-    );
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % slides.length);
+    }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [current]);
 
   const slide = slides[current];
 
   return (
-    <motion.div
-      onMouseMove={(e) =>
-        setMousePos({
-          x: e.clientX - window.innerWidth / 2,
-          y: e.clientY - window.innerHeight / 2,
-        })
-      }
-      className="relative w-full h-[70vh] min-h-[550px] overflow-hidden transition-all duration-1000 my-4 rounded-[2.5rem] mx-auto max-w-[95%] shadow-xl border border-white/20 dark:border-white/5"
+    <div 
+      className="relative w-full h-[60vh] min-h-[480px] lg:h-[65vh] lg:min-h-[520px] overflow-hidden my-4 sm:my-6 rounded-[2.5rem] mx-auto max-w-[96%] shadow-[0_25px_60px_rgba(0,0,0,0.02)] dark:shadow-[0_30px_70px_rgba(0,0,0,0.35)] border border-neutral-200/50 dark:border-neutral-900/30 select-none transform-gpu transition-colors duration-1000"
       style={{ background: isDark ? slide.bgDark : slide.bgLight }}
     >
-      {/* Subtle Glow */}
-      <motion.div
-        animate={{ backgroundColor: slide.accent }}
-        className="absolute -top-20 -right-20 w-[400px] h-[400px] rounded-full blur-[100px] opacity-10 dark:opacity-20 pointer-events-none"
-      />
+      {/* SỐ WATERMARK NỀN - ĐÃ ĐƯỢC LÀM ĐẬM HƠN ĐỂ ĐỦ THẤY RÕ RÀNG */}
+      <AnimatePresence mode="wait">
+        <motion.div 
+          key={slide.id}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: isDark ? 0.18 : 0.12, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.02 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
+          className="absolute right-6 bottom-0 z-0 pointer-events-none select-none font-black text-[10rem] sm:text-[15rem] lg:text-[20rem] leading-none tracking-tighter transform-gpu font-sans"
+          style={{ color: slide.accent }}
+        >
+          {slide.slideNum}
+        </motion.div>
+      </AnimatePresence>
 
-      {/* Pagination - Dots nhỏ gọn */}
-      <div className="absolute left-6 top-1/2 -translate-y-1/2 z-30 hidden sm:flex flex-col gap-4">
+      {/* DOTS ĐIỀU HƯỚNG */}
+      <div className="absolute left-6 lg:left-10 top-1/2 -translate-y-1/2 z-30 hidden md:flex flex-col gap-4">
         {slides.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrent(i)}
-            className="group py-2 outline-none"
+          <button 
+            key={i} 
+            onClick={() => setCurrent(i)} 
+            className="group relative py-2 outline-none cursor-pointer"
           >
-            <div
-              className={`h-[2px] transition-all duration-500 rounded-full ${current === i ? "w-8 bg-slate-800 dark:bg-white" : "w-3 bg-slate-300 dark:bg-slate-700"}`}
+            <div 
+              className={`h-[5px] rounded-full transition-all duration-500 ${current === i ? "w-10" : "w-3 bg-neutral-300 dark:bg-neutral-800 group-hover:w-6"}`} 
+              style={{ backgroundColor: current === i ? slide.accent : undefined }}
             />
           </button>
         ))}
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-6 md:px-16 h-full grid grid-cols-1 lg:grid-cols-2 items-center relative z-10 py-8 lg:py-0">
-        {/* TEXT CONTENT */}
-        <div className="order-2 lg:order-1 text-center lg:text-left">
+      {/* BỐ CỤC CHÍNH */}
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-12 lg:px-24 h-full grid grid-cols-1 lg:grid-cols-12 items-center relative z-10 py-6 lg:py-0">
+        
+        {/* ================= KHU VỰC CHỮ VỚI HIỆU ỨNG TIÊU ĐỀ TRƯỢT CUỐN CHIẾU ================= */}
+        <div className="lg:col-span-5 order-2 lg:order-1 text-center lg:text-left relative z-20 mt-4 lg:mt-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={slide.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.5 }}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="will-change-transform"
             >
-              <div
-                className="inline-block px-3 py-1 rounded-full mb-4 backdrop-blur-sm"
-                style={{
-                  backgroundColor: `${slide.accent}15`,
-                  color: slide.accent,
-                }}
+              {/* Badge nhỏ */}
+              <motion.div
+                variants={{ initial: { opacity: 0, y: 15 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -10 } }}
+                transition={fluidTransition}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full mb-3 backdrop-blur-md bg-neutral-900/5 dark:bg-white/5 border border-neutral-950/10 dark:border-white/10 text-neutral-800 dark:text-neutral-200"
               >
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase">
-                  {slide.slideNum} // Selection
-                </span>
-              </div>
+                <Sparkles size={11} className="animate-pulse" style={{ color: slide.accent }} />
+                <span className="text-[9px] font-black tracking-[0.25em] uppercase">FRESH CHOICE {slide.slideNum}</span>
+              </motion.div>
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-slate-900 dark:text-white leading-tight mb-4">
-                {slide.title} <br />
-                <span
-                  className="font-serif italic"
+              {/* TIÊU ĐỀ SẢN PHẨM: Trượt cuộn lên (Masked Slide Up) tạo cảm giác cuộn đồ liên mạch */}
+              <h1 className="text-4xl sm:text-6xl lg:text-[4.5rem] font-extralight tracking-tight text-neutral-950 dark:text-white leading-[0.95] mb-4 overflow-hidden py-1">
+                <motion.span 
+                  className="block"
+                  variants={{ 
+                    initial: { y: "100%", opacity: 0 }, 
+                    animate: { y: 0, opacity: 1 }, 
+                    exit: { y: "-100%", opacity: 0 } 
+                  }}
+                  transition={{ ...fluidTransition, delay: 0.01 }}
+                >
+                  {slide.title}
+                </motion.span>
+                <motion.span 
+                  className="font-serif italic font-normal block pl-1" 
                   style={{ color: slide.accent }}
+                  variants={{ 
+                    initial: { y: "100%", opacity: 0 }, 
+                    animate: { y: 0, opacity: 1 }, 
+                    exit: { y: "-100%", opacity: 0 } 
+                  }}
+                  transition={{ ...fluidTransition, delay: 0.05 }}
                 >
                   {slide.serifTitle}
-                </span>
+                </motion.span>
               </h1>
 
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-8 max-w-[280px] mx-auto lg:mx-0 leading-relaxed">
-                {slide.description}
-              </p>
-
-              <Link
-                to="/products"
-                className="group inline-flex items-center gap-4 bg-white dark:bg-slate-800 px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all active:scale-95"
+              {/* Đoạn mô tả ngắn */}
+              <motion.p 
+                variants={{ initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -15 } }}
+                transition={{ ...fluidTransition, delay: 0.1 }}
+                className="text-[11px] sm:text-xs lg:text-sm text-neutral-500 dark:text-neutral-400 font-normal mb-6 max-w-[280px] sm:max-w-[350px] mx-auto lg:mx-0 leading-relaxed"
               >
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800 dark:text-white">
-                  Explore
-                </span>
-                <ArrowRight
-                  size={16}
-                  className="text-slate-400 group-hover:translate-x-1 transition-transform"
-                />
-              </Link>
+                {slide.description}
+              </motion.p>
+
+              {/* Nút bấm hành động */}
+              <motion.div 
+                variants={{ initial: { opacity: 0, scale: 0.95, y: 15 }, animate: { opacity: 1, scale: 1, y: 0 }, exit: { opacity: 0, y: -10 } }} 
+                transition={{ ...fluidTransition, delay: 0.14 }}
+              >
+                <Link
+                  to="/shop"
+                  className="group inline-flex items-center gap-6 bg-neutral-950 dark:bg-white text-white dark:text-neutral-950 px-6 py-3 sm:px-8 sm:py-3.5 rounded-full font-bold shadow-md hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
+                >
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em]">Buy Fresh</span>
+                  <div className="w-5 h-5 rounded-full bg-white/10 dark:bg-black/5 flex items-center justify-center group-hover:translate-x-2 transition-transform duration-300">
+                    <MoveRight size={13} />
+                  </div>
+                </Link>
+              </motion.div>
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* IMAGE CONTENT */}
-        <div className="order-1 lg:order-2 relative h-[250px] md:h-[350px] lg:h-full flex items-center justify-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={slide.id}
-              className="relative w-full h-full flex items-center justify-center"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.1 }}
-              transition={{ duration: 0.6 }}
-            >
-              <motion.img
-                src={slide.productImg}
-                className="w-auto h-[220px] md:h-[320px] lg:h-[400px] object-contain z-10 drop-shadow-2xl"
-                animate={{ y: [0, -15, 0] }}
-                transition={{
-                  duration: 6,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-
-              {slide.decors.map((item, i) => (
-                <InteractiveFruit
-                  key={i}
-                  item={item}
-                  mousePos={mousePos}
-                  index={i}
+        {/* ================= KHU VỰC HỒNG TÂM BIẾN HÌNH (GIỮ NGUYÊN) ================= */}
+        <div className="lg:col-span-7 order-1 lg:order-2 relative h-[240px] sm:h-[300px] lg:h-full flex items-center justify-center pointer-events-none z-10">
+          <div className="absolute w-full h-full max-w-[500px] max-h-[500px] flex items-center justify-center">
+            
+            <AnimatePresence mode="popLayout">
+              <motion.div
+                key={slide.id}
+                className="absolute inset-0 flex items-center justify-center transform-gpu layer-3d"
+                initial="initial"
+                animate="animate"
+                exit="exit"
+              >
+                {/* ẢNH CHÍNH TÂM ĐIỂM */}
+                <motion.img
+                  src={slide.productImg}
+                  className="w-auto h-[160px] sm:h-[220px] lg:h-[380px] object-contain z-10 drop-shadow-[0_25px_45px_rgba(0,0,0,0.05)] dark:drop-shadow-[0_45px_70px_rgba(0,0,0,0.45)] will-change-transform"
+                  variants={{
+                    initial: { opacity: 0, scale: 0.7, filter: "blur(6px)" },
+                    animate: { opacity: 1, scale: 1, filter: "blur(0px)" },
+                    exit: { opacity: 0, scale: 1.25, filter: "blur(12px)" } 
+                  }}
+                  transition={fluidTransition}
+                  animate={{
+                    y: [0, -8, 0],
+                  }}
+                  transition={{ y: { duration: 4, repeat: Infinity, ease: "easeInOut" } }}
                 />
-              ))}
-            </motion.div>
-          </AnimatePresence>
+
+                {/* CÁC ẢNH PHỤ VỆ TINH */}
+                {slide.decors.map((item, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute z-20 hidden md:block will-change-transform"
+                    style={{ top: item.t, right: item.r, bottom: item.b, left: item.l }}
+                    variants={{
+                      initial: { opacity: 0, scale: 0.3, x: -item.targetX * 1.5, y: -item.targetY * 1.5 },
+                      animate: { opacity: 1, scale: 1, x: 0, y: 0 },
+                      exit: { opacity: 0, scale: 0.3, x: item.targetX, y: item.targetY, filter: "blur(4px)" }
+                    }}
+                    transition={{ ...fluidTransition, delay: i * 0.02 }}
+                  >
+                    <img
+                      src={item.img}
+                      className="drop-shadow-2xl"
+                      style={{ width: item.s }}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
+
+          </div>
         </div>
+
       </div>
-    </motion.div>
+
+      <style>{`
+        .layer-3d { transform-style: preserve-3d; backface-visibility: hidden; }
+      `}</style>
+    </div>
   );
 };
 
