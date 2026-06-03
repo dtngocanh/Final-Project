@@ -33,7 +33,7 @@ const slides = [
     decors: [
       { img: "/berry.png", t: "8%", r: "20%", s: 60 },
       {
-        img: "https://pngimg.com/d/strawberry_PNG2598.png",
+        img: "/staw.png",
         b: "8%",
         l: "12%",
         s: 55,
