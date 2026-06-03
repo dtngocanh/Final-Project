@@ -25,7 +25,7 @@ test('Dat hang tu dong - Stable Checkout Flow', async () => {
     }));
 
     const accountsList = accountsWithIndex.filter(
-        user => user.realIndex >= 0 && user.realIndex <= 200
+        user => user.realIndex >= 400 && user.realIndex <= 450
     );
 
     const streets = [
