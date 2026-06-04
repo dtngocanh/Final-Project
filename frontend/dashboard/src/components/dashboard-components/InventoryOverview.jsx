@@ -113,6 +113,43 @@ const InventoryOverview = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafb] p-6 font-['Fredoka'] text-gray-800">
+      {/* STYLE NÂNG CẤP SCROLLBAR SIÊU MƯỢT, TINH TẾ */}
+      <style>{`
+  /* 1. Áp dụng cho toàn bộ các vùng có class custom-scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin; /* Dành cho Firefox */
+    scrollbar-color: rgba(119, 205, 58, 0.2) transparent; /* Dành cho Firefox */
+    scroll-behavior: smooth;
+  }
+
+  /* Kích thước vùng scrollbar (Chrome, Safari, Edge) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* Phần nền đường ray - Giữ trong suốt để tạo cảm giác thoáng đạt */
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Cục kéo scrollbar - Mặc định ẩn mờ */
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(119, 205, 58, 0.0);
+    border-radius: 99px;
+    transition: background 0.3s ease;
+  }
+
+  /* Khi hover vào toàn bộ khối chứa, cục kéo mới hiện rõ lên (Tránh thô kệch) */
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: rgba(119, 205, 58, 0.25);
+  }
+
+  /* Khi rê chuột trực tiếp vào cục kéo - Đậm đà hơn để định vị vị trí */
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(119, 205, 58, 0.6) !important;
+  }
+`}</style>
       {/* HEADER BAR */}
       <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -187,7 +224,7 @@ const InventoryOverview = () => {
             </span>
           </div>
           <div>
-            <table className="w-full text-left text-xs whitespace-nowrap">
+            <table className="w-full text-left text-xs whitespace-nowrap custom-scrollbar">
               <thead>
                 <tr className="text-gray-400 font-black uppercase text-[10px] tracking-wider border-b border-gray-50">
                   <th className="pb-3">Product ID</th>
@@ -253,7 +290,7 @@ const InventoryOverview = () => {
             </p>
 
             {/* Danh sách các đợt nhập kho */}
-            <div className="space-y-4 max-h-[240px] overflow-y-auto pr-1">
+            <div className="space-y-4 max-h-[240px] overflow-y-auto pr-1 custom-scrollbar">
               {restockLogs && restockLogs.length > 0 ? (
                 restockLogs.map((log, idx) => (
                   <div
@@ -319,7 +356,7 @@ const InventoryOverview = () => {
             </p>
           </div>
 
-          <div className="space-y-4 my-4 max-h-[220px] overflow-y-auto pr-1">
+          <div className="space-y-4 my-4 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
             {Object.keys(stats.categoryData).length > 0 ? (
               Object.entries(stats.categoryData).map(
                 ([category, count], idx) => {
