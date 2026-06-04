@@ -2,19 +2,24 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { axiosInstance } from "../../lib/axios";
 import { toast } from "react-toastify";
 
-// 1. FETCH ALL ORDERS (Admin/Seller)
+// 1. FETCH ALL ORDERS (Admin/Seller) - Hỗ trợ Phân trang & Bộ lọc
 export const fetchAllOrders = createAsyncThunk(
   "orders/fetchAll",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.get("/admin/orders");
-      // Returns order array: { success: true, orders: [...] }
-      return res.data.orders; 
+      const { page = 1, limit = 8, status = "All", search = "" } = params;
+
+      // Gửi request kèm theo query parameters lên backend
+      const res = await axiosInstance.get(
+        `/admin/orders?page=${page}&limit=${limit}&status=${status}&search=${search}`,
+      );
+
+      return res.data;
     } catch (error) {
       const message = error.response?.data?.message || "Failed to load orders";
       return rejectWithValue(message);
     }
-  }
+  },
 );
 
 // 2. UPDATE ORDER STATUS
@@ -30,7 +35,7 @@ export const updateOrderStatus = createAsyncThunk(
       const message = error.response?.data?.message || "Update failed";
       return rejectWithValue(message);
     }
-  }
+  },
 );
 
 const orderSlice = createSlice({
@@ -39,7 +44,9 @@ const orderSlice = createSlice({
     orders: [],
     loading: false,
     error: null,
-    success: false, 
+    success: false,
+    totalPages: 1,
+    totalOrders: 0
   },
   reducers: {
     clearErrors: (state) => {
@@ -56,7 +63,9 @@ const orderSlice = createSlice({
       })
       .addCase(fetchAllOrders.fulfilled, (state, action) => {
         state.loading = false;
-        state.orders = action.payload || [];
+        state.orders = action.payload.orders;
+        state.totalPages = action.payload.totalPages;
+        state.totalOrders = action.payload.totalOrders;
       })
       .addCase(fetchAllOrders.rejected, (state, action) => {
         state.loading = false;
@@ -69,9 +78,11 @@ const orderSlice = createSlice({
       .addCase(updateOrderStatus.fulfilled, (state, action) => {
         state.loading = false;
         state.success = true;
-        
+
         // UI SYNC: Find the order in the list and update status immediately
-        const index = state.orders.findIndex((o) => o._id === action.payload.id);
+        const index = state.orders.findIndex(
+          (o) => o._id === action.payload.id,
+        );
         if (index !== -1) {
           state.orders[index].orderStatus = action.payload.status;
 

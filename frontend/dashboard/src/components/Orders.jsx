@@ -23,17 +23,32 @@ import FruitLoader from "./Fruit/FruitLoader";
 
 const Orders = () => {
   const dispatch = useDispatch();
-  const { orders, loading, success } = useSelector((state) => state.order);
+  const { orders, loading, success, totalPages, totalOrders } = useSelector((state) => state.order);
 
   const [filterStatus, setFilterStatus] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
   useEffect(() => {
-    dispatch(fetchAllOrders());
-  }, [dispatch]);
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1); 
+    }, 500);
+
+    return () => clearTimeout(handler); 
+  }, [searchTerm]);
+
+  useEffect(() => {
+    dispatch(fetchAllOrders({ 
+      page: currentPage, 
+      limit: itemsPerPage,
+      status: filterStatus,
+      search: debouncedSearch
+    }));
+  }, [dispatch, currentPage, filterStatus, debouncedSearch]);
 
   // Thông báo khi update thành công
   useEffect(() => {
@@ -54,11 +69,6 @@ const Orders = () => {
   }, [orders, filterStatus, searchTerm]);
 
   // --- PHÂN TRANG ---
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentOrders = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-
   const renderPageNumbers = () => {
     const pages = [];
     const maxVisible = 5;
@@ -177,8 +187,8 @@ const Orders = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 text-sm">
-                  {currentOrders.length > 0 ? (
-                    currentOrders.map((order) => (
+                  {orders.length > 0 ? (
+                    orders.map((order) => (
                       <motion.tr layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} key={order._id} className="hover:bg-[#fcfdfd] group transition-all">
                         <td className="px-8 py-6">
                           <span className="font-bold text-gray-400 text-[10px] bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-100">

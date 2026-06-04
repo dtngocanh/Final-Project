@@ -8,6 +8,7 @@ import User from "../models/User.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import { calculateShippingFee } from "../services/ghnService.js";
 import { createOrderNotification } from "../helpers/notificationHelper.js";
+import mongoose from "mongoose";
 
 export const placeOrderCOD = async (req, res, next) => {
   try {
@@ -201,26 +202,68 @@ export const cancelOrder = async (req, res, next) => {
 // [GET] api/orders
 export const getAllOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find()
-      .populate("user", "name email")
-      .populate("orderItems.product")
-      .sort({ createdAt: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 8;
+    const skip = (page - 1) * limit;
 
-    if (!orders || orders.length === 0) {
-      return next(new ErrorHandler("No orders found!", 404));
+    const statusFilter = req.query.status;
+    const searchFilter = req.query.search;
+
+    let queryCondition = {};
+
+    if (statusFilter && statusFilter !== "All") {
+      queryCondition.orderStatus = statusFilter;
     }
 
-    res.status(200).json({
+    if (searchFilter) {
+      queryCondition.$or = [
+        { _id: mongoose.isValidObjectId(searchFilter) ? searchFilter : undefined }, 
+        { "shippingInfo.fullName": { $regex: searchFilter, $options: "i" } }
+      ].filter(condition => Object.values(condition)[0] !== undefined);
+    }
+
+    const [totalOrders, orders] = await Promise.all([
+      Order.countDocuments(queryCondition),
+      Order.find(queryCondition)
+        .populate("user", "name email")
+        .populate({
+          path: "orderItems.product",
+          select: "name price images stock"
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)   
+        .limit(limit) 
+        .lean()
+    ]);
+
+    const totalPages = Math.ceil(totalOrders / limit);
+
+    for (let i = 0; i < orders.length; i++) {
+      if (!orders[i].user) orders[i].user = { name: "Người dùng đã bị xóa", email: "N/A" };
+      if (orders[i].orderItems) {
+        for (let j = 0; j < orders[i].orderItems.length; j++) {
+          if (!orders[i].orderItems[j].product) {
+            orders[i].orderItems[j].product = { name: "Sản phẩm đã bị xóa", price: 0, images: [] };
+          }
+        }
+      }
+    }
+
+    return res.status(200).json({
       success: true,
       count: orders.length,
+      totalOrders,
+      totalPages,
+      currentPage: page,
       orders,
       message: "Fetched orders successfully!",
     });
+
   } catch (error) {
+    console.error("Lỗi phân trang tại getAllOrders:", error.message);
     next(error);
   }
 };
-
 /**
  * @route [GET] api/order/:id
  * @description Get single order details
@@ -311,7 +354,7 @@ export const updateOrder = async (req, res, next) => {
 
     // Chốt hạ lưu vào DB
     await order.save({ validateBeforeSave: false });
-    
+
     await createOrderNotification(order, newStatus);
 
     res.status(200).json({
