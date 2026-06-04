@@ -31,9 +31,7 @@ export const createNewProduct = createAsyncThunk(
   async (formData, thunkAPI) => {
     console.log("Form Data Content:", Object.fromEntries(formData));
     try {
-      const res = await axiosInstance.post("/product/add", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await axiosInstance.post("/product/add", formData);
       toast.success(res.data.message || "Product added successfully!");
 
       // Re-fetch the list to keep UI in sync with Database
@@ -55,9 +53,7 @@ export const updateProduct = createAsyncThunk(
   "products/updateProduct",
   async ({ id, formData }, thunkAPI) => {
     try {
-      const res = await axiosInstance.patch(`/product/${id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await axiosInstance.patch(`/product/${id}`, formData);
       toast.success(res.data.message);
 
       thunkAPI.dispatch(fetchAllProducts());
