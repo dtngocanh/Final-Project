@@ -122,11 +122,22 @@ export const searchProducts = async (req, res) => {
     }
 
     pipeline.push({ $limit: 20 });
+
+    pipeline.push({
+      $lookup: {
+        from: "categories", // Tên collection chứa danh mục trong DB của bạn
+        localField: "category",
+        foreignField: "_id",
+        as: "categoryInfo",
+      },
+    });
+
     pipeline.push({
       $project: {
         name: 1,
         price: 1,
-        images: 1,
+        images: "$images",
+        categoryName: { $arrayElemAt: ["$categoryInfo.name", 0] },
         score: { $meta: "searchScore" },
       },
     });
