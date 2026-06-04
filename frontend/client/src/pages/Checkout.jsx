@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, Fragment, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -30,6 +30,34 @@ import {
   Truck,
 } from "lucide-react";
 
+/* ===================== TÁCH RIÊNG COMPONENT INPUT ĐỂ TRÁNH RE-RENDER ===================== */
+const FormInput = ({ name, placeholder, icon: Icon, value, onChange, error }) => {
+  return (
+    <div className="relative">
+      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+        <Icon size={18} />
+      </div>
+      <input
+        name={name}
+        placeholder={placeholder}
+        value={value || ""}
+        onChange={onChange}
+        className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50/50 border outline-none transition-all duration-200 text-sm
+          ${
+            error
+              ? "border-red-400 ring-2 ring-red-50 bg-red-50/10 focus:border-red-400"
+              : "border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 bg-white"
+          }`}
+      />
+      {error && (
+        <p className="text-xs text-red-500 mt-1.5 ml-1 flex items-center gap-1">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+};
+
 /* ===================== STEP 1: SHIPPING ===================== */
 const ShippingStep = ({
   shippingDetails,
@@ -42,31 +70,6 @@ const ShippingStep = ({
     setShippingDetails((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
-
-  const Input = ({ name, placeholder, icon: Icon }) => (
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-        <Icon size={18} />
-      </div>
-      <input
-        name={name}
-        placeholder={placeholder}
-        value={shippingDetails[name] || ""}
-        onChange={handleChange}
-        className={`w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-50/50 border outline-none transition-all duration-200 text-sm
-          ${
-            errors[name]
-              ? "border-red-400 ring-2 ring-red-50 bg-red-50/10 focus:border-red-400"
-              : "border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 bg-white"
-          }`}
-      />
-      {errors[name] && (
-        <p className="text-xs text-red-500 mt-1.5 ml-1 flex items-center gap-1">
-          {errors[name]}
-        </p>
-      )}
-    </div>
-  );
 
   return (
     <motion.div
@@ -85,14 +88,38 @@ const ShippingStep = ({
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        <Input name="fullName" placeholder="Full Name" icon={User} />
-        <Input name="email" placeholder="Email Address" icon={Mail} />
-        <Input name="phone" placeholder="Phone Number" icon={Phone} />
+        <FormInput 
+          name="fullName" 
+          placeholder="Full Name" 
+          icon={User} 
+          value={shippingDetails.fullName} 
+          onChange={handleChange} 
+          error={errors.fullName}
+        />
+        <FormInput 
+          name="email" 
+          placeholder="Email Address" 
+          icon={Mail} 
+          value={shippingDetails.email} 
+          onChange={handleChange} 
+          error={errors.email}
+        />
+        <FormInput 
+          name="phone" 
+          placeholder="Phone Number" 
+          icon={Phone} 
+          value={shippingDetails.phone} 
+          onChange={handleChange} 
+          error={errors.phone}
+        />
         <div className="md:col-span-2">
-          <Input
+          <FormInput
             name="address"
             placeholder="Street Address (House number, street name...)"
             icon={MapPin}
+            value={shippingDetails.address}
+            onChange={handleChange}
+            error={errors.address}
           />
         </div>
       </div>
@@ -180,7 +207,7 @@ const PaymentStep = ({ paymentMethod, setPaymentMethod }) => {
 };
 
 /* ===================== STEP 3: CONFIRM ===================== */
-const ConfirmStep = ({ shippingDetails, cart, totalAmount, paymentMethod }) => {
+const ConfirmStep = ({ shippingDetails, cart, paymentMethod }) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
@@ -261,7 +288,7 @@ const ConfirmStep = ({ shippingDetails, cart, totalAmount, paymentMethod }) => {
                   className="font-semibold text-slate-800 text-sm truncate"
                   title={productName}
                 >
-                  {productName}
+                  ={productName}
                 </p>
                 <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
                   <span>
@@ -303,8 +330,7 @@ const Checkout = () => {
   const { authUser } = useSelector((state) => state.auth);
   const { cart, totalCart } = useSelector((state) => state.cart);
   
-  const { provinces, districts, wards, shippingFee, loadingAddress } =
-    useSelector((state) => state.address);
+  const { shippingFee, loadingAddress } = useSelector((state) => state.address);
   const { activeStep, loading, shippingInfo, placingOrder } = useSelector(
     (state) => state.order,
   );
@@ -318,7 +344,10 @@ const Checkout = () => {
     email: authUser?.email || "",
     phone: authUser?.phone || "",
     address: shippingInfo?.address || "",
-    country: shippingInfo?.country || "Vietnam",
+    provinceId: "",
+    districtId: "",
+    wardCode: "",
+    country: "Vietnam",
   });
 
   const [paymentMethod, setPaymentMethod] = useState("Stripe");
@@ -350,7 +379,7 @@ const Checkout = () => {
       }, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [shippingDetails.districtId, shippingDetails.wardCode, loadingAddress]);
+  }, [shippingDetails.districtId, shippingDetails.wardCode, loadingAddress, cart, dispatch]);
 
   const validateShipping = () => {
     const newErrors = {};
@@ -382,7 +411,6 @@ const Checkout = () => {
     try {
       const response = await dispatch(placeOrder(orderData)).unwrap();
 
-      // FIX TRIỆT ĐỂ: Chỉ truyền ID sản phẩm chuỗi cực ngắn, loại bỏ hoàn toàn metadata text dài gây lỗi 500 char
       cart.forEach((item) => {
         const pId = item.product?._id || item.product;
         if (pId && typeof pId === 'string') {

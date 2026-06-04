@@ -5,26 +5,20 @@ import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { useCartActions } from "../../hooks/useCartActions";
 import { trackClickThunk } from "../../store/slices/interactionSlice";
+import { useProductNavigation } from "../../hooks/useProductNavigation";
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { handleCartAction } = useCartActions();
 
-  const onClickCard = () => {
-    dispatch(
-      trackClickThunk({
-        productId: product._id,
-        action: "view",
-      })
-    );
-    navigate(`/product/${product._id}`);
-  };
+  const { handleProductClick } = useProductNavigation();
 
   // Hàm render Tag Giảm giá / Best Seller đồng bộ logic từ Slider
   const renderProductTag = () => {
     let tagText = product.tag;
-    let tagClass = "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
+    let tagClass =
+      "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
 
     if (!tagText) {
       if (product.discount > 0) {
@@ -39,30 +33,34 @@ const ProductCard = ({ product }) => {
     }
 
     return (
-      <span className={`absolute top-2 right-2 sm:top-4 sm:right-4 z-10 px-1.5 py-0.5 sm:px-2.5 rounded-full text-[8px] sm:text-[9px] font-bold tracking-wider sm:tracking-wide uppercase select-none shadow-xs backdrop-blur-md max-w-[70px] sm:max-w-none truncate text-center ${tagClass}`}>
+      <span
+        className={`absolute top-2 right-2 sm:top-4 sm:right-4 z-10 px-1.5 py-0.5 sm:px-2.5 rounded-full text-[8px] sm:text-[9px] font-bold tracking-wider sm:tracking-wide uppercase select-none shadow-xs backdrop-blur-md max-w-[70px] sm:max-w-none truncate text-center ${tagClass}`}
+      >
         {tagText}
       </span>
     );
   };
 
   return (
-    <div className="group relative w-full h-full cursor-pointer" onClick={onClickCard}>
+    <div
+      className="group relative w-full h-full cursor-pointer"
+      onClick={() => handleProductClick(product._id)}
+    >
       {/* CONTAINER CARD */}
       <div className="relative flex flex-col h-full bg-white dark:bg-neutral-900 rounded-2xl sm:rounded-[2rem] overflow-hidden border border-neutral-100 dark:border-neutral-800/60 shadow-sm lg:hover:border-[#77cd3a]/40 lg:hover:shadow-[0_20px_40px_rgba(119,205,58,0.06)] transition-all duration-300 transform-gpu">
-        
         {/* 1. BACKGROUND GRADIENT HOVER (Từ Slider) */}
         <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-[#77cd3a]/4 via-transparent to-transparent lg:group-hover:from-[#77cd3a]/18 lg:group-hover:via-[#77cd3a]/4 transition-all duration-300 pointer-events-none z-0" />
-        
+
         {/* 2. HỆ THỐNG ICON RAU CỦ TRÔI NỔI (Từ Slider) */}
         <div className="absolute inset-0 opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 overflow-hidden">
           <div className="absolute bottom-16 -left-1 w-5 h-5 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 -rotate-12 transform lg:group-hover:animate-float-slow">
             <Carrot size={18} />
           </div>
-          
+
           <div className="absolute top-1/2 -right-2 w-5 h-5 text-[#77cd3a]/20 dark:text-[#77cd3a]/10 rotate-45 transform lg:group-hover:animate-float-fast">
             <Citrus size={16} />
           </div>
-          
+
           <div className="absolute top-16 left-2 w-4 h-4 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 rotate-12 transform lg:group-hover:animate-float-medium">
             <Leaf size={14} fill="currentColor" />
           </div>
@@ -81,7 +79,7 @@ const ProductCard = ({ product }) => {
               />
             </div>
           </div>
-          
+
           {/* Rating Tag */}
           <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex items-center gap-0.5 sm:gap-1 bg-white/90 dark:bg-neutral-950/90 px-1.5 py-0.5 rounded-md backdrop-blur-md border border-neutral-200/30 dark:border-neutral-800/50">
             <Star size={8} fill="#77cd3a" className="text-[#77cd3a]" />
