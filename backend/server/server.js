@@ -30,17 +30,29 @@ const port = process.env.PORT || 4000;
 // const allowedOrigins = [process.env.FRONTEND_URL, process.env.ADMIN_URL];
 
 const allowedOrigins = [
-  'https://freshmart-8gbr.onrender.com',       
-  'https://freshmart-dashboard.onrender.com',  
-  'http://localhost:5173',                     
-  'http://localhost:5174'
+  "https://freshmart-8gbr.onrender.com",
+  "https://freshmart-dashboard.onrender.com",
+  "http://localhost:5173",
+  "http://localhost:5174",
 ];
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.map(url => url.replace(/\/$/, "")).includes(origin.replace(/\/$/, ""))) {
+      return callback(null, true);
+    }
+    console.log(`CORS is rejected for: ${origin}`);
+    callback(null, false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+}));
 
-// 1. Stripe Webhook 
+// 1. Stripe Webhook
 app.post(
   "/payment/webhook",
   express.raw({ type: "application/json" }),
-  stripeWebhook
+  stripeWebhook,
 );
 
 // 2. Middlewares
@@ -49,19 +61,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // app.use(fileUpload());
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Cho phép các request không có origin (như Postman hoặc lệnh curl nội bộ)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Bị chặn bởi cấu hình CORS của Freshmart!'));
-    }
-  },
-  credentials: true // Bắt buộc phải có để gửi kèm cookie/token (withCredentials)
-}));
 
 
 const startServer = async () => {
@@ -84,8 +83,8 @@ const startServer = async () => {
     app.use("/interaction", interactionRouter);
     app.use("/ai", aiRouter);
     app.use("/recommendations", recRouter);
-    app.use("/admin/products",productAdRouter);
-    app.use("/recipes",recipeRouter);
+    app.use("/admin/products", productAdRouter);
+    app.use("/recipes", recipeRouter);
 
     // 6. Xử lý lỗi tập trung
     app.use(errorMiddleware);

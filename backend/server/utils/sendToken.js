@@ -31,10 +31,12 @@ export const sendSellerToken = (user, statusCode, message, res) => {
     expiresIn: "7d",
   });
 
+  const isDevelopment = process.env.NODE_ENV === "development";
+
   const options = {
     httpOnly: true,
-    secure: true, // Luôn bật true
-    sameSite: "none", // Luôn để 'none'
+    secure: !isDevelopment, 
+    sameSite: isDevelopment ? "lax" : "none", 
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   };
 
