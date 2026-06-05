@@ -62,24 +62,6 @@ const Cart = () => {
   return (
     <main className="min-h-screen pt-28 pb-16 bg-white dark:bg-[#060606] flex flex-col relative transition-colors duration-700 overflow-x-hidden">
       <FloatingDecor />
-
-      {/* Style phụ trợ cho thanh cuộn siêu mượt (Bỏ bớt UI thô của scrollbar mặc định) */}
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(119, 205, 58, 0.1);
-          border-radius: 99px;
-        }
-        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-          background: rgba(119, 205, 58, 0.3);
-        }
-      `}</style>
-
       <div className="relative z-10 flex-1 flex flex-col lg:flex-row max-w-[1500px] mx-auto w-full px-4 md:px-8 gap-8 lg:gap-12">
         {/* BÊN TRÁI: DANH SÁCH SẢN PHẨM (SCROLL CONTAINER) */}
         <div className="w-full lg:w-[62%] flex flex-col">

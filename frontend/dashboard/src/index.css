@@ -28,3 +28,27 @@ img, svg {
 .animate-smooth {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Custom scrollbar cho các trình duyệt Webkit (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Ẩn phần đường ray ẩn phía dưới */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8; 
+}
+
+/* Hỗ trợ ẩn/thu nhỏ trên Firefox và IE */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
