@@ -13,45 +13,43 @@ import mongoose from "mongoose";
 export const placeOrderCOD = async (req, res, next) => {
   try {
     const userId = req.user._id;
-
     const { orderItems, shippingInfo } = req.body;
 
-    //itemsPrice, shippingPrice, totalPrice
     if (!orderItems || orderItems.length === 0) {
       return next(new ErrorHandler("No items found in your order", 400));
     }
 
-    // Validate + Calc Subtotal
     let calculatedItemsPrice = 0;
-
     const validatedOrderItems = [];
 
+    // CHECK & UPDATE STOCK
     for (const item of orderItems) {
-      const product = await Product.findById(item.product);
+      const product = await Product.findOneAndUpdate(
+        {
+          _id: item.product,
+          stock: { $gte: item.quantity }, 
+        },
+        {
+          $inc: {
+            stock: -item.quantity,
+            salesCount: item.quantity,
+          },
+        },
+        {
+          new: true, // doc after updating
+        },
+      );
 
       if (!product) {
-        return next(new ErrorHandler("Product not found", 404));
-      }
-
-      if (item.quantity <= 0) {
-        return next(new ErrorHandler("Invalid quantity", 400));
-      }
-
-      if (product.stock === 0) {
-        return next(new ErrorHandler(`${product.name} is out of stock`, 400));
-      }
-
-      if (product.stock < item.quantity) {
         return next(
           new ErrorHandler(
-            `Only ${product.stock} ${product.name} left in stock`,
+            "Some items in your cart are out of stock or insufficient.",
             400,
           ),
         );
       }
 
       const itemTotal = product.price * item.quantity;
-
       calculatedItemsPrice += itemTotal;
 
       validatedOrderItems.push({
@@ -62,7 +60,7 @@ export const placeOrderCOD = async (req, res, next) => {
         image: product.images?.[0]?.url || "",
       });
     }
-
+    // 4. TÍNH PHÍ VẬN CHUYỂN
     const shippingRs = await calculateShippingFee({
       cartItems: validatedOrderItems,
       to_district_id: shippingInfo.districtId,
@@ -70,9 +68,9 @@ export const placeOrderCOD = async (req, res, next) => {
     });
 
     const shippingPrice = shippingRs.feeUSD;
-
     const totalPrice = calculatedItemsPrice + shippingPrice;
 
+    // 5. TẠO ĐƠN HÀNG MỚI
     const order = await Order.create({
       user: userId,
       orderItems: validatedOrderItems,
@@ -80,7 +78,6 @@ export const placeOrderCOD = async (req, res, next) => {
       paymentInfo: {
         method: "COD",
         status: "Pending",
-        // paidAt: bỏ trống, sẽ cập nhật khi giao hàng thành công
       },
       itemsPrice: calculatedItemsPrice,
       shippingPrice,
@@ -88,20 +85,7 @@ export const placeOrderCOD = async (req, res, next) => {
       orderStatus: "Processing",
     });
 
-    const updateProductOps = orderItems.map((item) => ({
-      updateOne: {
-        filter: { _id: item.product },
-        update: {
-          $inc: {
-            stock: -item.quantity,
-            salesCount: item.quantity,
-          },
-        },
-      },
-    }));
-
-    await Product.bulkWrite(updateProductOps);
-
+    // 6. XÓA GIỎ HÀNG NẾU LÀ USER ĐĂNG NHẬP
     if (userId && userId !== "GUEST_USER") {
       await User.findByIdAndUpdate(userId, { $set: { cartItems: [] } });
     }
@@ -217,9 +201,13 @@ export const getAllOrders = async (req, res, next) => {
 
     if (searchFilter) {
       queryCondition.$or = [
-        { _id: mongoose.isValidObjectId(searchFilter) ? searchFilter : undefined }, 
-        { "shippingInfo.fullName": { $regex: searchFilter, $options: "i" } }
-      ].filter(condition => Object.values(condition)[0] !== undefined);
+        {
+          _id: mongoose.isValidObjectId(searchFilter)
+            ? searchFilter
+            : undefined,
+        },
+        { "shippingInfo.fullName": { $regex: searchFilter, $options: "i" } },
+      ].filter((condition) => Object.values(condition)[0] !== undefined);
     }
 
     const [totalOrders, orders] = await Promise.all([
@@ -228,22 +216,27 @@ export const getAllOrders = async (req, res, next) => {
         .populate("user", "name email")
         .populate({
           path: "orderItems.product",
-          select: "name price images stock"
+          select: "name price images stock",
         })
         .sort({ createdAt: -1 })
-        .skip(skip)   
-        .limit(limit) 
-        .lean()
+        .skip(skip)
+        .limit(limit)
+        .lean(),
     ]);
 
     const totalPages = Math.ceil(totalOrders / limit);
 
     for (let i = 0; i < orders.length; i++) {
-      if (!orders[i].user) orders[i].user = { name: "Người dùng đã bị xóa", email: "N/A" };
+      if (!orders[i].user)
+        orders[i].user = { name: "Người dùng đã bị xóa", email: "N/A" };
       if (orders[i].orderItems) {
         for (let j = 0; j < orders[i].orderItems.length; j++) {
           if (!orders[i].orderItems[j].product) {
-            orders[i].orderItems[j].product = { name: "Sản phẩm đã bị xóa", price: 0, images: [] };
+            orders[i].orderItems[j].product = {
+              name: "Sản phẩm đã bị xóa",
+              price: 0,
+              images: [],
+            };
           }
         }
       }
@@ -258,7 +251,6 @@ export const getAllOrders = async (req, res, next) => {
       orders,
       message: "Fetched orders successfully!",
     });
-
   } catch (error) {
     console.error("Lỗi phân trang tại getAllOrders:", error.message);
     next(error);

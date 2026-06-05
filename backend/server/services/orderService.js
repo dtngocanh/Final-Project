@@ -31,7 +31,7 @@ export const processStripeOrder = async (session) => {
       districtId: metadata.districtId ? Number(metadata.districtId) : undefined,
       wardCode: metadata.wardCode || "",
       country: metadata.country || "Vietnam",
-      provinceId: metadata.provinceId ? Number(metadata.provinceId) : 202
+      provinceId: metadata.provinceId ? Number(metadata.provinceId) : 202,
     };
 
     // 3. AN TOÀN CHO ORDER ITEMS
@@ -64,6 +64,30 @@ export const processStripeOrder = async (session) => {
             : "https://via.placeholder.com/150",
       });
     }
+    // CHECK & UPDATE STOCK
+    for (const item of orderItems) {
+      const product = await Product.findOneAndUpdate(
+        {
+          _id: item.product,
+          stock: { $gte: item.quantity },
+        },
+        {
+          $inc: {
+            stock: -item.quantity,
+            salesCount: item.quantity,
+          },
+        },
+        {
+          new: true,
+        },
+      );
+
+      if (!product) {
+        throw new Error(
+          `One or more products are out of stock or insuficient.`,
+        );
+      }
+    }
 
     // CALCULATE ITEMS PRICE
     const itemsPrice = orderItems.reduce(
@@ -91,24 +115,7 @@ export const processStripeOrder = async (session) => {
       totalPrice,
       orderStatus: "Processing",
     });
-
-    // UPDATE STOCK
-    const updateProductOps = orderItems.map((item) => ({
-      updateOne: {
-        filter: {
-          _id: item.product,
-        },
-        update: {
-          $inc: {
-            stock: -item.quantity,
-            salesCount: item.quantity,
-          },
-        },
-      },
-    }));
-
-    await Product.bulkWrite(updateProductOps);
-
+    
     // CLEAR USER CART
     if (userId && userId !== "GUEST_USER") {
       await User.findByIdAndUpdate(userId, {

@@ -33,7 +33,7 @@ export const createCheckoutSession = async (req, res) => {
       const product = await Product.findById(item.product);
       if (!product) return res.status(404).json({ success: false, message: `${item.name} not found` });
       if (product.stock === 0) return res.status(400).json({ success: false, message: `${product.name} is out of stock` });
-      if (product.stock < item.quantity) return res.status(400).json({ success: false, message: `Only ${product.stock} left` });
+      if (product.stock < item.quantity) return res.status(400).json({ success: false, message: `${product.name} is insuficient` });
     }
 
     const line_items = await createStripeLineItems({
