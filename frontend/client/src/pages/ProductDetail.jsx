@@ -74,8 +74,6 @@ const ProductDetail = () => {
     setSelectedImageIndex(0);
   }, [product]);
 
-  if (loading) return <p>Loading...</p>;
-
   if (!product)
     return (
       <div className="min-h-screen flex items-center justify-center uppercase tracking-widest text-[10px] opacity-30">
