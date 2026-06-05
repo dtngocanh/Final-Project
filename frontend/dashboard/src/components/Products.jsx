@@ -33,7 +33,9 @@ import FruitLoader from "./Fruit/FruitLoader"; // Import FruitLoader giống bê
 const Products = () => {
   const dispatch = useDispatch();
 
-  const { products, loading } = useSelector((state) => state.product);
+  const { products, loading, totalProducts } = useSelector(
+    (state) => state.product,
+  );
   const { categories, selectedCategory } = useSelector(
     (state) => state.category,
   );
@@ -53,11 +55,13 @@ const Products = () => {
 
   useEffect(() => {
     const filterParams = {
+      page: currentPage,
+      limit: itemsPerPage,
       ...(filters.search.trim() !== "" && { search: filters.search }),
       ...(selectedCategory !== "All" && { categoryId: selectedCategory }),
     };
     dispatch(fetchAllProducts(filterParams));
-  }, [dispatch, filters.search, selectedCategory]);
+  }, [dispatch, filters.search, selectedCategory, currentPage]);
 
   useEffect(() => {
     dispatch(fetchCategories());
@@ -67,12 +71,9 @@ const Products = () => {
     setCurrentPage(1);
   }, [filters.search, selectedCategory]);
 
-  // --- LOGIC PHÂN TRANG RÚT GỌN ---
-  const totalItems = products?.length || 0;
+  const totalItems = totalProducts || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = products?.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = products || [];
 
   const renderPageNumbers = () => {
     const pages = [];
@@ -252,7 +253,6 @@ const Products = () => {
               </AnimatePresence>
             </div>
 
-          
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between mt-16 px-2 gap-4">
                 {/* Phần hiển thị số trang bên trái */}

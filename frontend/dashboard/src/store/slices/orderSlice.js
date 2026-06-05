@@ -9,7 +9,6 @@ export const fetchAllOrders = createAsyncThunk(
     try {
       const { page = 1, limit = 8, status = "All", search = "" } = params;
 
-      // Gửi request kèm theo query parameters lên backend
       const res = await axiosInstance.get(
         `/admin/orders?page=${page}&limit=${limit}&status=${status}&search=${search}`,
       );

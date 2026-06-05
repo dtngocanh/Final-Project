@@ -45,13 +45,15 @@ export const addProduct = async (req, res, next) => {
  */
 export const productList = async (req, res, next) => {
   try {
-    // Extract query parameters from the request
-    const { categoryId, search } = req.query;
+    const { categoryId, search, page, limit } = req.query;
+
+    const currentPage = parseInt(page, 10) || 1;
+    const resPerPage = parseInt(limit, 10) || 20;
+    const skip = (currentPage - 1) * resPerPage;
+
     let query = {};
 
-    // Handle text-based search filtering
     if (search) {
-      // Use $regex for partial match and "i" for case-insensitive search
       query.name = { $regex: search, $options: "i" };
     }
 
@@ -60,17 +62,23 @@ export const productList = async (req, res, next) => {
       query.category = { $in: cateIds };
     }
 
-    const products = await Product.find(query)
-      .select("name description price images category stock ratings")
-      .populate("category", "name parent level")
-      .sort({ createdAt: -1 })
-      .lean();
+    const [totalProducts, products] = await Promise.all([
+      Product.countDocuments(query),
+      Product.find(query)
+        .select("name description price images category stock ratings")
+        .populate("category", "name parent level")
+        .sort({ createdAt: -1 })
+        .skip(skip) 
+        .limit(resPerPage) 
+        .lean(),
+    ]);
 
-    // Return the response to the client
     res.json({
       success: true,
+      totalProducts, 
+      resPerPage, 
       count: products.length,
-      products,
+      products, 
     });
   } catch (error) {
     next(error);
@@ -157,7 +165,9 @@ export const productById = async (req, res, next) => {
     const id = req.params.id;
 
     // 1. Fetch the primary product details from MongoDB
-    const product = await Product.findById(id);
+    const product = await Product.findById(id)
+      .select("name price images category ratings stock")
+      .lean();
 
     if (!product) {
       return next(new ErrorHandler("Product not found", 404));

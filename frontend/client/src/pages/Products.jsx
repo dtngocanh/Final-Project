@@ -7,7 +7,8 @@ import {
   Cherry,
   Salad,
   X,
-  LayoutGrid, Grid3X3
+  LayoutGrid,
+  Grid3X3,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
@@ -94,6 +95,8 @@ const Products = () => {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const ITEMS_PER_PAGE = 25;
+
   // State Sort
   const [sortOption, setSortOption] = useState("default");
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -110,10 +113,19 @@ const Products = () => {
   };
 
   // Redux Store
-  const { products, loading } = useSelector((state) => state.product);
+  const { products, loading, totalProducts } = useSelector(
+    (state) => state.product,
+  );
   const { categories, selectedCategory } = useSelector(
     (state) => state.category,
   );
+
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
+
+  const totalPages = useMemo(() => {
+    if (!totalProducts) return 1;
+    return Math.ceil(totalProducts / ITEMS_PER_PAGE);
+  }, [totalProducts]);
 
   // 1. Gọi API danh mục
   useEffect(() => {
@@ -128,8 +140,14 @@ const Products = () => {
       const currentCategoryId =
         subCatId || (selectedCategory !== "All" ? selectedCategory : null);
 
+      const apiParams = {
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        ...(currentCategoryId && { categoryId: currentCategoryId }),
+      };
+
       if (q) {
-        dispatch(searchProducts({ q: q, categoryId: currentCategoryId }));
+        dispatch(searchProducts({ q: q, ...apiParams }));
       } else {
         const params = {
           ...(currentCategoryId && { categoryId: currentCategoryId }),
@@ -140,7 +158,7 @@ const Products = () => {
 
     const timer = setTimeout(fetchData, 500);
     return () => clearTimeout(timer);
-  }, [searchParams, selectedCategory, dispatch]);
+  }, [searchParams, selectedCategory, currentPage, dispatch]);
 
   // 3. Chuẩn hóa và map ảnh cho danh mục (Lọc level === 0)
   const displayCategories = useMemo(() => {
@@ -174,6 +192,13 @@ const Products = () => {
 
     return result;
   }, [products, sortOption]);
+
+  const handlePageChange = (pageNumber) => {
+    searchParams.set("page", pageNumber.toString());
+    setSearchParams(searchParams);
+
+    window.scrollTo({ top: 300, behavior: "smooth" });
+  };
 
   const handleCategoryChange = (id) => {
     if (id === "All") {
@@ -483,9 +508,15 @@ const Products = () => {
         </section>
 
         {/* PAGINATION */}
-        <div className="mt-16 flex justify-center">
-          <Pagination currentPage={1} totalPages={3} onPageChange={() => {}} />
-        </div>
+        {totalPages > 1 && (
+          <div className="mt-16 flex justify-center">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
       </div>
 
       {/* INJECT ANIMATION CSS */}
