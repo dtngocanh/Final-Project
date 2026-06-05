@@ -6,17 +6,22 @@ import { trackClickThunk } from "../store/slices/interactionSlice";
 export const useCartActions = () => {
   const dispatch = useDispatch();
 
+  const { cart } = useSelector((state) => state.cart);
+
   const handleCartAction = async (
     product,
     type,
     change = 1,
     silent = false,
   ) => {
-    const currentStore = await dispatch((_, getState) => getState());
-    const latestCart = JSON.parse(JSON.stringify(currentStore.cart.cart));
+    let newCart = JSON.parse(JSON.stringify(cart));
+    const stockAvailable = product ? Number(product.stock) : 0;
 
-    let newCart = latestCart;
-    const stockAvailable = Number(product.stock);
+    if (type === "CLEAR_CART") {
+      newCart = [];
+      if (!silent) toast.success("Cleared your bag");
+      return await dispatch(updateCart(newCart));
+    }
 
     if (type === "ADD") {
       dispatch(
@@ -31,7 +36,7 @@ export const useCartActions = () => {
       const nextQty = (existingItem ? existingItem.quantity : 0) + change;
 
       if (nextQty > stockAvailable) {
-        if (!silent) toast.error("Out of stock!");
+        if (!silent) toast.error("Out of stock");
         return;
       }
 
@@ -48,6 +53,8 @@ export const useCartActions = () => {
       newCart = newCart.filter((item) => item.product._id !== product._id);
     }
 
+    if (!product) return;
+
     if (type === "UPDATE_QTY") {
       const targetItem = newCart.find(
         (item) => item.product._id === product._id,
@@ -57,7 +64,7 @@ export const useCartActions = () => {
         const nextQty = targetItem.quantity + change;
 
         if (change > 0 && nextQty > stockAvailable) {
-          toast.error(`Sorry, we only have ${stockAvailable} items in stock.`);
+          toast.error(`${targetItem.name} is insuficient`);
           return;
         }
 
@@ -74,5 +81,5 @@ export const useCartActions = () => {
     return await dispatch(updateCart(newCart));
   };
 
-  return { handleCartAction }; // Trả về hàm để các component khác sử dụng
+  return { handleCartAction };
 };

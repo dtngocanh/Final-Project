@@ -77,8 +77,22 @@ const Cart = () => {
             </div>
 
             {/* Khối bên phải: Số lượng item */}
-            <div className="text-xs tracking-widest text-gray-400 uppercase font-light">
-              {cartItemsCount} {cartItemsCount > 1 ? "items" : "item"}
+            <div className="flex items-center gap-4 text-xs tracking-widest text-gray-400 uppercase font-light">
+              <div>
+                {cartItemsCount} {cartItemsCount > 1 ? "items" : "item"}
+              </div>
+
+              {cart.length > 0 && (
+                <>
+                  <span className="w-px h-3 bg-gray-200 dark:bg-white/10"></span>
+                  <button
+                    onClick={() => handleCartAction(null, "CLEAR_CART")}
+                    className="text-[10px] tracking-widest font-medium text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-200 uppercase cursor-pointer"
+                  >
+                    Clear Bag
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

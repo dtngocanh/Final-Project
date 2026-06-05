@@ -6,99 +6,120 @@ import crypto from "crypto"; // Dùng để tạo mã nhóm combo ngẫu nhiên 
 // 1. UPDATE USER CART: api/cart/update
 export const updateCart = async (req, res, next) => {
   try {
-    const userId = req.user._id; 
-    const { cartItems } = req.body; 
+    const userId = req.user._id;
+    const { cartItems } = req.body;
 
     if (!cartItems || !Array.isArray(cartItems)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid cart data!" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid cart data!",
+      });
     }
 
     const currentUser = await User.findById(userId);
+
     if (!currentUser) {
-      return res.status(404).json({ success: false, message: "User not found!" });
+      return res.status(404).json({
+        success: false,
+        message: "User not found!",
+      });
     }
+
     const oldCartItems = currentUser.cartItems || [];
 
-    // --- BƯỚC KIỂM TRA TOÀN VẸN COMBO ---
-    // Gom nhóm các sản phẩm mà frontend gửi lên xem comboId nào còn đủ sản phẩm hay không
+    // Đếm số lượng thành viên combo từ frontend
     const incomingComboCounts = {};
-    cartItems.forEach(item => {
+    cartItems.forEach((item) => {
       if (item.comboId) {
-        incomingComboCounts[item.comboId] = (incomingComboCounts[item.comboId] || 0) + 1;
+        incomingComboCounts[item.comboId] =
+          (incomingComboCounts[item.comboId] || 0) + 1;
       }
     });
 
-    // Lấy số lượng thành viên gốc của combo đó trong DB cũ để đối chiếu
+    // Đếm số lượng thành viên combo cũ trong DB
     const oldComboCounts = {};
-    oldCartItems.forEach(item => {
+    oldCartItems.forEach((item) => {
       if (item.comboId) {
         oldComboCounts[item.comboId] = (oldComboCounts[item.comboId] || 0) + 1;
       }
     });
 
+    const warnings = [];
     let newTotalCart = 0;
     const finalCartItems = [];
 
     for (const item of cartItems) {
-      const productId = item.product?._id || item.product; 
-      
+      const productId = item.product?._id || item.product;
+
       const product = await Product.findById(productId);
+
+      // Sản phẩm đã bị xóa khỏi DB
       if (!product) {
-        return res
-          .status(404)
-          .json({ success: false, message: `Product not found!` });
+        warnings.push(`A product in your cart no longer exists.`);
+        continue;
       }
 
-      if (item.quantity > product.stock) {
-        return res.status(400).json({
-          success: false,
-          message: `Product ${product.name} only has ${product.stock} items left in stock!`,
-        });
+      // Chỉ cảnh báo nếu hết hàng
+      if (product.stock <= 0) {
+        warnings.push(`${product.name} is currently out of stock.`);
+      }
+
+      let quantity = item.quantity;
+
+      // Nếu còn hàng nhưng quantity vượt stock thì giảm xuống
+      if (product.stock > 0 && quantity > product.stock) {
+        warnings.push(
+          `${product.name} quantity adjusted from ${quantity} to ${product.stock}.`,
+        );
+
+        quantity = product.stock;
       }
 
       const oldItem = oldCartItems.find(
-        (old) => old.product.toString() === productId.toString() && old.comboId === item.comboId
+        (old) =>
+          old.product.toString() === productId.toString() &&
+          old.comboId === item.comboId,
       );
 
-      let settledPrice = product.price; // Mặc định trả về giá gốc
+      let settledPrice = product.price;
 
-      // KIỂM TRA XEM COMBO CÓ BỊ XOÁ BỚT KHÔNG
-      // Nếu item này có comboId và số lượng chủng loại sản phẩm gửi lên ÍT HƠN số lượng ban đầu trong DB -> Combo đã bị phá vỡ!
-      const isComboBroken = item.comboId && (!incomingComboCounts[item.comboId] || incomingComboCounts[item.comboId] < oldComboCounts[item.comboId]);
+      // Combo bị phá vỡ
+      const isComboBroken =
+        item.comboId &&
+        (!incomingComboCounts[item.comboId] ||
+          incomingComboCounts[item.comboId] < oldComboCounts[item.comboId]);
 
       if (isComboBroken) {
-        // COMBO BỊ PHÁ VỠ: Ép buộc quay về giá gốc của sản phẩm hiện tại
         settledPrice = product.price;
-        item.comboId = undefined; // Tước bỏ danh hiệu combo của item này
+        item.comboId = undefined;
       } else if (item.price !== undefined) {
         settledPrice = item.price;
       } else if (oldItem && oldItem.price !== undefined) {
         settledPrice = oldItem.price;
       }
 
-      newTotalCart += settledPrice * item.quantity;
+      newTotalCart += settledPrice * quantity;
 
       finalCartItems.push({
         product: productId,
-        quantity: item.quantity,
+        quantity,
         price: Number(settledPrice.toFixed(2)),
-        comboId: item.comboId || undefined // Giữ lại mã combo nếu combo còn nguyên vẹn
+        comboId: item.comboId || undefined,
       });
     }
 
-    // Cập nhật mảng mới vào DB
-    await User.findByIdAndUpdate(
-      userId,
-      { cartItems: finalCartItems, total_cart: Number(newTotalCart.toFixed(2)) }
-    );
+    await User.findByIdAndUpdate(userId, {
+      cartItems: finalCartItems,
+      total_cart: Number(newTotalCart.toFixed(2)),
+    });
 
-    const populatedUser = await User.findById(userId).populate("cartItems.product");
+    const populatedUser =
+      await User.findById(userId).populate("cartItems.product");
 
-    res.json({
+    return res.json({
       success: true,
       message: "Cart Updated",
+      warnings,
       cartItems: populatedUser.cartItems,
       total_cart: populatedUser.total_cart || 0,
     });
@@ -110,11 +131,13 @@ export const updateCart = async (req, res, next) => {
 // 2. GET CART FOR A USER: api/cart/get
 export const getCart = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate("cartItems.product");
+    const user = await User.findById(req.user._id).populate(
+      "cartItems.product",
+    );
     res.json({
       success: true,
       cartItems: user ? user.cartItems : [],
-      total_cart: user ? (user.total_cart || 0) : 0,
+      total_cart: user ? user.total_cart || 0 : 0,
     });
   } catch (error) {
     res.json({ success: false, message: error.message });
@@ -154,7 +177,9 @@ export const addCombo = async (req, res, next) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found!" });
     }
 
     let currentCartItems = [...user.cartItems];
@@ -171,23 +196,21 @@ export const addCombo = async (req, res, next) => {
         product: product._id,
         quantity: 1,
         price: discountedPrice,
-        comboId: uniqueComboId // Đánh dấu tất cả các món này thuộc chung 1 group combo
+        comboId: uniqueComboId, // Đánh dấu tất cả các món này thuộc chung 1 group combo
       });
     }
 
     const finalTotalCart = currentCartItems.reduce((sum, item) => {
-      return sum + (item.price * item.quantity);
+      return sum + item.price * item.quantity;
     }, 0);
 
-    await User.findByIdAndUpdate(
-      userId,
-      {
-        cartItems: currentCartItems,
-        total_cart: Number(finalTotalCart.toFixed(2)),
-      }
-    );
+    await User.findByIdAndUpdate(userId, {
+      cartItems: currentCartItems,
+      total_cart: Number(finalTotalCart.toFixed(2)),
+    });
 
-    const populatedUserCart = await User.findById(userId).populate("cartItems.product");
+    const populatedUserCart =
+      await User.findById(userId).populate("cartItems.product");
 
     return res.status(200).json({
       success: true,
