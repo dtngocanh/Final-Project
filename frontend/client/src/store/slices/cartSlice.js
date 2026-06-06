@@ -7,7 +7,9 @@ export const fetchCart = createAsyncThunk("cart/fetch", async (_, thunkAPI) => {
     const res = await axiosInstance.get("/cart/get");
     return res.data; // Trả về { success: true, cartItems: [...], total_cart: ... }
   } catch (error) {
-    return thunkAPI.rejectWithValue(error.response?.data?.message || "Fetch failed");
+    return thunkAPI.rejectWithValue(
+      error.response?.data?.message || "Fetch failed",
+    );
   }
 });
 
@@ -27,7 +29,9 @@ export const updateCart = createAsyncThunk(
 
       return res.data; // Trả về data mới nhất từ DB sau khi update
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Update failed");
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Update failed",
+      );
     }
   },
 );
@@ -41,14 +45,16 @@ export const addComboToCart = createAsyncThunk(
         mainProductId,
         comboProductIds,
       });
-      
+
       // Backend của bạn khi xử lý add-combo xong phải trả về cấu trúc chuẩn:
       // { success: true, cartItems: [...], total_cart: ... }
-      return res.data; 
+      return res.data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Add combo failed");
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Add combo failed",
+      );
     }
-  }
+  },
 );
 
 const cartSlice = createSlice({
@@ -77,7 +83,7 @@ const cartSlice = createSlice({
       .addCase(fetchCart.rejected, (state) => {
         state.loading = false;
       })
-      
+
       .addCase(updateCart.fulfilled, (state, action) => {
         state.cart = action.payload.cartItems || [];
         state.totalCart = action.payload.total_cart || 0;

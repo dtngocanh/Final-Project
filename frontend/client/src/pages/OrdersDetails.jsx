@@ -18,11 +18,13 @@ import { motion } from "framer-motion";
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchOrderDetails } from "../store/slices/orderSlice";
+import { useCartActions } from "../hooks/useCartActions";
 
 const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { handleCartAction } = useCartActions();
 
   const { orderDetail } = useSelector((state) => state.order);
 
@@ -144,7 +146,7 @@ const OrderDetail = () => {
                         Canceled on:{" "}
                         {new Date(orderDetail.updatedAt).toLocaleDateString(
                           "en-US",
-                          { month: "short", day: "numeric", year: "numeric" }
+                          { month: "short", day: "numeric", year: "numeric" },
                         )}
                       </span>
                     </div>
@@ -203,7 +205,8 @@ const OrderDetail = () => {
               </h2>
               {orderDetail?.orderItems?.map((item, idx) => {
                 // LOGIC PHÂN TÁCH SECTION COMBO / STANDARD KHÁCH ĐÃ MUA:
-                const isComboPurchase = item.price < (item.product?.price || item.price);
+                const isComboPurchase =
+                  item.price < (item.product?.price || item.price);
 
                 return (
                   <motion.div
@@ -231,7 +234,7 @@ const OrderDetail = () => {
                       >
                         {item.name}
                       </Link>
-                      
+
                       {/* Cụm hiển thị phân tách giá Combo vs Thường */}
                       <div className="flex flex-wrap items-center gap-2 mt-1.5">
                         {isComboPurchase ? (
@@ -251,7 +254,10 @@ const OrderDetail = () => {
                               ${item.product.price.toFixed(2)}
                             </span>
                           )}
-                          <span className="text-gray-300 dark:text-white/10 mx-1">|</span> Qty: {item.quantity}
+                          <span className="text-gray-300 dark:text-white/10 mx-1">
+                            |
+                          </span>{" "}
+                          Qty: {item.quantity}
                         </p>
                       </div>
                     </div>
@@ -279,9 +285,10 @@ const OrderDetail = () => {
                         {(orderDetail?.orderStatus === "Canceled" ||
                           orderDetail?.orderStatus === "Delivered") && (
                           <button
-                            onClick={() =>
-                              navigate(`/product/${item.product?._id || ""}`)
-                            }
+                            onClick={() => {
+                              // console.log(item.product);
+                              handleCartAction(item.product, "ADD");
+                            }}
                             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 text-gray-500 hover:text-[#77cd3a] rounded-xl border border-gray-100 dark:border-white/5 transition-all shadow-sm active:scale-95 group cursor-pointer"
                           >
                             <RefreshCcw
@@ -389,8 +396,8 @@ const OrderDetail = () => {
                         orderDetail?.paymentInfo?.status === "Paid"
                           ? "bg-[#77cd3a]/10 text-[#77cd3a]"
                           : orderDetail?.paymentInfo?.status === "Pending"
-                          ? "bg-amber-500/10 text-amber-500 animate-pulse"
-                          : "bg-red-500/10 text-red-500"
+                            ? "bg-amber-500/10 text-amber-500 animate-pulse"
+                            : "bg-red-500/10 text-red-500"
                       }`}
                     >
                       {orderDetail?.paymentInfo?.status}

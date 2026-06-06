@@ -27,7 +27,7 @@ export const placeOrderCOD = async (req, res, next) => {
       const product = await Product.findOneAndUpdate(
         {
           _id: item.product,
-          stock: { $gte: item.quantity }, 
+          stock: { $gte: item.quantity },
         },
         {
           $inc: {
@@ -106,7 +106,9 @@ export const getUserOrders = async (req, res) => {
     const userId = req.user._id; // Middleware truyền vào
     // console.log(userId);
 
-    const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
+    const orders = await Order.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate("orderItems.product", "name images price stock");
 
     res.status(200).json({
       success: true,

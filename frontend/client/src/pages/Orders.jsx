@@ -20,11 +20,13 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { cancelOrder, fetchMyOrders } from "../store/slices/orderSlice";
+import { useCartActions } from "../hooks/useCartActions";
 const MontionLink = motion.create(Link);
 
 const Orders = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { handleCartAction } = useCartActions();
   const [statusFilter, setStatusFilter] = useState("all");
 
   const { myOrders, fetchingOrders } = useSelector((state) => state.order);
@@ -47,10 +49,12 @@ const Orders = () => {
 
   const filterOrders = useMemo(() => {
     if (!currentOrders) return [];
-    
+
     // Thêm logic sort: Đơn hàng mới nhất (createdAt) sẽ nằm lên đầu
-    const sorted = [...currentOrders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
+    const sorted = [...currentOrders].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+    );
+
     return sorted.filter((order) => {
       return statusFilter === "all" || order.orderStatus === statusFilter;
     });
@@ -143,7 +147,10 @@ const Orders = () => {
                           <div className="flex flex-col">
                             {/* Hiển thị ngày đặt hàng ngay trên Mã đơn */}
                             <p className="text-[9px] text-gray-400 uppercase tracking-[0.2em] font-medium flex items-center gap-2">
-                              Order Reference • {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                              Order Reference •{" "}
+                              {new Date(order.createdAt).toLocaleDateString(
+                                "vi-VN",
+                              )}
                             </p>
                             <h3 className="text-base dark:text-white uppercase tracking-tighter leading-none">
                               #{order._id.slice(-8)}...
@@ -168,11 +175,11 @@ const Orders = () => {
                         </div>
 
                         <div className="col-span-2 flex flex-wrap gap-3 items-end">
-                          {order.orderStatus === "Delivered" && (
+                          {/* {order.orderStatus === "Delivered" && (
                             <button className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold flex items-center gap-2 dark:text-white border border-white/10 rounded-xl bg-white/5">
                               <RefreshCw size={14} /> Reorder
                             </button>
-                          )}
+                          )} */}
 
                           {order.orderStatus === "Processing" && (
                             <button

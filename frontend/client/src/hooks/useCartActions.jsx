@@ -23,7 +23,10 @@ export const useCartActions = () => {
       return await dispatch(updateCart(newCart));
     }
 
+    if (!product) return;
+
     if (type === "ADD") {
+      // console.log("ADD CALLED:", product._id);
       dispatch(
         trackClickThunk({
           productId: product._id,
@@ -53,8 +56,6 @@ export const useCartActions = () => {
       newCart = newCart.filter((item) => item.product._id !== product._id);
     }
 
-    if (!product) return;
-
     if (type === "UPDATE_QTY") {
       const targetItem = newCart.find(
         (item) => item.product._id === product._id,
@@ -77,7 +78,6 @@ export const useCartActions = () => {
           .filter((item) => item.quantity > 0);
       }
     }
-
     return await dispatch(updateCart(newCart));
   };
 
