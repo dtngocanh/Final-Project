@@ -19,6 +19,8 @@ import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchOrderDetails } from "../store/slices/orderSlice";
 import { useCartActions } from "../hooks/useCartActions";
+import { addToCartThunk } from "../store/slices/cartSlice";
+import { toast } from "react-toastify";
 
 const OrderDetail = () => {
   const { id } = useParams();
@@ -285,9 +287,20 @@ const OrderDetail = () => {
                         {(orderDetail?.orderStatus === "Canceled" ||
                           orderDetail?.orderStatus === "Delivered") && (
                           <button
-                            onClick={() => {
-                              // console.log(item.product);
-                              handleCartAction(item.product, "ADD");
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              try {
+                                await dispatch(
+                                  addToCartThunk({
+                                    productId: item.product._id,
+                                    quantity: 1,
+                                  }),
+                                ).unwrap();
+                                toast.success(`Added ${item.product.name} to cart`);
+                              } catch (error) {
+                                toast.error("Failed to add product to cart");
+                              }
                             }}
                             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 text-gray-500 hover:text-[#77cd3a] rounded-xl border border-gray-100 dark:border-white/5 transition-all shadow-sm active:scale-95 group cursor-pointer"
                           >

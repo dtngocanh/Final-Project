@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { axiosInstance } from "../../lib/axios";
+import { toast } from "react-toastify";
 
 // 1. Thunk: Lấy dữ liệu Giỏ hàng khi vào App/tải lại trang
 export const fetchCart = createAsyncThunk("cart/fetch", async (_, thunkAPI) => {
@@ -19,7 +20,7 @@ export const updateCart = createAsyncThunk(
   async (cartItems, thunkAPI) => {
     try {
       const formattedCart = cartItems.map((item) => ({
-        product: item.product._id,
+        product: item.product._id || item._id,
         quantity: item.quantity,
       }));
 
@@ -53,6 +54,72 @@ export const addComboToCart = createAsyncThunk(
       return thunkAPI.rejectWithValue(
         error.response?.data?.message || "Add combo failed",
       );
+    }
+  },
+);
+
+export const addToCartThunk = createAsyncThunk(
+  "cart/add",
+  async ({ productId, quantity }, thunkAPI) => {
+    try {
+      const res = await axiosInstance.post("/cart/add", {
+        productId,
+        quantity,
+      });
+      return res.data;
+    } catch (err) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message);
+    }
+  },
+);
+
+export const removeFromCartThunk = createAsyncThunk(
+  "cart/remove",
+  async ({ productId }) => {
+    // console.log(productId);
+
+    const res = await axiosInstance.post("/cart/remove", {
+      productId,
+    });
+
+    return res.data;
+  },
+);
+export const updateQtyThunk = createAsyncThunk(
+  "cart/updateQty",
+  async ({ productId, change }) => {
+    const res = await axiosInstance.post("/cart/update-qty", {
+      productId,
+      change,
+    });
+
+    return res.data;
+  },
+);
+
+export const clearCartThunk = createAsyncThunk(
+  "cart/clear",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.post("/cart/clear");
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Something went wrong");
+    }
+  },
+);
+
+export const bulkAddCartThunk = createAsyncThunk(
+  "cart/bulkAdd",
+  async (items, thunkAPI) => {
+    try {
+      const res = await axiosInstance.post("/cart/bulk-add", {
+        items,
+      });
+
+      return res.data;
+    } catch (err) {
+      return thunkAPI.rejectWithValue(err.response?.data?.message);
     }
   },
 );
@@ -100,6 +167,21 @@ const cartSlice = createSlice({
       })
       .addCase(addComboToCart.rejected, (state) => {
         state.loading = false;
+      })
+      .addCase(bulkAddCartThunk.fulfilled, (state, action) => {
+        state.cart = action.payload.cartItems;
+      })
+      .addCase(addToCartThunk.fulfilled, (state, action) => {
+        state.cart = action.payload.cartItems;
+      })
+      .addCase(removeFromCartThunk.fulfilled, (state, action) => {
+        state.cart = action.payload.cartItems;
+      })
+      .addCase(updateQtyThunk.fulfilled, (state, action) => {
+        state.cart = action.payload.cartItems;
+      })
+      .addCase(clearCartThunk.fulfilled, (state, action) => {
+        state.cart = action.payload.cartItems; 
       });
   },
 });

@@ -24,6 +24,11 @@ export const placeOrderCOD = async (req, res, next) => {
 
     // CHECK & UPDATE STOCK
     for (const item of orderItems) {
+      if (!item.quantity || item.quantity <= 0) {
+        return next(
+          new ErrorHandler(`${item.name} is invalid`, 400),
+        );
+      }
       const product = await Product.findOneAndUpdate(
         {
           _id: item.product,

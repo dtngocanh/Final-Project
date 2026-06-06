@@ -14,6 +14,8 @@ import { Link, useNavigate } from "react-router-dom";
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { useCartActions } from "../hooks/useCartActions";
 import { useProductNavigation } from "../hooks/useProductNavigation";
+import { clearCartThunk, removeFromCartThunk, updateQtyThunk } from "../store/slices/cartSlice";
+import { toast } from "react-toastify";
 
 const Cart = () => {
   const dispatch = useDispatch();
@@ -86,7 +88,15 @@ const Cart = () => {
                 <>
                   <span className="w-px h-3 bg-gray-200 dark:bg-white/10"></span>
                   <button
-                    onClick={() => handleCartAction(null, "CLEAR_CART")}
+                    onClick={async () => {
+                      try {
+                        await dispatch(clearCartThunk()).unwrap();
+                        toast.success("Cart cleared successfully!");
+                      } catch (error) {
+                        toast.error("Failed to clear cart");
+                      }
+                    }}
+                    // handleCartAction(null, "CLEAR_CART")}
                     className="text-[10px] tracking-widest font-medium text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-200 uppercase cursor-pointer"
                   >
                     Clear Bag
@@ -165,8 +175,19 @@ const Cart = () => {
                         {/* Bộ tăng giảm số lượng tinh gọn */}
                         <div className="flex items-center gap-3 bg-white dark:bg-[#0c0c0c] px-3 py-2 rounded-xl border border-gray-100 dark:border-white/5 shadow-3xs">
                           <button
-                            onClick={() =>
-                              handleCartAction(product, "UPDATE_QTY", -1)
+                            onClick={
+                              async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                await dispatch(
+                                  updateQtyThunk({
+                                    productId: product._id,
+                                    change: -1,
+                                  }),
+                                );
+                              }
+                              // handleCartAction(product, "UPDATE_QTY", -1)
                             }
                             className="text-gray-400 hover:text-[#77cd3a] transition-colors p-0.5"
                           >
@@ -176,8 +197,20 @@ const Cart = () => {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() =>
-                              handleCartAction(product, "UPDATE_QTY", 1)
+                            onClick={
+                              async (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                await dispatch(
+                                  updateQtyThunk({
+                                    productId: product._id,
+                                    change: 1,
+                                  }),
+                                );
+                              }
+
+                              // handleCartAction(product, "UPDATE_QTY", 1)
                             }
                             disabled={item.quantity >= product.stock}
                             className={`text-gray-400 hover:text-[#77cd3a] transition-colors p-0.5 ${
@@ -207,7 +240,17 @@ const Cart = () => {
 
                         {/* Nút xóa item chuyển động xuất hiện */}
                         <button
-                          onClick={() => handleCartAction(product, "REMOVE")}
+                          onClick={
+                            (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+
+                              dispatch(
+                                removeFromCartThunk({ productId: product._id }),
+                              );
+                            }
+                            // handleCartAction(product, "REMOVE")
+                          }
                           className="p-2 text-gray-300 dark:text-zinc-700 hover:text-red-500 dark:hover:text-red-400 transition-all md:opacity-0 md:group-hover:opacity-100 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5"
                         >
                           <Trash2 size={15} strokeWidth={2} />

@@ -1,21 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // Thêm hook điều hướng
+import { useNavigate } from "react-router-dom";
 import { axiosInstance } from "../lib/axios.js";
 import { Bell, ArrowLeft, Package, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 
 const NotificationPage = () => {
   const { theme } = useTheme();
-  const navigate = useNavigate(); // Khởi tạo điều hướng
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // MÀU SẮC CHUẨN ĐỒNG BỘ THEO NAVBAR/FOOTER
-  const darkGreenLight = "#77cd3af2"; // Xanh lá sáng (Neon nhẹ)
-  const lightGreenDark = "#025c37";   // Xanh lá đậm
+  const darkGreenLight = "#77cd3af2";
+  const lightGreenDark = "#025c37";   
   const activeColor = theme === "dark" ? darkGreenLight : lightGreenDark;
 
-  // Gọi API lấy danh sách thông báo khi vào trang
   const fetchNotifications = async () => {
     try {
       setLoading(true);
@@ -34,33 +32,30 @@ const NotificationPage = () => {
     fetchNotifications();
   }, []);
 
-  // Hàm xử lý khi click vào thông báo để dẫn đến chi tiết đơn hàng
   const handleNotificationClick = (notif) => {
-    // Nếu backend có trả về orderId trực tiếp
     if (notif.orderId) {
       navigate(`/order/${notif.orderId}`);
     } else {
-      // Trường hợp dự phòng nếu chưa có orderId riêng, có thể chuyển hướng về trang danh sách đơn hàng chung
       navigate("/orders");
     }
   };
 
-  // Hàm Helper để bóc tách Icon & Màu sắc dựa theo tiêu đề hoặc nội dung thông báo
   const getNotificationStyle = (title = "") => {
-    const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes("way")) {
+    const safeTitle = (title || "").toLowerCase();
+    
+    if (safeTitle.includes("way")) {
       return {
         icon: <Package size={18} className="text-emerald-500 dark:text-[#77cd3a]" />,
         bg: "bg-emerald-500/10",
       };
     }
-    if (lowerTitle.includes("delivered")) {
+    if (safeTitle.includes("delivered")) {
       return {
         icon: <CheckCircle2 size={18} className="text-amber-500" />,
         bg: "bg-amber-500/10",
       };
     }
-    if (lowerTitle.includes("canceled")) {
+    if (safeTitle.includes("canceled")) {
       return {
         icon: <XCircle size={18} className="text-rose-500" />,
         bg: "bg-rose-500/10",
@@ -85,7 +80,7 @@ const NotificationPage = () => {
             <ArrowLeft size={18} style={{ color: activeColor }} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            <h1 className="text-xl tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
               Notifications
             </h1>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
@@ -117,20 +112,8 @@ const NotificationPage = () => {
                 <div
                   key={notif._id}
                   onClick={() => handleNotificationClick(notif)}
-                  className={`group relative p-4 rounded-xl border flex gap-4 transition-all duration-300 bg-white dark:bg-[#061211] cursor-pointer hover:-translate-y-0.5 ${
-                    !notif.isRead
-                      ? "border-emerald-500/30 dark:border-[#77cd3a]/20 shadow-md shadow-emerald-500/[0.02]"
-                      : "border-gray-100 dark:border-white/[0.03] opacity-75 hover:opacity-100"
-                  }`}
+                  className="group relative p-4 rounded-xl border flex gap-4 transition-all duration-300 bg-white dark:bg-[#061211] cursor-pointer hover:-translate-y-0.5 border-gray-100 dark:border-white/[0.03] shadow-sm hover:shadow-md"
                 >
-                  {/* Cạnh trái nổi bật cho thông báo chưa đọc */}
-                  {!notif.isRead && (
-                    <div 
-                      className="absolute top-0 left-0 bottom-0 w-[3px] rounded-l-xl" 
-                      style={{ backgroundColor: activeColor }}
-                    />
-                  )}
-
                   {/* Icon tròn bọc trạng thái */}
                   <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${style.bg}`}>
                     {style.icon}
@@ -139,7 +122,7 @@ const NotificationPage = () => {
                   {/* Nội dung chữ */}
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-baseline justify-between gap-4">
-                      <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-[#77cd3a] transition-colors">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-[#77cd3a] transition-colors">
                         {notif.title}
                       </h3>
                       <span className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
@@ -155,7 +138,7 @@ const NotificationPage = () => {
                     </p>
                   </div>
 
-                  {/* Mũi tên nhỏ ẩn hiện khi hover chỉ báo có thể nhấn vào */}
+                  {/* Mũi tên nhỏ khi hover */}
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">
                     <ChevronRight size={16} className="text-gray-400" />
                   </div>

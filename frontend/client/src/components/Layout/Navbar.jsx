@@ -15,11 +15,12 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const { cart } = useSelector((state) => state.cart);
-  
+
   // TỐI ƯU UX: Cộng dồn tổng số lượng thực tế của tất cả sản phẩm trong giỏ hàng
-  const cartItemsCount = cart
-    ? cart.reduce((total, item) => total + (item.quantity || 1), 0)
-    : 0;
+  // const cartItemsCount = cart
+  //   ? cart.reduce((total, item) => total + (item.quantity || 1), 0)
+  //   : 0;
+  const cartItemsCount = cart ? cart.length : 0;
 
   // MÀU SẮC CHUẨN TỪ FOOTER
   const darkGreenLight = "#77cd3af2"; // Xanh lá sáng (Neon nhẹ)
@@ -29,7 +30,6 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 w-full transition-all duration-500 bg-white/80 dark:bg-[#061211]/90 backdrop-blur-xl border-b border-gray-100 dark:border-white/5">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        
         {/* 1. LEFT: MENU & LOGO */}
         <div className="flex items-center gap-1 sm:gap-3">
           <button
@@ -37,7 +37,12 @@ const Navbar = () => {
             className="p-1.5 sm:p-2 -ml-1 sm:ml-0 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
             aria-label="Toggle Menu"
           >
-            <Menu size={22} sm:size={24} strokeWidth={1.5} style={{ color: activeColor }} />
+            <Menu
+              size={22}
+              sm:size={24}
+              strokeWidth={1.5}
+              style={{ color: activeColor }}
+            />
           </button>
 
           <a href="/" className="flex items-center gap-0.5 sm:gap-1 group">
@@ -48,7 +53,7 @@ const Navbar = () => {
             />
             {/* Ẩn chữ thương hiệu trên thiết bị siêu nhỏ < 360px để không bị đẩy icon, hoặc thu nhỏ size chữ trên mobile */}
             <span
-              className="hidden min-[360px]:inline-block font-serif italic text-lg sm:text-2xl tracking-tighter drop-shadow-[0_0_8px_rgba(119,205,58,0.3)] select-none ml-[-2px] sm:ml-[-6px]" 
+              className="hidden min-[360px]:inline-block font-serif italic text-lg sm:text-2xl tracking-tighter drop-shadow-[0_0_8px_rgba(119,205,58,0.3)] select-none ml-[-2px] sm:ml-[-6px]"
               style={{ color: activeColor }}
             >
               Veganic
@@ -58,14 +63,17 @@ const Navbar = () => {
 
         {/* 2. RIGHT: ACTIONS (Hiển thị đầy đủ tính năng trên cả Mobile) */}
         <div className="flex items-center gap-0.5 sm:gap-1.5">
-          
           {/* Search */}
           <button
             onClick={() => dispatch(toggleSearchBar())}
             className="p-1.5 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-all hover:scale-105"
             aria-label="Search"
           >
-            <Search className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]" strokeWidth={2} style={{ color: activeColor }} />
+            <Search
+              className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]"
+              strokeWidth={2}
+              style={{ color: activeColor }}
+            />
           </button>
 
           {/* Theme Toggle */}
@@ -75,9 +83,16 @@ const Navbar = () => {
             aria-label="Toggle Theme"
           >
             {theme === "dark" ? (
-              <Sun className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px] text-yellow-400" strokeWidth={2} />
+              <Sun
+                className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px] text-yellow-400"
+                strokeWidth={2}
+              />
             ) : (
-              <Moon className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]" strokeWidth={2} style={{ color: activeColor }} />
+              <Moon
+                className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]"
+                strokeWidth={2}
+                style={{ color: activeColor }}
+              />
             )}
           </button>
 
@@ -87,7 +102,11 @@ const Navbar = () => {
             className="relative p-1.5 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-all hover:scale-105"
             aria-label="Notifications"
           >
-            <Bell className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]" strokeWidth={2} style={{ color: activeColor }} />
+            <Bell
+              className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]"
+              strokeWidth={2}
+              style={{ color: activeColor }}
+            />
           </button>
 
           {/* Shopping Cart */}
@@ -118,10 +137,12 @@ const Navbar = () => {
             style={{ color: activeColor }}
             aria-label="User Account"
           >
-            <User className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]" strokeWidth={2} />
+            <User
+              className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]"
+              strokeWidth={2}
+            />
           </button>
         </div>
-
       </div>
     </nav>
   );

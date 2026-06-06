@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { useCartActions } from "../../hooks/useCartActions";
 import { trackClickThunk } from "../../store/slices/interactionSlice";
 import { useProductNavigation } from "../../hooks/useProductNavigation";
+import { addToCartThunk } from "../../store/slices/cartSlice";
+import { toast } from "react-toastify";
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
@@ -112,10 +114,18 @@ const ProductCard = ({ product }) => {
         {/* 5. NÚT GIỎ HÀNG (Ẩn trên desktop khi không hover, hiện trên mobile) */}
         {product.stock > 0 && (
           <button
-            onClick={(e) => {
+            onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleCartAction(product, "ADD", 1);
+              try {
+                await dispatch(
+                  addToCartThunk({ productId: product._id, quantity: 1 }),
+                ).unwrap();
+                toast.success(`Added ${product.name} to cart`);
+              } catch (error) {
+                toast.error("Failed to add product to cart");
+              }
+              // handleCartAction(product, "ADD", 1);
             }}
             className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 md:bottom-[82px] md:right-5 w-8 h-8 sm:w-9 sm:h-9 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full flex items-center justify-center shadow-xs active:scale-90 md:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200 hover:!bg-[#77cd3a] hover:!text-white z-30 cursor-pointer"
             aria-label="Add to cart"

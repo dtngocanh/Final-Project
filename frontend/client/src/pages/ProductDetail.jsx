@@ -33,6 +33,7 @@ import BundleSection from "../components/ProductDetail/BundleSelection";
 import RelatedProducts from "../components/ProductDetail/RelatedProducts";
 import { fetchRecipes } from "../store/slices/recommendSlice";
 import RecipeList from "../components/Recipe/RecipeList";
+import { addToCartThunk } from "../store/slices/cartSlice";
 // import RecommendedProductCard from "../components/Products/RecommendedProductCard";
 // import RecipeSection from "../components/Products/RecipeSection";
 
@@ -224,7 +225,18 @@ const ProductDetail = () => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => handleCartAction(product, "ADD", quantity)}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  try {
+                    await dispatch(
+                      addToCartThunk({ productId: product._id, quantity: quantity }),
+                    ).unwrap();
+                    toast.success(`Added ${product.name} to cart`);
+                  } catch (error) {
+                    toast.error("Failed to add product to cart");
+                  }
+                }}
                 disabled={product.stock === 0}
                 className="w-full py-4 bg-[#77cd3a] text-white dark:text-black font-bold rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-[#77cd3a]/10 disabled:opacity-20 transition-all"
               >

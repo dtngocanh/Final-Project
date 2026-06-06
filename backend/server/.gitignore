@@ -1,2 +1,3 @@
 mongo/*
 models/ProductSimilarity.js
+k6.exe

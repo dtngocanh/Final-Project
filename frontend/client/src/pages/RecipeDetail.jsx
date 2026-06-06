@@ -10,20 +10,24 @@ import {
   Globe2,
   ChevronDown,
   ChevronUp,
-  ShoppingBag, 
+  ShoppingBag,
 } from "lucide-react";
 
 import { motion } from "framer-motion";
 
 import { axiosInstance } from "../lib/axios.js";
 import ProductCard from "../components/Products/ProductCard.jsx";
-import { useCartActions } from "../hooks/useCartActions.jsx"
-import { toast } from "react-toastify"; 
+import { useCartActions } from "../hooks/useCartActions.jsx";
+import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { bulkAddCartThunk } from "../store/slices/cartSlice.js";
 
 const RecipeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { handleCartAction } = useCartActions(); // Lấy hàm handle giỏ hàng
+
+  const dispatch = useDispatch();
 
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [recipe, setRecipe] = useState(null);
@@ -90,32 +94,22 @@ const RecipeDetail = () => {
     fetchProducts();
   }, [ingredients]);
 
-  // === LOGIC THÊM TOÀN BỘ SẢN PHẨM KHỚP ĐƯỢC VÀO GIỎ HÀNG ===
   const handleAddAllToCart = async () => {
     if (matchedProducts.length === 0) return;
 
     setIsAddingAll(true);
+
     try {
-      console.log("🛒 Đang thêm toàn bộ nguyên liệu khớp từ Veganic Mart vào giỏ hàng...");
+      const items = matchedProducts.map((p) => ({
+        productId: p._id,
+        quantity: 1,
+      }));
 
-      // Lặp qua danh sách matchedProducts lấy từ API của bạn để format chuẩn dữ liệu đầu vào giỏ hàng
-      for (const product of matchedProducts) {
-        const formattedItem = {
-          _id: product._id,
-          name: product.name,
-          price: product.price || 0,
-          images: product.images || (product.image ? [product.image] : []),
-          stock: product.stock || 99,
-        };
+      await dispatch(bulkAddCartThunk(items));
 
-        // Gọi action ADD với số lượng mặc định là 1 cho từng item
-        await handleCartAction(formattedItem, "ADD", 1);
-      }
-
-      toast.success("All ingredients added to your bag! ");
-    } catch (error) {
-      console.error("Add All Ingredients Error:", error);
-      toast.error("Failed to add all ingredients!");
+      toast.success(`${matchedProducts.length} ingredients added to your bag!`);
+    } catch (err) {
+      toast.error("Failed to add items!");
     } finally {
       setIsAddingAll(false);
     }
@@ -312,9 +306,10 @@ const RecipeDetail = () => {
                       px-3.5 py-1.5
                       text-[9px] font-bold tracking-wider uppercase
                       rounded-full border transition-all duration-300 shadow-sm
-                      ${isAddingAll
-                        ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                        : "bg-[#77cd3a] text-white border-[#77cd3a] hover:bg-black hover:border-black dark:hover:bg-white dark:hover:text-black dark:hover:border-white"
+                      ${
+                        isAddingAll
+                          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                          : "bg-[#77cd3a] text-white border-[#77cd3a] hover:bg-black hover:border-black dark:hover:bg-white dark:hover:text-black dark:hover:border-white"
                       }
                     `}
                   >
@@ -375,8 +370,7 @@ const RecipeDetail = () => {
                         className="group-hover:translate-y-0.5 transition"
                       />
                     </>
-                  )
-                  }
+                  )}
                 </button>
               </div>
             )}

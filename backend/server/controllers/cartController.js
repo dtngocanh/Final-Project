@@ -222,3 +222,156 @@ export const addCombo = async (req, res, next) => {
     next(error);
   }
 };
+
+export const bulkAddCart = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { items } = req.body;
+
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ message: "Invalid items" });
+    }
+
+    const user = await User.findById(userId);
+    const cart = user.cartItems || [];
+
+    for (const item of items) {
+      const product = await Product.findById(item.productId);
+      if (!product) continue;
+
+      const existing = cart.find(
+        (c) => c.product.toString() === item.productId,
+      );
+
+      const qty = Math.min(item.quantity, product.stock);
+
+      if (existing) {
+        existing.quantity += qty;
+      } else {
+        cart.push({
+          product: item.productId,
+          quantity: qty,
+          price: product.price,
+        });
+      }
+    }
+
+    user.cartItems = cart;
+    await user.save();
+
+    const populated = await user.populate("cartItems.product");
+
+    res.json({
+      success: true,
+      cartItems: populated.cartItems,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const addToCart = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { productId, quantity } = req.body;
+
+    const user = await User.findById(userId);
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const cart = user.cartItems || [];
+
+    const existing = cart.find((i) => i.product.toString() === productId);
+
+    const qty = Math.min(quantity, product.stock);
+
+    if (existing) {
+      existing.quantity += qty;
+    } else {
+      cart.push({
+        product: productId,
+        quantity: qty,
+        price: product.price,
+      });
+    }
+
+    user.cartItems = cart;
+    await user.save();
+
+    const populated = await user.populate("cartItems.product");
+
+    res.json({
+      success: true,
+      cartItems: populated.cartItems,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const removeFromCart = async (req, res) => {
+  const userId = req.user._id;
+  const { productId } = req.body;
+
+  // console.log(productId);
+
+  const user = await User.findById(userId);
+
+  user.cartItems = user.cartItems.filter((item) => {
+    const itemProductId = item.product._id ? item.product._id : item.product;
+    return !itemProductId.equals(productId);
+  });
+
+  await user.save();
+
+  const populated = await user.populate("cartItems.product");
+  res.json({ cartItems: populated.cartItems });
+};
+
+export const updateQty = async (req, res) => {
+  const userId = req.user._id;
+  const { productId, change } = req.body;
+
+  const user = await User.findById(userId);
+
+  const item = user.cartItems.find((i) => {
+    const itemProductId = i.product._id ? i.product._id : i.product;
+    return itemProductId.equals(productId);
+  });
+
+  if (!item) return res.status(404).json({ message: "Product not found in cart" });
+
+  item.quantity += change;
+
+  if (item.quantity <= 0) {
+    user.cartItems = user.cartItems.filter((i) => {
+      const itemProductId = i.product._id ? i.product._id : i.product;
+      return !itemProductId.equals(productId);
+    });
+  }
+
+  await user.save();
+
+  const populated = await user.populate("cartItems.product");
+  res.json({ cartItems: populated.cartItems });
+};
+
+export const clearCart = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.cartItems = []; 
+    await user.save();
+
+    res.json({ cartItems: [] });
+  } catch (error) {
+    console.error("Error clearing cart:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
