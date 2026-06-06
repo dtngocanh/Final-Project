@@ -30,24 +30,6 @@ const getWeight = (item) => {
       return 500;
   }
 };
-
-// const getWeight = (item) => {
-//   if (item.weight) return item.weight;
-
-//   const categoryIdStr = item.categoryId?.toString(); 
-
-//   switch (categoryIdStr) {
-//     case "69dda0160eec98d26c650d36":  // Packages
-//       return 500;
-
-//     case "6a1921ff9388a017488ab5fa": // Herbs & Seasonings
-//       return 200;
-
-//     default:
-//       return 1000;
-//   }
-// };
-
 export const calculateShippingFee = async ({
   cartItems,
   to_district_id,
@@ -64,7 +46,7 @@ export const calculateShippingFee = async ({
 
     const DISTRICT_ID = Number(process.env.GHN_FROM_DISTRICT);
 
-    // Available services
+    // 1. Lấy danh sách dịch vụ khả dụng của GHN
     const serviceRes = await ghnReq.post(
       "/v2/shipping-order/available-services",
       {
@@ -79,20 +61,17 @@ export const calculateShippingFee = async ({
     const services = serviceRes.data?.data;
 
     if (!services || services.length === 0) {
-      throw new ErrorHandler(
-        "Shipping not available for this location.",
-        400,
-      );
+      throw new ErrorHandler("Shipping not available for this location.", 400);
     }
 
     const active_service_id = services[0].service_id;
 
-    // Total weight
+    // 2. TÍNH TỔNG CÂN NẶNG
     const totalWeight = cartItems.reduce((sum, item) => {
-      return sum + item.quantity * getWeight(item);
+      return sum + Number(item.quantity) * 1000;
     }, 0);
 
-    // Calculate fee
+    // 3. GỬI SANG API GHN
     const feeRes = await ghnReq.post("/v2/shipping-order/fee", {
       service_id: Number(active_service_id),
 
@@ -118,10 +97,7 @@ export const calculateShippingFee = async ({
       totalWeight,
     };
   } catch (error) {
-    console.error(
-      "GHN SHIPPING ERROR:",
-      error.response?.data || error.message,
-    );
+    console.error("GHN SHIPPING ERROR:", error.response?.data || error.message);
 
     throw error;
   }

@@ -42,8 +42,13 @@ export const calcFee = createAsyncThunk(
   "address/calcFee",
   async ({ cartItems, to_district_id, to_ward_code }, thunkAPI) => {
     try {
+      const cleanCartItems = cartItems.map(item => ({
+        product: item.product?._id || item.product, 
+        quantity: item.quantity
+      }));
+
       const response = await axiosInstance.post("/address/calc-fee", {
-        cartItems,
+        cartItems: cleanCartItems,
         to_district_id: Number(to_district_id),
         to_ward_code: String(to_ward_code),
       });
