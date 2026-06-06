@@ -9,10 +9,10 @@ import { toast } from "react-toastify";
  */
 export const fetchAllProducts = createAsyncThunk(
   "products/fetchAllProducts",
-  async (filterParams, thunkAPI) => {
+  async (params, thunkAPI) => {
     try {
       const res = await axiosInstance.get("/product/list", {
-        params: filterParams,
+        params,
       });
       return res.data;
     } catch (error) {

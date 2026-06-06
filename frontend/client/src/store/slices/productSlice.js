@@ -6,11 +6,13 @@ import { toast } from "react-toastify";
 // Connected API
 export const fetchAllProducts = createAsyncThunk(
   "product/fetchAllProducts",
-  async (fileterParams, thunkAPI) => {
+  async (params, thunkAPI) => {
     try {
+      // console.log(params);
+
       const res = await axiosInstance.get("/product/list", {
-        params: fileterParams,
-      });
+        params,
+      }); // query string
       return res.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(
@@ -125,11 +127,11 @@ export const fetchFreqProducts = createAsyncThunk(
 
 export const searchProducts = createAsyncThunk(
   "product/searchProducts",
-  async (fileterParams, thunkAPI) => {
+  async (params, thunkAPI) => {
     try {
       // Gửi keyword qua query parameter (?q=...)
       const res = await axiosInstance.get(`/product/search`, {
-        params: fileterParams,
+        params,
       });
       // console.log("Dữ liệu từ API:", res.data);
       return res.data;
@@ -150,7 +152,7 @@ const productSlice = createSlice({
     isUpdating: false,
     products: [],
     totalProducts: 0,
-    totalPages:1,
+    totalPages: 1,
     productDetails: {},
     topRatedProducts: [],
     newProducts: [],

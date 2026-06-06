@@ -149,10 +149,7 @@ const Products = () => {
       if (q) {
         dispatch(searchProducts({ q: q, ...apiParams }));
       } else {
-        const params = {
-          ...(currentCategoryId && { categoryId: currentCategoryId }),
-        };
-        dispatch(fetchAllProducts(params));
+        dispatch(fetchAllProducts(apiParams));
       }
     };
 
