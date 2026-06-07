@@ -56,7 +56,7 @@ const Navbar = () => {
               className="hidden min-[360px]:inline-block font-serif italic text-lg sm:text-2xl tracking-tighter drop-shadow-[0_0_8px_rgba(119,205,58,0.3)] select-none ml-[-2px] sm:ml-[-6px]"
               style={{ color: activeColor }}
             >
-              Veganic
+              Veggies
             </span>
           </a>
         </div>
