@@ -166,7 +166,7 @@ export const productById = async (req, res, next) => {
 
     // 1. Fetch the primary product details from MongoDB
     const product = await Product.findById(id)
-      .select("name price images category ratings stock")
+      .select("name price images category ratings stock description")
       .lean();
 
     if (!product) {
