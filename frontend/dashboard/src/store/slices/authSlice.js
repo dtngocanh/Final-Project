@@ -111,6 +111,18 @@ export const updatePassword = createAsyncThunk(
   },
 );
 
+export const fetchProfile = createAsyncThunk(
+  "admin/fetchProfile",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get("/admin/profile");
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message);
+    }
+  },
+);
+
 // =======================
 // SLICE
 const authSlice = createSlice({
@@ -198,6 +210,15 @@ const authSlice = createSlice({
       })
       .addCase(updatePassword.rejected, (state, action) => {
         state.isUpdatingPassword = false;
+      })
+
+      .addCase(fetchProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+      })
+      .addCase(fetchProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || "Something went wrong";
       });
   },
 });

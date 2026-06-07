@@ -22,7 +22,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import InventoryOverview from "./components/dashboard-components/InventoryOverview";
 
-import { getUser } from "./store/slices/authSlice";
+import { fetchProfile, getUser } from "./store/slices/authSlice";
 import Categories from "./components/Categories";
 
 function App() {
@@ -35,12 +35,19 @@ function App() {
     dispatch(getUser());
   }, [dispatch]);
 
-  if (isCheckingAuth)
-    return (
-      <div className="h-screen flex items-center justify-center">
-        Loading...
-      </div>
-    );
+  useEffect(() => {
+    const token = localStorage.getItem("sellertoken");
+    if (token || isAuthenticated) {
+      dispatch(fetchProfile());
+    }
+  }, [dispatch, isAuthenticated]);
+
+  // if (isCheckingAuth)
+  //   return (
+  //     <div className="h-screen flex items-center justify-center">
+  //       Loading...
+  //     </div>
+  //   );
 
   // Component Layout dùng chung cho toàn bộ trang Admin
   const AdminLayout = () => (

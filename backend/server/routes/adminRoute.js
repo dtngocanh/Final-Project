@@ -23,6 +23,7 @@ import {
   getCategories,
   updateCategory,
 } from "../controllers/categoryController.js";
+import { getProfile } from "../controllers/userController.js";
 
 const sellerRouter = express.Router();
 
@@ -33,6 +34,7 @@ sellerRouter.get("/logout", authSeller, sellerLogout);
 sellerRouter.get("/users", authSeller, getAllUsers);
 sellerRouter.delete("/users/delete/:id", authSeller, deleteUser);
 sellerRouter.put("/password/update", authSeller, updatePassword);
+sellerRouter.get("/profile", authSeller, getProfile);
 
 // ORDERS
 sellerRouter.get("/orders", authSeller, getAllOrders);
