@@ -8,17 +8,10 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from pymongo import MongoClient
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-
-# =====================================================
-# THAY THẾ OLLAMA BẰNG CÁC THƯ VIỆN CLOUD-FRIENDLY
-# =====================================================
 from groq import Groq
+# Đã thay đổi: Dùng model all-MiniLM-L6-v2 để tối ưu RAM
 from sentence_transformers import SentenceTransformer
 
-# =====================================================
-# 1. ENV & APP CONFIG
-# =====================================================
 load_dotenv()
 
 app = FastAPI()
@@ -31,25 +24,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =====================================================
 # 2. MONGODB CONNECTION
-# =====================================================
 client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
 db = client[os.getenv("DB_NAME", "freshmart")]
 collection = db[os.getenv("COLLECTION_NAME", "products")]
 
-# =====================================================
-# 3. AI INITIALIZATION (SIÊU TỐC ĐỘ VỚI GROQ & LOCAL CPU)
-# =====================================================
-print("--- RUNNING WITH GROQ & SENTENCE TRANSFORMERS (CLOUD-FRIENDLY MODE) ---")
+# 3. AI INITIALIZATION (Tối ưu cho RAM 512MB)
+print("--- RUNNING WITH GROQ & LIGHTWEIGHT EMBEDDING (all-MiniLM-L6-v2) ---")
 
-# Load model nhẹ để tạo vector trên CPU Render
-embedding_model = SentenceTransformer('nomic-ai/nomic-embed-text-v1.5', trust_remote_code=True)
+# Dùng model siêu nhẹ, không cần trust_remote_code=True
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# Khởi tạo Groq Client
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# Cache System
 chat_history: Dict[str, List[str]] = {}
 embedding_cache: Dict[str, List[float]] = {}
 
@@ -69,15 +56,13 @@ SMALL_TALKS = {
     "thank you": "You're very welcome!",
 }
 
-# =====================================================
 # 4. HELPER FUNCTIONS
-# =====================================================
 def get_embedding(text: str) -> List[float]:
     text = text.strip().lower()
     if text in embedding_cache:
         return embedding_cache[text]
     
-    # Tạo vector trực tiếp trên CPU, không cần Ollama server
+    # Tạo vector trực tiếp trên CPU
     vector = embedding_model.encode(text).tolist()
     
     if len(embedding_cache) > 500:
@@ -86,7 +71,7 @@ def get_embedding(text: str) -> List[float]:
     return vector
 
 def get_chat_response(prompt: str) -> str:
-    # Gọi Groq cực nhanh thay vì Ollama local
+    # Gọi Groq cực nhanh
     completion = groq_client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama-3.1-8b-instant",
@@ -102,14 +87,11 @@ def detect_category_filter(message: str) -> Dict[str, Any]:
             return {"category": category}
     return {}
 
-# =====================================================
 # 5. MONGODB HYBRID SEARCH (TỐI ƯU 1-PASS)
-# =====================================================
 def batch_regex_search(keywords: List[str], cat_filter: dict) -> List[dict]:
     if not keywords:
         return []
     
-    # Chỉ lấy tối đa 5 từ khóa quan trọng nhất để DB quét cực nhanh
     regex_list = [{"name": {"$regex": re.escape(kw), "$options": "i"}} for kw in keywords[:5]]
     query = {"$or": regex_list}
     if cat_filter:
@@ -128,7 +110,7 @@ def vector_product_search(query_vector: List[float], cat_filter: dict) -> List[d
     pipeline = [
         {"$vectorSearch": vector_search_stage},
         {"$addFields": {"search_score": {"$meta": "vectorSearchScore"}}},
-        {"$match": {"search_score": {"$gte": 0.65}}}, 
+        {"$match": {"search_score": {"$gte": 0.5}}}, 
         {"$project": {"_id": 1, "name": 1, "price": 1, "images": 1, "category": 1}}
     ]
     return list(collection.aggregate(pipeline))
@@ -137,10 +119,7 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str = "guest"
 
-# =====================================================
 # 6. MAIN API ENDPOINT
-# =====================================================
-# Lưu ý: Bỏ 'async' ở def để tránh blocking event loop khi dùng PyMongo (giúp API chịu tải tốt hơn)
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
     try:
@@ -148,18 +127,12 @@ def chat_endpoint(request: ChatRequest):
         message = request.message.strip()
         session_id = request.session_id
 
-        print("\n" + "=" * 60)
-        print(f"[1. USER MESSAGE]: {message}")
-
         if message.lower() in SMALL_TALKS:
             return {"answer": SMALL_TALKS[message.lower()], "products": []}
 
         if session_id not in chat_history:
             chat_history[session_id] = []
 
-        # ---------------------------------------------------------
-        # BƯỚC 1: ÉP AI TRẢ KẾT QUẢ THEO FORM CHUẨN (Tốc độ ánh sáng)
-        # ---------------------------------------------------------
         extraction_prompt = f"""Analyze the user's shopping request: "{message}"
 Format your response STRICTLY in one of these two ways:
 1. If they want to make/cook a dish: "RECIPE | [Dish Name] | [ingredient1, ingredient2, ingredient3]"
@@ -167,16 +140,13 @@ Format your response STRICTLY in one of these two ways:
 Do not say anything else.
 Answer:"""
         
-        # Đã cập nhật để dùng Groq
         ai_analysis = get_chat_response(extraction_prompt).strip()
-        print(f"[2. AI EXTRACTION]: {ai_analysis}")
 
         search_keywords = []
         is_recipe = False
         dish_name = ""
         required_ingredients_str = ""
 
-        # Phân rã chuỗi AI trả về
         if "|" in ai_analysis:
             parts = [p.strip() for p in ai_analysis.split("|")]
             if len(parts) >= 3:
@@ -184,7 +154,6 @@ Answer:"""
                 dish_name = parts[1]
                 required_ingredients_str = parts[2]
                 
-                # Biến chuỗi "apple, banana" thành mảng ['apple', 'banana']
                 search_keywords = [kw.strip().lower() for kw in required_ingredients_str.split(",") if len(kw.strip()) > 2]
                 if "RECIPE" in intent_type:
                     is_recipe = True
@@ -192,22 +161,13 @@ Answer:"""
         cat_filter = detect_category_filter(message)
         search_results = []
 
-        # ---------------------------------------------------------
-        # BƯỚC 2: TÌM TRONG DATABASE BẰNG REGEX SIÊU TỐC
-        # ---------------------------------------------------------
         if search_keywords:
             search_results = batch_regex_search(search_keywords, cat_filter)
 
-        # Fallback nếu Regex không ra kết quả
         if len(search_results) == 0:
             query_vector = get_embedding(message)
             search_results = vector_product_search(query_vector, cat_filter)
 
-        print(f"[INFO] Database yielded {len(search_results)} matching items.")
-
-        # ---------------------------------------------------------
-        # BƯỚC 3: DỰNG NGỮ CẢNH (CONTEXT) ĐỂ TƯ VẤN NHƯ CHUYÊN GIA
-        # ---------------------------------------------------------
         stock_list = []
         for item in search_results:
             clean_name = item['name'].replace('-', ' ').replace('_', ' ').title()
@@ -215,16 +175,12 @@ Answer:"""
         
         available_stock = "\n".join(stock_list) if stock_list else "None"
         
-        # Bơm ngữ cảnh tư vấn vào cho AI
         expert_context = ""
         if is_recipe:
             expert_context = f"""The user wants to make {dish_name}. 
 RULE: You MUST start your response by saying something like: "To make {dish_name}, you typically need {required_ingredients_str}." 
 Then, warmly tell them which of those ingredients we currently have from the ITEMS IN STOCK."""
 
-        # ---------------------------------------------------------
-        # BƯỚC 4: AI CHỐT CÂU TRẢ LỜI CUỐI CÙNG
-        # ---------------------------------------------------------
         llm_start = time.time()
         prompt = f"""You are a smart, friendly shopping assistant for Veganic Mart.
 [RULES]
@@ -240,23 +196,10 @@ ITEMS IN STOCK:
 CUSTOMER: {message}
 ASSISTANT:"""
         
-        # Đã cập nhật để dùng Groq
         ai_answer = get_chat_response(prompt).strip()
         if "ASSISTANT:" in ai_answer:
             ai_answer = ai_answer.split("ASSISTANT:")[-1].strip()
 
-        print(f"[3. AI FINAL ANSWER]: {ai_answer}")
-        print(f"[INFO] Groq Latency: {time.time() - llm_start:.2f}s")
-
-        # Lưu lịch sử chat
-        chat_history[session_id].append(f"User: {message}")
-        chat_history[session_id].append(f"Assistant: {ai_answer}")
-        if len(chat_history[session_id]) > 4:
-            chat_history[session_id] = chat_history[session_id][-4:]
-
-        # ---------------------------------------------------------
-        # BƯỚC 5: XUẤT RA DỮ LIỆU SẢN PHẨM CHO GIAO DIỆN
-        # ---------------------------------------------------------
         products = []
         ai_lower = ai_answer.lower()
         
@@ -274,8 +217,6 @@ ASSISTANT:"""
                     "price": doc.get("price", 0),
                     "image": image_url
                 })
-
-        print(f"[INFO] TOTAL ROUND-TRIP: {time.time() - total_start:.2f}s\n" + "=" * 60)
         
         return {"answer": ai_answer, "products": products[:6]}
 
@@ -285,4 +226,5 @@ ASSISTANT:"""
 
 
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
