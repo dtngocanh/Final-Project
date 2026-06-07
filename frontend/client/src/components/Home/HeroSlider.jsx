@@ -230,7 +230,7 @@ const HeroSlider = () => {
                     animate: { opacity: 1, scale: 1, filter: "blur(0px)" },
                     exit: { opacity: 0, scale: 1.25, filter: "blur(12px)" } 
                   }}
-                  transition={fluidTransition}
+//                   transition={fluidTransition}
                   animate={{
                     y: [0, -8, 0],
                   }}

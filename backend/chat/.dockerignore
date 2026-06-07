@@ -1,0 +1,11 @@
+# Bỏ qua các thư mục không cần thiết
+.git
+.venv
+venv
+__pycache__
+.env
+.pytest_cache
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
