@@ -9,6 +9,10 @@ const extraSlice = createSlice({
     isCreateProductModalOpened: false,
     isUpdateProductModalOpened: false,
     isImportProductModalOpened: false,
+
+    isCreateCategoryModalOpened: false,
+    isUpdateCategoryModalOpened: false,
+    selectedCategory: null,
   },
   reducers: {
     toggleComponent: (state, action) => {
@@ -29,16 +33,33 @@ const extraSlice = createSlice({
     toggleImportProductModal: (state) => {
       state.isImportProductModalOpened = !state.isImportProductModalOpened;
     },
+
+    // CATEGORY
+    toggleCreateCategoryModal: (state) => {
+      state.isCreateCategoryModalOpened = !state.isCreateCategoryModalOpened;
+    },
+
+    toggleUpdateCategoryModal: (state) => {
+      state.isUpdateCategoryModalOpened = !state.isUpdateCategoryModalOpened;
+    },
+
+    setSelectedCategory: (state, action) => {
+      state.selectedCategory = action.payload;
+    },
   },
 });
 
-export const { 
-  toggleComponent, 
-  toggleNavbar, 
-  toggleCreateProductModal, 
-  toggleViewProductModal, 
-  toggleUpdateProductModal ,
-  toggleImportProductModal
+export const {
+  toggleComponent,
+  toggleNavbar,
+  toggleCreateProductModal,
+  toggleViewProductModal,
+  toggleUpdateProductModal,
+  toggleImportProductModal,
+
+  toggleCreateCategoryModal,
+  toggleUpdateCategoryModal,
+  setSelectedCategory,
 } = extraSlice.actions;
 
 export default extraSlice.reducer;

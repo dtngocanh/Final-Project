@@ -67,7 +67,7 @@ const CreateProductModal = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
     const data = new FormData();
     data.append("productData", JSON.stringify(formData));
@@ -76,8 +76,13 @@ const CreateProductModal = () => {
         data.append("images", file);
       }
     });
+    try {
+      await dispatch(createNewProduct(data)).unwrap();
 
-    dispatch(createNewProduct(data));
+      dispatch(toggleCreateProductModal());
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (

@@ -11,7 +11,7 @@ export const fetchAllProducts = createAsyncThunk(
   "products/fetchAllProducts",
   async (params, thunkAPI) => {
     try {
-      const res = await axiosInstance.get("/product/list", {
+      const res = await axiosInstance.get("/admin/products", {
         params,
       });
       return res.data;
@@ -31,7 +31,7 @@ export const createNewProduct = createAsyncThunk(
   async (formData, thunkAPI) => {
     console.log("Form Data Content:", Object.fromEntries(formData));
     try {
-      const res = await axiosInstance.post("/product/add", formData);
+      const res = await axiosInstance.post("/admin/product", formData);
       toast.success(res.data.message || "Product added successfully!");
 
       // Re-fetch the list to keep UI in sync with Database
@@ -53,7 +53,7 @@ export const updateProduct = createAsyncThunk(
   "products/updateProduct",
   async ({ id, formData }, thunkAPI) => {
     try {
-      const res = await axiosInstance.patch(`/product/${id}`, formData);
+      const res = await axiosInstance.patch(`/admin/products/${id}`, formData);
       toast.success(res.data.message);
 
       thunkAPI.dispatch(fetchAllProducts());
@@ -74,7 +74,7 @@ export const deleteProduct = createAsyncThunk(
   "products/deleteProduct",
   async (id, thunkAPI) => {
     try {
-      const res = await axiosInstance.delete(`/product/delete/${id}`);
+      const res = await axiosInstance.delete(`/admin/products/${id}`);
       toast.success(res.data.message || "Product removed!");
       thunkAPI.dispatch(fetchAllProducts());
       return id;

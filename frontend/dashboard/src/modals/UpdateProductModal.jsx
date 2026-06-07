@@ -83,7 +83,7 @@ const UpdateProductModal = ({ selectedProduct }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData();
     data.append("productData", JSON.stringify(formData));
@@ -92,8 +92,14 @@ const UpdateProductModal = ({ selectedProduct }) => {
     newImages.forEach((file) => {
       data.append("images", file);
     });
-
-    dispatch(updateProduct({ id: selectedProduct._id, formData: data }));
+    try {
+      await dispatch(
+        updateProduct({ id: selectedProduct._id, formData: data }),
+      ).unwrap();
+      dispatch(toggleUpdateProductModal());
+    } catch (error) {
+      console.log(error);
+    }
   };
   return (
     <div className="fixed inset-0 z-[100] flex justify-center items-center p-4 font-['Fredoka']">

@@ -30,7 +30,7 @@ export const getUser = createAsyncThunk(
       toast.success("Welcome back!");
       return res.data.user;
     } catch (error) {
-      toast.error(error.response?.data?.message);
+      // toast.error(error.response?.data?.message);
       return thunkAPI.rejectWithValue(error.response?.data?.message);
     }
   },
@@ -42,9 +42,7 @@ export const logout = createAsyncThunk(
   "auth/adminLogout",
   async (_, thunkAPI) => {
     try {
-      const res = await axiosInstance.get("/admin/logout", {
-        withCredentials: true,
-      });
+      const res = await axiosInstance.get("/admin/logout");
 
       toast.success(res.data.message);
       return true;

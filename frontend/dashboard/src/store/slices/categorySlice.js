@@ -6,7 +6,7 @@ export const fetchCategories = createAsyncThunk(
   "product/fetchCategories",
   async (_, thunkAPI) => {
     try {
-      const res = await axiosInstance.get("/category/list");
+      const res = await axiosInstance.get("/admin/categories");
       return res.data.categories;
     } catch (error) {
       return thunkAPI.rejectWithValue(
@@ -14,6 +14,47 @@ export const fetchCategories = createAsyncThunk(
       );
     }
   },
+);
+export const createCategory = createAsyncThunk(
+  "categories/create",
+  async (data, thunkAPI) => {
+    try {
+      const res = await axiosInstance.post("/admin/categories", data);
+
+      toast.success("Category added");
+      thunkAPI.dispatch(fetchCategories());
+
+      return res.data;
+    } catch (error) {
+      const message = error.response?.data?.message;
+      toast.error(message);
+
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+export const updateCategory = createAsyncThunk(
+  "categories/update",
+  async ({ id, data }, thunkAPI) => {
+    try {
+      const res = await axiosInstance.patch(
+        `/admin/categories/${id}`,
+        data
+      );
+
+      toast.success("Category updated");
+
+      thunkAPI.dispatch(fetchCategories());
+
+      return res.data;
+    } catch (error) {
+      const message = error.response?.data?.message;
+      toast.error(message);
+
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
 );
 const categorySlice = createSlice({
   name: "category",

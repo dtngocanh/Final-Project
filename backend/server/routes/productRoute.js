@@ -25,11 +25,6 @@ const excelUpload = multer({
 
 const productRouter = express.Router();
 
-// add product
-productRouter.post("/add", upload.array("images", 10), authSeller, addProduct);
-
-// get all products
-productRouter.get("/list", productList);
 
 productRouter.get("/search",searchProducts)
 
@@ -40,8 +35,6 @@ productRouter.get("/:id", productById);
 // change stock
 productRouter.post("/stock", authSeller, changeStock);
 
-//upload product list
-// productRouter.post("/import", authSeller, importProducts);
 
 //upload product list
 productRouter.post(
@@ -51,18 +44,6 @@ productRouter.post(
   importProducts
 );
 
-//delete a product
-productRouter.delete("/delete/:id", authSeller, deleteProduct);
-
-//update a product
-productRouter.patch(
-  "/:id",
-  upload.array("images", 3),
-  authSeller,
-  updateProduct,
-);
-
-// productRouter.post("/track-click", handleInteraction);
 
 // get related product
 productRouter.get("/related-v2/:id", getRelatedProductsFromDB)
