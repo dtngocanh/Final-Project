@@ -35,9 +35,7 @@ export const chatWithAI = async (req, res) => {
     // Call FastAPI
     // ==========================
     const response = await axios.post(
-
       "https://freshmart-chat.onrender.com",
-
       {
         message,
         session_id: sessionId,
