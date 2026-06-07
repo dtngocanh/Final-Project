@@ -11,7 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # =====================================================
-# ENV & APP CONFIG
+# THAY THẾ OLLAMA BẰNG CÁC THƯ VIỆN CLOUD-FRIENDLY
+# =====================================================
+from groq import Groq
+from sentence_transformers import SentenceTransformer
+
+# =====================================================
+# 1. ENV & APP CONFIG
 # =====================================================
 load_dotenv()
 
@@ -26,289 +32,256 @@ app.add_middleware(
 )
 
 # =====================================================
-# MONGODB CONNECTION
+# 2. MONGODB CONNECTION
 # =====================================================
-client = MongoClient(os.getenv("MONGO_URI"))
-db = client[os.getenv("DB_NAME")]
-collection = db[os.getenv("COLLECTION_NAME")]
+client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
+db = client[os.getenv("DB_NAME", "freshmart")]
+collection = db[os.getenv("COLLECTION_NAME", "products")]
 
 # =====================================================
-# DYNAMIC AI INITIALIZATION (CHỌN NÃO THEO MÔI TRƯỜNG)
+# 3. AI INITIALIZATION (SIÊU TỐC ĐỘ VỚI GROQ & LOCAL CPU)
 # =====================================================
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama").lower()
+print("--- RUNNING WITH GROQ & SENTENCE TRANSFORMERS (CLOUD-FRIENDLY MODE) ---")
 
-ollama_embeddings = None
-ollama_llm = None
-gemini_client = None
-GEMINI_MODEL = None
+# Load model nhẹ để tạo vector trên CPU Render
+embedding_model = SentenceTransformer('nomic-ai/nomic-embed-text-v1.5', trust_remote_code=True)
 
-if LLM_PROVIDER == "gemini":
-    print("--- RUNNING WITH GEMINI API (DEPLOY PRODUCTION MODE) ---")
-    from google import genai
-    from google.genai import types
-    gemini_client = genai.Client()
-    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-else:
-    print("--- RUNNING WITH OLLAMA + LANGCHAIN (LOCAL DEVELOPMENT MODE) ---")
-    from langchain_ollama import OllamaEmbeddings, OllamaLLM
-    ollama_embeddings = OllamaEmbeddings(model=os.getenv("EMBEDDING_MODEL"))
-    ollama_llm = OllamaLLM(model=os.getenv("LLM_MODEL"), temperature=0.1) # Hạ thấp temp để bớt ngáo
+# Khởi tạo Groq Client
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# =====================================================
-# MEMORY & CACHE
-# =====================================================
+# Cache System
 chat_history: Dict[str, List[str]] = {}
 embedding_cache: Dict[str, List[float]] = {}
 
-# Từ điển ánh xạ Category cứng
 CATEGORY_KEYWORDS = {
     "fruit": "Fruits", "apple": "Fruits", "banana": "Fruits",
     "juice": "Juices", "drink": "Juices",
-    "vegetable": "Vegetables",
-    "fish": "Seafood", "shrimp": "Seafood", "seafood": "Seafood"
+    "vegetable": "Vegetables", "salad": "Vegetables",
+    "fish": "Seafood", "shrimp": "Seafood", "seafood": "Seafood",
+    "milk": "Dairy", "pork": "Meat", "beef": "Meat", "meat": "Meat"
 }
 
 SMALL_TALKS = {
-    "hi": "Hello! How can I help you today?",
-    "hello": "Hello! How can I help you today?",
-    "hey": "Hi! What are you looking for today?",
-    "thanks": "You're welcome!",
-    "thank you": "You're welcome!",
-    "ok": "Got it.",
-    "haha": "😄",
+    "hi": "Hello! Welcome to Veganic Mart. How can I assist you today?",
+    "hello": "Hello! Welcome to Veganic Mart. How can I assist you today?",
+    "hey": "Hi there! What are you looking for today?",
+    "thanks": "You're very welcome!",
+    "thank you": "You're very welcome!",
 }
 
 # =====================================================
-# HELPER FUNCTIONS
+# 4. HELPER FUNCTIONS
 # =====================================================
+def get_embedding(text: str) -> List[float]:
+    text = text.strip().lower()
+    if text in embedding_cache:
+        return embedding_cache[text]
+    
+    # Tạo vector trực tiếp trên CPU, không cần Ollama server
+    vector = embedding_model.encode(text).tolist()
+    
+    if len(embedding_cache) > 500:
+        embedding_cache.clear()
+    embedding_cache[text] = vector
+    return vector
 
-def normalize_text(text: str) -> str:
-    """Chuẩn hóa chuỗi tìm kiếm giống tên searchName lưu dưới DB"""
-    return text.lower().replace("-", " ").replace("_", " ").strip()
-
-
-def detect_intent(message: str) -> str:
-    """Nhận diện mục đích của khách hàng"""
-    msg = message.lower()
-    if any(word in msg for word in ["recommend", "suggest", "best", "healthy", "good for"]):
-        return "recommend"
-    if any(word in msg for word in ["price", "cost", "how much"]):
-        return "price"
-    return "search"
-
+def get_chat_response(prompt: str) -> str:
+    # Gọi Groq cực nhanh thay vì Ollama local
+    completion = groq_client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.1-8b-instant",
+        temperature=0.1,
+        max_tokens=200
+    )
+    return completion.choices[0].message.content
 
 def detect_category_filter(message: str) -> Dict[str, Any]:
-    """Phát hiện nếu user đang ám chỉ cụ thể một danh mục hàng hóa nào đó"""
     msg = message.lower()
     for keyword, category in CATEGORY_KEYWORDS.items():
         if keyword in msg:
             return {"category": category}
     return {}
 
-
-def get_embedding(text: str) -> List[float]:
-    """Tự động chuyển đổi giữa Gemini Embedding và Ollama Embedding kèm Cache"""
-    text = text.strip().lower()
-    if text in embedding_cache:
-        return embedding_cache[text]
-
-    if LLM_PROVIDER == "gemini":
-        response = gemini_client.models.embed_content(
-            model="text-embedding-004",
-            contents=text
-        )
-        vector = response.embeddings[0].values
-    else:
-        vector = ollama_embeddings.embed_query(text)
+# =====================================================
+# 5. MONGODB HYBRID SEARCH (TỐI ƯU 1-PASS)
+# =====================================================
+def batch_regex_search(keywords: List[str], cat_filter: dict) -> List[dict]:
+    if not keywords:
+        return []
     
-    if len(embedding_cache) > 500:
-        embedding_cache.clear()
+    # Chỉ lấy tối đa 5 từ khóa quan trọng nhất để DB quét cực nhanh
+    regex_list = [{"name": {"$regex": re.escape(kw), "$options": "i"}} for kw in keywords[:5]]
+    query = {"$or": regex_list}
+    if cat_filter:
+        query.update(cat_filter)
         
-    embedding_cache[text] = vector
-    return vector
-
-# =====================================================
-# HYBRID SEARCH ENGINE
-# =====================================================
-
-def exact_product_search(keyword: str, cat_filter: dict) -> List[dict]:
-    query = {"searchName": normalize_text(keyword)}
-    query.update(cat_filter)
-    return list(collection.find(query).limit(5))
-
-
-def partial_product_search(keyword: str, cat_filter: dict) -> List[dict]:
-    query = {"searchName": {"$regex": re.escape(normalize_text(keyword)), "$options": "i"}}
-    query.update(cat_filter)
-    return list(collection.find(query).limit(5))
-
+    return list(collection.find(query).limit(10))
 
 def vector_product_search(query_vector: List[float], cat_filter: dict) -> List[dict]:
-    """Vector Search nâng cấp với bộ lọc ngưỡng tương đồng chống quét bừa"""
     vector_search_stage = {
         "index": "vector_index",
         "path": "embedding",
         "queryVector": query_vector,
         "numCandidates": 20,
-        "limit": 5
+        "limit": 6
     }
-    if cat_filter:
-        vector_search_stage["filter"] = cat_filter
-
     pipeline = [
         {"$vectorSearch": vector_search_stage},
         {"$addFields": {"search_score": {"$meta": "vectorSearchScore"}}},
-        {"$match": {"search_score": {"$gte": 0.7}}},  # Ngưỡng tương đồng tối thiểu
+        {"$match": {"search_score": {"$gte": 0.65}}}, 
         {"$project": {"_id": 1, "name": 1, "price": 1, "images": 1, "category": 1}}
     ]
     return list(collection.aggregate(pipeline))
-
 
 class ChatRequest(BaseModel):
     message: str
     session_id: str = "guest"
 
 # =====================================================
-# CHAT API ENDPOINT
+# 6. MAIN API ENDPOINT
 # =====================================================
+# Lưu ý: Bỏ 'async' ở def để tránh blocking event loop khi dùng PyMongo (giúp API chịu tải tốt hơn)
 @app.post("/chat")
-async def chat_endpoint(request: ChatRequest):
+def chat_endpoint(request: ChatRequest):
     try:
         total_start = time.time()
         message = request.message.strip()
         session_id = request.session_id
 
         print("\n" + "=" * 60)
-        print(f"MESSAGE VIA [{LLM_PROVIDER.upper()}]:", message)
+        print(f"[1. USER MESSAGE]: {message}")
 
-        # 1. SMALL TALK CHECK
         if message.lower() in SMALL_TALKS:
             return {"answer": SMALL_TALKS[message.lower()], "products": []}
 
         if session_id not in chat_history:
             chat_history[session_id] = []
 
-        # 2. INTENT & CATEGORY DETECTION
-        intent = detect_intent(message)
+        # ---------------------------------------------------------
+        # BƯỚC 1: ÉP AI TRẢ KẾT QUẢ THEO FORM CHUẨN (Tốc độ ánh sáng)
+        # ---------------------------------------------------------
+        extraction_prompt = f"""Analyze the user's shopping request: "{message}"
+Format your response STRICTLY in one of these two ways:
+1. If they want to make/cook a dish: "RECIPE | [Dish Name] | [ingredient1, ingredient2, ingredient3]"
+2. If they just want to search products: "SEARCH | None | [keyword1, keyword2]"
+Do not say anything else.
+Answer:"""
+        
+        # Đã cập nhật để dùng Groq
+        ai_analysis = get_chat_response(extraction_prompt).strip()
+        print(f"[2. AI EXTRACTION]: {ai_analysis}")
+
+        search_keywords = []
+        is_recipe = False
+        dish_name = ""
+        required_ingredients_str = ""
+
+        # Phân rã chuỗi AI trả về
+        if "|" in ai_analysis:
+            parts = [p.strip() for p in ai_analysis.split("|")]
+            if len(parts) >= 3:
+                intent_type = parts[0].upper()
+                dish_name = parts[1]
+                required_ingredients_str = parts[2]
+                
+                # Biến chuỗi "apple, banana" thành mảng ['apple', 'banana']
+                search_keywords = [kw.strip().lower() for kw in required_ingredients_str.split(",") if len(kw.strip()) > 2]
+                if "RECIPE" in intent_type:
+                    is_recipe = True
+
         cat_filter = detect_category_filter(message)
-
-        # 3. MULTI-LEVEL SEARCH STRATEGY
         search_results = []
-        search_type = ""
 
-        if intent == "search":
-            search_results = exact_product_search(message, cat_filter)
-            search_type = "EXACT"
+        # ---------------------------------------------------------
+        # BƯỚC 2: TÌM TRONG DATABASE BẰNG REGEX SIÊU TỐC
+        # ---------------------------------------------------------
+        if search_keywords:
+            search_results = batch_regex_search(search_keywords, cat_filter)
 
-        if not search_results:
-            search_results = partial_product_search(message, cat_filter)
-            search_type = "PARTIAL"
-
-        if not search_results or intent == "recommend":
+        # Fallback nếu Regex không ra kết quả
+        if len(search_results) == 0:
             query_vector = get_embedding(message)
             search_results = vector_product_search(query_vector, cat_filter)
-            search_type = "VECTOR"
 
-        print(f"Strategy: {search_type} | Found: {len(search_results)} items")
+        print(f"[INFO] Database yielded {len(search_results)} matching items.")
 
-        # 4. PREPARE CONTEXT
-        history_context = "\n".join(chat_history[session_id][-2:])
-        product_info = "\n".join([
-            f"- Name: {item['name']} | Price: ${item.get('price', 0)} | Category: {item.get('category', 'N/A')}"
-            for item in search_results
-        ])
-
-        # 5. CALL MODEL (Tự chọn kịch bản theo biến môi trường)
-        llm_start = time.time()
+        # ---------------------------------------------------------
+        # BƯỚC 3: DỰNG NGỮ CẢNH (CONTEXT) ĐỂ TƯ VẤN NHƯ CHUYÊN GIA
+        # ---------------------------------------------------------
+        stock_list = []
+        for item in search_results:
+            clean_name = item['name'].replace('-', ' ').replace('_', ' ').title()
+            stock_list.append(f"- {clean_name} (${item.get('price', 0)})")
         
-        if LLM_PROVIDER == "gemini":
-            # --- LUỒNG XỬ LÝ ĐỘC LẬP BẰNG GEMINI SDK ---
-            system_instruction = """You are an elite, direct shopping assistant for Veganic Mart.
-Rules:
-1. Language: Answer in English.
-2. Length: MAXIMUM 2 short sentences. Be extremely concise.
-3. Strictness: ONLY talk about and recommend products explicitly listed in the <PRODUCT_LIST> below.
-4. Honesty: If the product requested by the customer is NOT in the <PRODUCT_LIST>, say "I'm sorry, we don't have that product at the moment." and DO NOT invent or recommend alternative products from outside the list.
-5. Category Isolation: Fruit and Juice are different categories."""
+        available_stock = "\n".join(stock_list) if stock_list else "None"
+        
+        # Bơm ngữ cảnh tư vấn vào cho AI
+        expert_context = ""
+        if is_recipe:
+            expert_context = f"""The user wants to make {dish_name}. 
+RULE: You MUST start your response by saying something like: "To make {dish_name}, you typically need {required_ingredients_str}." 
+Then, warmly tell them which of those ingredients we currently have from the ITEMS IN STOCK."""
 
-            user_content = f"""<PRODUCT_LIST>
-{product_info if product_info else "No products matching this request in our stock."}
-</PRODUCT_LIST>
-<CONVERSATION_HISTORY>
-{history_context}
-</CONVERSATION_HISTORY>
-CUSTOMER: {message}"""
+        # ---------------------------------------------------------
+        # BƯỚC 4: AI CHỐT CÂU TRẢ LỜI CUỐI CÙNG
+        # ---------------------------------------------------------
+        llm_start = time.time()
+        prompt = f"""You are a smart, friendly shopping assistant for Veganic Mart.
+[RULES]
+1. Reply concisely in English (max 3-4 sentences).
+2. Look strictly at the ITEMS IN STOCK. 
+3. {expert_context}
+4. If stock is "None", reply EXACTLY: "I'm sorry, we don't have ingredients for that at the moment."
+5. DO NOT recommend or mention prices for products not listed in stock.
 
-            response = gemini_client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=user_content,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.1,
-                    max_output_tokens=150
-                ),
-            )
-            ai_answer = response.text.strip()
-            
-        else:
-            # --- LUỒNG XỬ LÝ BẰNG OLLAMA LOCAL + LANGCHAIN ---
-            prompt = f"""You are an elite, direct shopping assistant for Veganic Mart.
-            
-Rules:
-- Answer in English.
-- Answer under 2 sentences. Maximize conciseness.
-- Recommend ONLY products listed in the PRODUCT LIST below.
-- If the product requested by customer is NOT in the PRODUCT LIST, say "I'm sorry, we don't have that product at the moment." Do not invent or recommend alternative products.
-- Fruit and Juice are DIFFERENT categories.
-
-PRODUCT LIST:
-{product_info if product_info else "No products matching this request in our stock."}
-
-Recent Chat:
-{history_context}
+ITEMS IN STOCK:
+{available_stock}
 
 CUSTOMER: {message}
-ANSWER:"""
-            ai_answer = ollama_llm.invoke(prompt).strip()
+ASSISTANT:"""
+        
+        # Đã cập nhật để dùng Groq
+        ai_answer = get_chat_response(prompt).strip()
+        if "ASSISTANT:" in ai_answer:
+            ai_answer = ai_answer.split("ASSISTANT:")[-1].strip()
 
-        print(f"LLM Response Time: {time.time() - llm_start:.2f}s")
+        print(f"[3. AI FINAL ANSWER]: {ai_answer}")
+        print(f"[INFO] Groq Latency: {time.time() - llm_start:.2f}s")
 
-        # 6. SAVE HISTORY
+        # Lưu lịch sử chat
         chat_history[session_id].append(f"User: {message}")
         chat_history[session_id].append(f"Assistant: {ai_answer}")
         if len(chat_history[session_id]) > 4:
             chat_history[session_id] = chat_history[session_id][-4:]
 
-        # 7. PRODUCT CARD FILTER (Khắc phục triệt để lỗi so khớp bừa bãi)
+        # ---------------------------------------------------------
+        # BƯỚC 5: XUẤT RA DỮ LIỆU SẢN PHẨM CHO GIAO DIỆN
+        # ---------------------------------------------------------
         products = []
         ai_lower = ai_answer.lower()
         
-        for doc in search_results:
-            doc_name_lower = doc["name"].lower()
-            
-            # Sử dụng Regex biên từ \b để so khớp chính xác nguyên cụm từ
-            # Tránh lỗi: AI nói "Orange juice" mà hệ thống lại duyệt nhầm cả card của quả "Orange"
-            pattern = rf"\b{re.escape(doc_name_lower)}\b"
-            is_name_mentioned = bool(re.search(pattern, ai_lower))
-            
-            if (intent == "search") or is_name_mentioned:
+        if "i'm sorry" in ai_lower or "don't have" in ai_lower or available_stock == "None":
+            pass 
+        else:
+            for doc in search_results:
                 image_url = ""
                 if isinstance(doc.get("images"), list) and len(doc["images"]) > 0:
                     image_url = doc["images"][0].get("url", "")
 
                 products.append({
                     "id": str(doc["_id"]),
-                    "name": doc["name"],
+                    "name": doc["name"], 
                     "price": doc.get("price", 0),
                     "image": image_url
                 })
 
-        print(f"TOTAL TIME: {time.time() - total_start:.2f}s\n" + "=" * 60)
-        return {"answer": ai_answer, "products": products}
+        print(f"[INFO] TOTAL ROUND-TRIP: {time.time() - total_start:.2f}s\n" + "=" * 60)
+        
+        return {"answer": ai_answer, "products": products[:6]}
 
     except Exception as e:
-        print("ERROR:", str(e))
-        return {"answer": "I'm sorry, I hit a snag. Please ask again!", "products": []}
+        print("[CRITICAL ERROR]:", str(e))
+        return {"answer": "I'm sorry, our system encountered a brief error. Could you try asking again?", "products": []}
 
 
 if __name__ == "__main__":
