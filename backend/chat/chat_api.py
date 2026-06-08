@@ -9,9 +9,12 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
-# Đã thay đổi: Dùng model all-MiniLM-L6-v2 để tối ưu RAM
-from sentence_transformers import SentenceTransformer
+import requests
+import uvicorn
 
+# =====================================================
+# 1. ENV & APP CONFIG
+# =====================================================
 load_dotenv()
 
 app = FastAPI()
@@ -24,21 +27,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 2. MONGODB CONNECTION
-client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017"))
+# =====================================================
+# 2. MONGODB & GROQ CONNECTION
+# =====================================================
+client = MongoClient(os.getenv("MONGO_URI"))
 db = client[os.getenv("DB_NAME", "freshmart")]
 collection = db[os.getenv("COLLECTION_NAME", "products")]
 
-# 3. AI INITIALIZATION (Tối ưu cho RAM 512MB)
-print("--- RUNNING WITH GROQ & LIGHTWEIGHT EMBEDDING (all-MiniLM-L6-v2) ---")
-
-# Dùng model siêu nhẹ, không cần trust_remote_code=True
-embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-chat_history: Dict[str, List[str]] = {}
+# =====================================================
+# 3. TU DONG CHECK MOI TRUONG (LOCAL VS RENDER)
+# =====================================================
+IS_RENDER = os.getenv("RENDER") is not None
+
+model_embedding = None
+HF_TOKEN = os.getenv("HF_TOKEN")
+EMBEDDING_API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+
+if IS_RENDER:
+    print("[MOI TRUONG RENDER]: Dung API Hugging Face Online de TIET KIEM RAM (0MB)!")
+else:
+    print("[MOI TRUONG LOCAL]: Tai model Offline vao RAM de NE CHAN MANG VA DNS!")
+    try:
+        from sentence_transformers import SentenceTransformer
+        model_embedding = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        print("Model Embedding Offline da san sang tai Local!")
+    except Exception as e:
+        print(f"Khong the load model offline tai Local: {e}. Vui long chay `pip install sentence-transformers` để test Local.")
+
 embedding_cache: Dict[str, List[float]] = {}
+chat_history: Dict[str, List[str]] = {}
 
 CATEGORY_KEYWORDS = {
     "fruit": "Fruits", "apple": "Fruits", "banana": "Fruits",
@@ -56,29 +75,93 @@ SMALL_TALKS = {
     "thank you": "You're very welcome!",
 }
 
+# =====================================================
 # 4. HELPER FUNCTIONS
+# =====================================================
 def get_embedding(text: str) -> List[float]:
+    """Ham phan tach triet de: Local xai offline hoan toan, Render xai API va tu retry"""
     text = text.strip().lower()
     if text in embedding_cache:
         return embedding_cache[text]
     
-    # Tạo vector trực tiếp trên CPU
-    vector = embedding_model.encode(text).tolist()
-    
-    if len(embedding_cache) > 500:
-        embedding_cache.clear()
-    embedding_cache[text] = vector
-    return vector
+    # -------------------------------------------------
+    # TRUONG HOP 1: CHAY TREN RENDER -> DUNG API ONLINE
+    # -------------------------------------------------
+    if IS_RENDER:
+        print(f"[EMBEDDING]: Dang goi API Hugging Face truc tuyen cho: '{text}'")
+        
+        max_retries = 3
+        retry_delay = 2 
+        
+        for attempt in range(max_retries):
+            try:
+                if not HF_TOKEN:
+                    print("[HF API ERROR]: Thieu bien moi truong HF_TOKEN tren Render!")
+                    return None
 
-def get_chat_response(prompt: str) -> str:
-    # Gọi Groq cực nhanh
-    completion = groq_client.chat.completions.create(
-        messages=[{"role": "user", "content": prompt}],
-        model="llama-3.1-8b-instant",
-        temperature=0.1,
-        max_tokens=200
-    )
-    return completion.choices[0].message.content
+                res = requests.post(
+                    EMBEDDING_API_URL, 
+                    headers={"Authorization": f"Bearer {HF_TOKEN}"}, 
+                    json={"inputs": text}, 
+                    timeout=10
+                )
+                
+                if res.status_code == 503:
+                    estimated_time = res.json().get("estimated_time", 5)
+                    print(f"[HF API WARNING]: Model dang ngu dong. Doi {estimated_time}s... (Lan thu {attempt + 1}/{max_retries})")
+                    time.sleep(min(estimated_time, 5)) 
+                    continue
+                
+                res.raise_for_status() 
+                
+                vector = res.json()
+                if isinstance(vector, list):
+                    embedding_cache[text] = vector
+                    return vector
+                
+                if isinstance(vector, dict) and "error" in vector:
+                    print(f"[HF API ERROR]: Hugging Face tra ve loi: {vector['error']}")
+                    
+            except requests.exceptions.RequestException as e:
+                print(f"[HF API RE-TRY]: Ket noi that bai lan {attempt + 1}. Loi chi tiet: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                else:
+                    print("[HF API CRITICAL]: Da thu lai het 3 lan nhung mang sap hoan toan!")
+        
+        return None 
+
+    # -------------------------------------------------
+    # TRUONG HOP 2: CHAY TAI LOCAL -> CHAY OFFLINE 100%
+    # -------------------------------------------------
+    else:
+        print(f"[EMBEDDING]: Dang xu ly OFFLINE hoan toan bang RAM may cho: '{text}'")
+        try:
+            if model_embedding:
+                vector_np = model_embedding.encode(text)
+                vector = vector_np.tolist()
+                embedding_cache[text] = vector
+                return vector
+            else:
+                print("[LOCAL EMBEDDING ERROR]: Model chua duoc load thanh cong vao RAM. Vui long kiem tra `pip install sentence-transformers`")
+        except Exception as e:
+            print(f"[LOCAL EMBEDDING ERROR]: Loi chay offline: {e}")
+        
+        # CHĂN TUYỆT ĐỐI: Neu o Local ma loi load model, khong bao gio chay tran xuong de goi API nua.
+        return []
+
+def query_groq_llm(prompt: str) -> str:
+    try:
+        completion = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.1-8b-instant",
+            temperature=0.1,
+            max_tokens=150
+        )
+        return completion.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"[GROQ LLM ERROR]: {e}")
+        return ""
 
 def detect_category_filter(message: str) -> Dict[str, Any]:
     msg = message.lower()
@@ -87,19 +170,21 @@ def detect_category_filter(message: str) -> Dict[str, Any]:
             return {"category": category}
     return {}
 
-# 5. MONGODB HYBRID SEARCH (TỐI ƯU 1-PASS)
+# =====================================================
+# 5. MONGODB SEARCH LOGIC
+# =====================================================
 def batch_regex_search(keywords: List[str], cat_filter: dict) -> List[dict]:
     if not keywords:
         return []
-    
     regex_list = [{"name": {"$regex": re.escape(kw), "$options": "i"}} for kw in keywords[:5]]
     query = {"$or": regex_list}
     if cat_filter:
         query.update(cat_filter)
-        
     return list(collection.find(query).limit(10))
 
 def vector_product_search(query_vector: List[float], cat_filter: dict) -> List[dict]:
+    if not query_vector:
+        return []
     vector_search_stage = {
         "index": "vector_index",
         "path": "embedding",
@@ -110,7 +195,7 @@ def vector_product_search(query_vector: List[float], cat_filter: dict) -> List[d
     pipeline = [
         {"$vectorSearch": vector_search_stage},
         {"$addFields": {"search_score": {"$meta": "vectorSearchScore"}}},
-        {"$match": {"search_score": {"$gte": 0.5}}}, 
+        {"$match": {"search_score": {"$gte": 0.65}}},
         {"$project": {"_id": 1, "name": 1, "price": 1, "images": 1, "category": 1}}
     ]
     return list(collection.aggregate(pipeline))
@@ -119,13 +204,18 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str = "guest"
 
+# =====================================================
 # 6. MAIN API ENDPOINT
+# =====================================================
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
     try:
         total_start = time.time()
         message = request.message.strip()
         session_id = request.session_id
+
+        print("\n" + "=" * 60)
+        print(f"[1. USER MESSAGE]: {message}")
 
         if message.lower() in SMALL_TALKS:
             return {"answer": SMALL_TALKS[message.lower()], "products": []}
@@ -139,8 +229,9 @@ Format your response STRICTLY in one of these two ways:
 2. If they just want to search products: "SEARCH | None | [keyword1, keyword2]"
 Do not say anything else.
 Answer:"""
-        
-        ai_analysis = get_chat_response(extraction_prompt).strip()
+       
+        ai_analysis = query_groq_llm(extraction_prompt)
+        print(f"[2. AI EXTRACTION]: {ai_analysis}")
 
         search_keywords = []
         is_recipe = False
@@ -153,7 +244,6 @@ Answer:"""
                 intent_type = parts[0].upper()
                 dish_name = parts[1]
                 required_ingredients_str = parts[2]
-                
                 search_keywords = [kw.strip().lower() for kw in required_ingredients_str.split(",") if len(kw.strip()) > 2]
                 if "RECIPE" in intent_type:
                     is_recipe = True
@@ -166,26 +256,35 @@ Answer:"""
 
         if len(search_results) == 0:
             query_vector = get_embedding(message)
+            
+            # Neu API Online bi loi hoac khong the sinh vector, bao loi he thong luon thay vi bao het hang
+            if query_vector is None:
+                return {
+                    "answer": "I'm sorry, our connection to the AI server is a bit unstable right now. Could you please try again in a few seconds?", 
+                    "products": []
+                }
+                
             search_results = vector_product_search(query_vector, cat_filter)
+
+        print(f"[INFO] Database yielded {len(search_results)} matching items.")
 
         stock_list = []
         for item in search_results:
             clean_name = item['name'].replace('-', ' ').replace('_', ' ').title()
             stock_list.append(f"- {clean_name} (${item.get('price', 0)})")
-        
+       
         available_stock = "\n".join(stock_list) if stock_list else "None"
-        
+       
         expert_context = ""
         if is_recipe:
-            expert_context = f"""The user wants to make {dish_name}. 
-RULE: You MUST start your response by saying something like: "To make {dish_name}, you typically need {required_ingredients_str}." 
+            expert_context = f"""The user wants to make {dish_name}.
+RULE: You MUST start your response by saying something like: "To make {dish_name}, you typically need {required_ingredients_str}."
 Then, warmly tell them which of those ingredients we currently have from the ITEMS IN STOCK."""
 
-        llm_start = time.time()
         prompt = f"""You are a smart, friendly shopping assistant for Veganic Mart.
 [RULES]
 1. Reply concisely in English (max 3-4 sentences).
-2. Look strictly at the ITEMS IN STOCK. 
+2. Look strictly at the ITEMS IN STOCK.
 3. {expert_context}
 4. If stock is "None", reply EXACTLY: "I'm sorry, we don't have ingredients for that at the moment."
 5. DO NOT recommend or mention prices for products not listed in stock.
@@ -195,16 +294,23 @@ ITEMS IN STOCK:
 
 CUSTOMER: {message}
 ASSISTANT:"""
-        
-        ai_answer = get_chat_response(prompt).strip()
+       
+        ai_answer = query_groq_llm(prompt)
         if "ASSISTANT:" in ai_answer:
             ai_answer = ai_answer.split("ASSISTANT:")[-1].strip()
 
+        print(f"[3. AI FINAL ANSWER]: {ai_answer}")
+
+        chat_history[session_id].append(f"User: {message}")
+        chat_history[session_id].append(f"Assistant: {ai_answer}")
+        if len(chat_history[session_id]) > 4:
+            chat_history[session_id] = chat_history[session_id][-4:]
+
         products = []
         ai_lower = ai_answer.lower()
-        
+       
         if "i'm sorry" in ai_lower or "don't have" in ai_lower or available_stock == "None":
-            pass 
+            pass
         else:
             for doc in search_results:
                 image_url = ""
@@ -213,18 +319,18 @@ ASSISTANT:"""
 
                 products.append({
                     "id": str(doc["_id"]),
-                    "name": doc["name"], 
+                    "name": doc["name"],
                     "price": doc.get("price", 0),
                     "image": image_url
                 })
-        
+
+        print(f"[INFO] TOTAL ROUND-TRIP: {time.time() - total_start:.2f}s\n" + "=" * 60)
+       
         return {"answer": ai_answer, "products": products[:6]}
 
     except Exception as e:
         print("[CRITICAL ERROR]:", str(e))
         return {"answer": "I'm sorry, our system encountered a brief error. Could you try asking again?", "products": []}
 
-
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
