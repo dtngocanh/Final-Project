@@ -9,7 +9,8 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
-import requests
+# Thay vì import requests, ta dùng InferenceClient của Hugging Face
+from huggingface_hub import InferenceClient 
 import uvicorn
 
 # =====================================================
@@ -37,16 +38,21 @@ collection = db[os.getenv("COLLECTION_NAME", "products")]
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # =====================================================
-# 3. TU DONG CHECK MOI TRUONG (LOCAL VS RENDER)
+# 3. TỰ ĐỘNG CHECK MÔI TRƯỜNG (LOCAL VS RENDER)
 # =====================================================
 IS_RENDER = os.getenv("RENDER") is not None
 
 model_embedding = None
+hf_client = None  # Khởi tạo client Hugging Face trực tuyến
 HF_TOKEN = os.getenv("HF_TOKEN")
-EMBEDDING_API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
 
 if IS_RENDER:
     print("[MOI TRUONG RENDER]: Dung API Hugging Face Online de TIET KIEM RAM (0MB)!")
+    if HF_TOKEN:
+        # Khởi tạo InferenceClient với token của bạn
+        hf_client = InferenceClient(provider="hf-inference", api_key=HF_TOKEN)
+    else:
+        print("[HF API WARNING]: Thieu bien moi truong HF_TOKEN tren Render!")
 else:
     print("[MOI TRUONG LOCAL]: Tai model Offline vao RAM de NE CHAN MANG VA DNS!")
     try:
@@ -76,63 +82,59 @@ SMALL_TALKS = {
 }
 
 # =====================================================
-# 4. HELPER FUNCTIONS
+# 4. HELPER FUNCTIONS (ĐÃ VIẾT LẠI BẰNG INFERENCECLIENT)
 # =====================================================
 def get_embedding(text: str) -> List[float]:
-    """Ham phan tach triet de: Local xai offline hoan toan, Render xai API va tu retry"""
+    """Hàm phân tách triệt để: Local xài offline hoàn toàn, Render xài InferenceClient mới"""
     text = text.strip().lower()
     if text in embedding_cache:
         return embedding_cache[text]
     
     # -------------------------------------------------
-    # TRUONG HOP 1: CHAY TREN RENDER -> DUNG API ONLINE
+    # TRƯỜNG HỢP 1: CHẠY TRÊN RENDER -> DÙNG HUGGING FACE CLIENT
     # -------------------------------------------------
     if IS_RENDER:
-        print(f"[EMBEDDING]: Dang goi API Hugging Face truc tuyen cho: '{text}'")
+        print(f"[EMBEDDING]: Dang goi InferenceClient Hugging Face cho: '{text}'")
         
+        if not hf_client:
+            print("[HF API ERROR]: hf_client chua duoc khoi tao do thieu HF_TOKEN!")
+            return None
+
         max_retries = 3
         retry_delay = 2 
         
         for attempt in range(max_retries):
             try:
-                if not HF_TOKEN:
-                    print("[HF API ERROR]: Thieu bien moi truong HF_TOKEN tren Render!")
-                    return None
-
-                res = requests.post(
-                    EMBEDDING_API_URL, 
-                    headers={"Authorization": f"Bearer {HF_TOKEN}"}, 
-                    json={"inputs": text}, 
-                    timeout=10
+                # Sử dụng tính năng feature_extraction tích hợp sẵn của client mới
+                # Phương thức này tương đương hoàn toàn với việc gọi POST lên model
+                vector = hf_client.feature_extraction(
+                    text,
+                    model="sentence-transformers/all-MiniLM-L6-v2"
                 )
                 
-                if res.status_code == 503:
-                    estimated_time = res.json().get("estimated_time", 5)
-                    print(f"[HF API WARNING]: Model dang ngu dong. Doi {estimated_time}s... (Lan thu {attempt + 1}/{max_retries})")
-                    time.sleep(min(estimated_time, 5)) 
-                    continue
-                
-                res.raise_for_status() 
-                
-                vector = res.json()
-                if isinstance(vector, list):
+                # Inference Client tự parse kết quả thành List/Array, không cần res.json()
+                if isinstance(vector, list) or hasattr(vector, "tolist"):
+                    if hasattr(vector, "tolist"):  # Phòng trường hợp trả về numpy array
+                        vector = vector.tolist()
+                    
                     embedding_cache[text] = vector
                     return vector
                 
-                if isinstance(vector, dict) and "error" in vector:
-                    print(f"[HF API ERROR]: Hugging Face tra ve loi: {vector['error']}")
-                    
-            except requests.exceptions.RequestException as e:
-                print(f"[HF API RE-TRY]: Ket noi that bai lan {attempt + 1}. Loi chi tiet: {e}")
+            except Exception as e:
+                # Thư viện huggingface_hub tự động handle lỗi 503 (Model loading) và tự retry nội bộ.
+                # Nếu lọt vào đây tức là lỗi timeout hoặc lỗi kết nối nặng.
+                error_msg = str(e)
+                print(f"[HF API RE-TRY]: Loi lay embedding lan {attempt + 1}: {error_msg}")
+                
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                 else:
-                    print("[HF API CRITICAL]: Da thu lai het 3 lan nhung mang sap hoan toan!")
+                    print("[HF API CRITICAL]: Da thu lai het 3 lan nhung ket noi Hugging Face that bai hoàn toan!")
         
         return None 
 
     # -------------------------------------------------
-    # TRUONG HOP 2: CHAY TAI LOCAL -> CHAY OFFLINE 100%
+    # TRƯỜNG HỢP 2: CHẠY TẠI LOCAL -> CHẠY OFFLINE 100%
     # -------------------------------------------------
     else:
         print(f"[EMBEDDING]: Dang xu ly OFFLINE hoan toan bang RAM may cho: '{text}'")
@@ -147,7 +149,6 @@ def get_embedding(text: str) -> List[float]:
         except Exception as e:
             print(f"[LOCAL EMBEDDING ERROR]: Loi chay offline: {e}")
         
-        # CHĂN TUYỆT ĐỐI: Neu o Local ma loi load model, khong bao gio chay tran xuong de goi API nua.
         return []
 
 def query_groq_llm(prompt: str) -> str:
@@ -257,7 +258,6 @@ Answer:"""
         if len(search_results) == 0:
             query_vector = get_embedding(message)
             
-            # Neu API Online bi loi hoac khong the sinh vector, bao loi he thong luon thay vi bao het hang
             if query_vector is None:
                 return {
                     "answer": "I'm sorry, our connection to the AI server is a bit unstable right now. Could you please try again in a few seconds?", 
