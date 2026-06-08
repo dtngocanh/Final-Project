@@ -7,8 +7,8 @@ export const sendToken = (user, statusCode, message, res) => {
 
   const options = {
     httpOnly: true,
-    secure: true, // Luôn bật true (Render dùng HTTPS nên bắt buộc phải true)
-    sameSite: "none", // Luôn để 'none' để Front-end và Back-end khác domain vẫn nhận được
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   };
 
@@ -31,12 +31,10 @@ export const sendSellerToken = (user, statusCode, message, res) => {
     expiresIn: "7d",
   });
 
-  const isDevelopment = process.env.NODE_ENV === "development";
-
   const options = {
     httpOnly: true,
-    secure: !isDevelopment, 
-    sameSite: isDevelopment ? "lax" : "none", 
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   };
 

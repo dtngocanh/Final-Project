@@ -1,5 +1,11 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -16,17 +22,32 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import InventoryOverview from "./components/dashboard-components/InventoryOverview";
 
-import { getUser } from "./store/slices/authSlice";
+import { fetchProfile, getUser } from "./store/slices/authSlice";
+import Categories from "./components/Categories";
 
 function App() {
   const dispatch = useDispatch();
-  const { isAuthenticated, isCheckingAuth } = useSelector((state) => state.auth);
+  const { isAuthenticated, isCheckingAuth } = useSelector(
+    (state) => state.auth,
+  );
 
   useEffect(() => {
     dispatch(getUser());
   }, [dispatch]);
 
-  if (isCheckingAuth) return <div className="h-screen flex items-center justify-center">Loading...</div>;
+  useEffect(() => {
+    const token = localStorage.getItem("sellertoken");
+    if (token || isAuthenticated) {
+      dispatch(fetchProfile());
+    }
+  }, [dispatch, isAuthenticated]);
+
+  // if (isCheckingAuth)
+  //   return (
+  //     <div className="h-screen flex items-center justify-center">
+  //       Loading...
+  //     </div>
+  //   );
 
   // Component Layout dùng chung cho toàn bộ trang Admin
   const AdminLayout = () => (
@@ -36,7 +57,7 @@ function App() {
         <Header />
         <div className="flex-1 p-4 md:p-8 pt-2">
           {/* Outlet sẽ hiển thị Dashboard, Orders, v.v. tùy theo URL */}
-          <Outlet /> 
+          <Outlet />
         </div>
       </main>
     </div>
@@ -45,12 +66,20 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+        />
         <Route path="/password/forgot" element={<ForgotPassword />} />
         <Route path="/password/reset/:token" element={<ResetPassword />} />
 
         {/* Cấu trúc Route lồng nhau */}
-        <Route path="/" element={isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />}>
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? <AdminLayout /> : <Navigate to="/login" replace />
+          }
+        >
           {/* index nghĩa là khi vào "/" thì mặc định hiện Dashboard */}
           <Route index element={<Dashboard />} />
           <Route path="orders" element={<Orders />} />
@@ -58,6 +87,7 @@ function App() {
           <Route path="products" element={<Products />} />
           <Route path="profile" element={<Profile />} />
           <Route path="inventory" element={<InventoryOverview />} />
+          <Route path="categories" element={<Categories />} />
         </Route>
       </Routes>
       <ToastContainer theme="dark" position="bottom-right" />

@@ -30,7 +30,7 @@ export const getUser = createAsyncThunk(
       toast.success("Welcome back!");
       return res.data.user;
     } catch (error) {
-      toast.error(error.response?.data?.message);
+      // toast.error(error.response?.data?.message);
       return thunkAPI.rejectWithValue(error.response?.data?.message);
     }
   },
@@ -42,9 +42,7 @@ export const logout = createAsyncThunk(
   "auth/adminLogout",
   async (_, thunkAPI) => {
     try {
-      const res = await axiosInstance.get("/admin/logout", {
-        withCredentials: true,
-      });
+      const res = await axiosInstance.get("/admin/logout");
 
       toast.success(res.data.message);
       return true;
@@ -109,6 +107,18 @@ export const updatePassword = createAsyncThunk(
       const message = error.response?.data?.message;
       toast.error(message);
       return thunkAPI.rejectWithValue(message);
+    }
+  },
+);
+
+export const fetchProfile = createAsyncThunk(
+  "admin/fetchProfile",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get("/admin/profile");
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message);
     }
   },
 );
@@ -200,6 +210,15 @@ const authSlice = createSlice({
       })
       .addCase(updatePassword.rejected, (state, action) => {
         state.isUpdatingPassword = false;
+      })
+
+      .addCase(fetchProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+      })
+      .addCase(fetchProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || "Something went wrong";
       });
   },
 });

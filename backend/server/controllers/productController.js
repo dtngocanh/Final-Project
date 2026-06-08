@@ -34,7 +34,7 @@ export const addProduct = async (req, res, next) => {
 
     res
       .status(201)
-      .json({ success: true, message: "Product Added", newProduct });
+      .json({ success: true, message: "Product added to catalog", newProduct });
   } catch (error) {
     next(error);
   }
@@ -209,7 +209,7 @@ export const deleteProduct = async (req, res, next) => {
     await Product.findByIdAndDelete(id);
     res.status(200).json({
       success: true,
-      message: "Product and associated images deleted successfully",
+      message: "Product removed from catalog",
     });
   } catch (error) {
     next(error);
@@ -272,7 +272,7 @@ export const updateProduct = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: "Product Updated Successfully",
+      message: "Product details updated",
       product,
     });
   } catch (error) {

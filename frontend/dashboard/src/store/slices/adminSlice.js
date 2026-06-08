@@ -11,7 +11,6 @@ export const fetchAllUsers = createAsyncThunk(
     try {
       const response = await axiosInstance.get(
         `/admin/users?page=${page}&search=${search}&role=${role}`,
-        
       ); //?page=${page}
       return response.data; // { success, message, count, data: [...] }
     } catch (error) {
@@ -28,7 +27,7 @@ export const deleteUser = createAsyncThunk(
       const res = await axiosInstance.delete(`/admin/users/delete/${id}`, {
         withCredentials: true,
       });
-      toast.success(res.data.message)
+      toast.success(res.data.message);
       return res.data;
     } catch (error) {
       toast.error(error.response.data.message);
