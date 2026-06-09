@@ -23,7 +23,7 @@ jobs:
           cd backend/chat
           pip install -r requirements.txt
           # Đảm bảo cài thêm các lib này nếu chưa có trong file requirements
-          pip install pandas pymongo python-dotenv scikit-learn scipy mlxtend huggingface_hub
+          pip install pandas pymongo python-dotenv scikit-learn scipy mlxtend huggingface_hub sentence-transformers
 
       - name: Run Pipeline
         env:
