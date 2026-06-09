@@ -25,6 +25,8 @@ const excelUpload = multer({
 
 const productRouter = express.Router();
 
+productRouter.get("/list", productList);
+
 
 productRouter.get("/search",searchProducts)
 
