@@ -1,0 +1,42 @@
+name: Daily Data Pipeline
+
+on:
+  schedule:
+    - cron: '30 2 * * *' # Chạy lúc 02:30 sáng UTC mỗi ngày
+  workflow_dispatch: # Cho phép bạn nhấn nút "Run" thủ công trên GitHub
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pandas pymongo python-dotenv scikit-learn scipy mlxtend huggingface_hub
+
+      - name: Run Pipeline
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "-> Running ingestion..."
+          python ingest.py
+          
+          echo "-> Syncing recommendations to products..."
+          python freqb.py
+          
+          echo "-> Running recommender system..."
+          python personalize_recmd.py
+          
+          echo "-> Building final recommendations..."
+          python recommend_engine.py
+          
+          echo "--- All processes completed successfully! ---"

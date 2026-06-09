@@ -32,16 +32,6 @@ def sync_recommendations_to_products():
     # Danh sách bán chạy nhất toàn sàn (Global Top)
     global_popular = sorted(product_stats.keys(), key=lambda x: product_stats[x], reverse=True)
 
-    # CÁC BIẾN PHỤC VỤ ĐÁNH GIÁ (EVALUATION METRICS)
-    avg_lift = 0.0
-    avg_confidence = 0.0
-    total_rules_found = 0
-    layer1_count = 0  # Số sản phẩm ăn trọn vẹn lớp 1
-    layer2_count = 0  # Số sản phẩm phải xài lớp 2
-    layer3_count = 0  # Số sản phẩm phải xài lớp 3
-    total_products_processed = 0
-    total_recommendations_filled = 0
-
     # Bước 2: Chạy Apriori (Chỉ lấy đơn có từ 2 món trở lên)
     multi_item_tx = [t for t in transactions if len(t) > 1]
     apriori_map = {}
@@ -59,12 +49,6 @@ def sync_recommendations_to_products():
             rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
             rules = rules.sort_values(by=['lift', 'confidence'], ascending=False)
             
-            # Thu thập chỉ số để đánh giá thuật toán Apriori
-            if not rules.empty:
-                total_rules_found = len(rules)
-                avg_lift = rules['lift'].mean()
-                avg_confidence = rules['confidence'].mean()
-
             for _, row in rules.iterrows():
                 if len(row['antecedents']) == 1:
                     origin = list(row['antecedents'])[0]
@@ -101,23 +85,13 @@ def sync_recommendations_to_products():
     # Bước 4: Tạo danh sách Update với Logic 3 lớp
     print("Step 2: Building refined recommendation sets...")
     bulk_updates = []
-    
     for p in all_products:
         p_name = p['name']
         final_names = []
-        used_layer2 = False
-        used_layer3 = False
-        total_products_processed += 1
 
         # Lớp 1: Ưu tiên Apriori (Mua cùng nhau)
         if p_name in apriori_map:
             final_names.extend([name for name in apriori_map[p_name] if name in info_lookup])
-
-        # Đánh giá xem lớp 1 có đủ 4 món không
-        if len(final_names) >= 4:
-            layer1_count += 1
-        else:
-            used_layer2 = True
 
         # Lớp 2: Fallback - Sản phẩm bán chạy trong cùng Category
         if len(final_names) < 4:
@@ -127,21 +101,12 @@ def sync_recommendations_to_products():
                     final_names.append(f_name)
                 if len(final_names) >= 6: break # Lấy dư một chút để lọc
 
-        # Đánh giá xem sau lớp 2 đã đủ chưa
-        if used_layer2 and len(final_names) < 4:
-            used_layer3 = True
-        elif used_layer2 and len(final_names) >= 4:
-            layer2_count += 1
-
         # Lớp 3: Fallback cuối cùng - Sản phẩm bán chạy nhất hệ thống
         if len(final_names) < 4:
             for g_name in global_popular:
                 if g_name != p_name and g_name not in final_names and g_name in info_lookup:
                     final_names.append(g_name)
                 if len(final_names) >= 4: break
-
-        if used_layer3:
-            layer3_count += 1
 
         # Chốt danh sách 4 món và format
         formatted_list = []
@@ -153,9 +118,6 @@ def sync_recommendations_to_products():
                 "image": info["image"],
                 "price": info["price"]
             })
-            
-        if len(formatted_list) == 4:
-            total_recommendations_filled += 1
 
         bulk_updates.append(UpdateOne(
             {"_id": p['_id']}, 
@@ -167,26 +129,6 @@ def sync_recommendations_to_products():
         result = product_col.bulk_write(bulk_updates)
         print(f"--- THÀNH CÔNG ---")
         print(f"Đã cập nhật gợi ý cho {result.modified_count} sản phẩm.")
-        
-        # --- IN KẾT QUẢ ĐÁNH GIÁ (RECOMMENDATION EVALUATION LOGS) ---
-        print("\n" + "="*50)
-        print("   4.2.2. RECOMMENDATION SYSTEM EVALUATION METRICS")
-        print("="*50)
-        print(f"1. APRIORI LAYER PERFORMANCE:")
-        print(f"   - Total Association Rules Found: {total_rules_found}")
-        print(f"   - Average Lift Score:           {avg_lift:.2f} (Target: > 1.0)")
-        print(f"   - Average Confidence Score:     {avg_confidence * 100:.2f}%")
-        print("-"*50)
-        print(f"2. COLD-START & FALLBACK ROBUSTNESS ANALYSIS:")
-        print(f"   - Total Products Processed:     {total_products_processed}")
-        print(f"   - Products using Layer 1 Only:  {layer1_count} ({(layer1_count/total_products_processed)*100:.2f}%)")
-        print(f"   - Products using Layer 2 (Cat): {layer2_count} ({(layer2_count/total_products_processed)*100:.2f}%)")
-        print(f"   - Products using Layer 3 (Glb): {layer3_count} ({(layer3_count/total_products_processed)*100:.2f}%)")
-        print("-"*50)
-        print(f"3. FINAL SYSTEM RELIABILITY:")
-        print(f"   - Category Matching Accuracy:   100.00% (Strict DB Category Fit)")
-        print(f"   - Recommendation Fill Rate:     {(total_recommendations_filled / total_products_processed)*100:.2f}% (Cold-start Solved)")
-        print("="*50 + "\n")
 
 if __name__ == "__main__":
     sync_recommendations_to_products()

@@ -211,14 +211,20 @@ class ChatRequest(BaseModel):
 # Trong file chat_api.py
 from scheduler import run_all
 
+import threading
+from scheduler import run_all
+
 @app.get("/trigger-all")
 def trigger_all(secret: str):
     if secret != os.getenv("CRON_SECRET"):
         return {"error": "Unauthorized"}
     
-    import threading
-    threading.Thread(target=run_all).start()
-    return {"status": "Pipeline started"}
+    # Chạy quy trình nạp trong 1 Thread tách biệt
+    # Thread này sẽ chạy độc lập, API sẽ trả về kết quả ngay lập tức
+    # Điều này khiến Render thấy API đã xong và không ngắt server nữa
+    threading.Thread(target=run_all, daemon=True).start()
+    
+    return {"status": "Pipeline initiated in background"}
 
 # =====================================================
 # 6. MAIN API ENDPOINT
