@@ -13,6 +13,9 @@ from groq import Groq
 from huggingface_hub import InferenceClient 
 import uvicorn
 
+import threading
+from scheduler import run_all_tasks
+
 # =====================================================
 # 1. ENV & APP CONFIG
 # =====================================================
@@ -204,6 +207,20 @@ def vector_product_search(query_vector: List[float], cat_filter: dict) -> List[d
 class ChatRequest(BaseModel):
     message: str
     session_id: str = "guest"
+# CRON JOB
+@app.get("/trigger-all")
+def trigger_all(secret: str):
+    """
+    Endpoint to trigger the recommendation pipeline via external Cron Job.
+    """
+    # Security check to prevent unauthorized execution
+    if secret != os.getenv("CRON_SECRET"):
+        return {"error": "Unauthorized"}
+    
+    # Run in a background thread to prevent timeout on Render
+    threading.Thread(target=run_all_tasks).start()
+    
+    return {"status": "Pipeline started in the background!"}
 
 # =====================================================
 # 6. MAIN API ENDPOINT

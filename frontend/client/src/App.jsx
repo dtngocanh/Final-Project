@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, Slide } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
 // Layout Components
 import Navbar from "./components/Layout/Navbar";
@@ -82,22 +82,21 @@ const App = () => {
               <Route path="/recipe/:id" element={<RecipeDetail />} />
               <Route path="/recipes" element={<Recipes />} />
               <Route path="/all-recipes" element={<AllRecipes />} />
-              <Route path="/notifications" element={<NotificationPage/>} />
+              <Route path="/notifications" element={<NotificationPage />} />
             </Routes>
             <ChatBot />
             <Footer />
           </div>
+          // Trong file App.js
           <ToastContainer
-            position="bottom-right"
-            autoClose={2000}
-            hideProgressBar={false}
-            newestOnTop={false}
+            autoClose={1500}
+            hideProgressBar={false} 
+            newestOnTop={true}
             closeOnClick
             rtl={false}
             pauseOnFocusLoss
             draggable
             pauseOnHover
-            theme="light"
           />
         </BrowserRouter>
       </ThemeProvider>

@@ -13,7 +13,6 @@ const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { handleCartAction } = useCartActions();
-
   const { handleProductClick } = useProductNavigation();
 
   // Hàm render Tag Giảm giá / Best Seller đồng bộ logic từ Slider
@@ -43,41 +42,86 @@ const ProductCard = ({ product }) => {
     );
   };
 
+  // 🛒 LOGIC XỬ LÝ HIỆU ỨNG BAY VÀO GIỎ HÀNG (ĐÃ FIX TỌA ĐỘ)
+  const runFlyToCartAnimation = (buttonElement) => {
+    // Tìm container .group gần nhất từ nút bấm
+    const productCardElement = buttonElement.closest(".group");
+    const productImg = productCardElement?.querySelector(".product-target-img");
+    
+    // Tìm giỏ hàng đích (Sử dụng đúng ID navbar-cart-icon đã đồng bộ với Navbar)
+    const cartIcon = document.getElementById("navbar-cart-icon") || document.querySelector(".cart-icon-class");
+
+    if (productImg && cartIcon) {
+      const imgRect = productImg.getBoundingClientRect();
+      const cartRect = cartIcon.getBoundingClientRect();
+
+      // Tính khoảng cách di chuyển chính xác tuyệt đối
+      const flyX = cartRect.left - imgRect.left + (cartRect.width / 2) - (imgRect.width / 2);
+      const flyY = cartRect.top - imgRect.top + (cartRect.height / 2) - (imgRect.height / 2);
+
+      const flyer = document.createElement("img");
+      flyer.src = productImg.src;
+      flyer.className = "fly-to-cart-element";
+
+      // Đặt vị trí xuất phát trùng khít với ảnh gốc sản phẩm
+      flyer.style.left = `${imgRect.left}px`;
+      flyer.style.top = `${imgRect.top}px`;
+      flyer.style.width = `${imgRect.width}px`;
+      flyer.style.height = `${imgRect.height}px`;
+
+      flyer.style.setProperty("--fly-X", `${flyX}px`);
+      flyer.style.setProperty("--fly-Y", `${flyY}px`);
+      flyer.style.setProperty("--target-width", `${cartRect.width}px`);
+      flyer.style.setProperty("--target-height", `${cartRect.height}px`);
+
+      document.body.appendChild(flyer);
+
+      setTimeout(() => {
+        flyer.remove();
+        cartIcon.classList.add("cart-bounce-feedback");
+        setTimeout(() => cartIcon.classList.remove("cart-bounce-feedback"), 300);
+      }, 800);
+    } else {
+      console.warn("Fly to cart failed: Khong tìm thay ảnh sản phẩm hoặc '#navbar-cart-icon' trên Navbar!");
+    }
+  };
+
   return (
     <div
       className="group relative w-full h-full cursor-pointer"
       onClick={() => handleProductClick(product._id)}
     >
       {/* CONTAINER CARD */}
-      <div className="relative flex flex-col h-full bg-white dark:bg-neutral-900 rounded-2xl sm:rounded-[2rem] overflow-hidden border border-neutral-100 dark:border-neutral-800/60 shadow-sm lg:hover:border-[#77cd3a]/40 lg:hover:shadow-[0_20px_40px_rgba(119,205,58,0.06)] transition-all duration-300 transform-gpu">
-        {/* 1. BACKGROUND GRADIENT HOVER (Từ Slider) */}
-        <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-[#77cd3a]/4 via-transparent to-transparent lg:group-hover:from-[#77cd3a]/18 lg:group-hover:via-[#77cd3a]/4 transition-all duration-300 pointer-events-none z-0" />
+      <div className="relative flex flex-col h-full bg-white dark:bg-gradient-to-b dark:from-neutral-900 dark:to-neutral-950/90 rounded-2xl sm:rounded-[2rem] overflow-hidden border border-neutral-100 dark:border-neutral-800/50 shadow-sm lg:hover:border-[#77cd3a]/40 lg:hover:shadow-[0_20px_40px_rgba(119,205,58,0.08)] dark:lg:hover:shadow-[0_20px_40px_rgba(119,205,58,0.04)] transition-all duration-300 transform-gpu">
+        
+        {/* 1. BACKGROUND GRADIENT HOVER - ĐÃ FIX LOANG XANH NHẸ CHO CẢ CHẾ ĐỘ SÁNG */}
+        <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-[#77cd3a]/2 via-transparent to-transparent lg:group-hover:from-[#77cd3a]/8 dark:lg:group-hover:from-[#77cd3a]/12 lg:group-hover:via-[#77cd3a]/3 transition-all duration-500 pointer-events-none z-0" />
 
-        {/* 2. HỆ THỐNG ICON RAU CỦ TRÔI NỔI (Từ Slider) */}
+        {/* 2. HỆ THỐNG ICON RAU CỦ TRÔI NỔI */}
         <div className="absolute inset-0 opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 overflow-hidden">
-          <div className="absolute bottom-16 -left-1 w-5 h-5 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 -rotate-12 transform lg:group-hover:animate-float-slow">
+          <div className="absolute bottom-16 -left-1 w-5 h-5 text-[#77cd3a]/25 dark:text-[#77cd3a]/20 -rotate-12 transform lg:group-hover:animate-float-slow">
             <Carrot size={18} />
           </div>
 
-          <div className="absolute top-1/2 -right-2 w-5 h-5 text-[#77cd3a]/20 dark:text-[#77cd3a]/10 rotate-45 transform lg:group-hover:animate-float-fast">
+          <div className="absolute top-1/2 -right-2 w-5 h-5 text-[#77cd3a]/20 dark:text-[#77cd3a]/15 rotate-45 transform lg:group-hover:animate-float-fast">
             <Citrus size={16} />
           </div>
 
-          <div className="absolute top-16 left-2 w-4 h-4 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 rotate-12 transform lg:group-hover:animate-float-medium">
+          <div className="absolute top-16 left-2 w-4 h-4 text-[#77cd3a]/25 dark:text-[#77cd3a]/20 rotate-12 transform lg:group-hover:animate-float-medium">
             <Leaf size={14} fill="currentColor" />
           </div>
 
           <div className="absolute bottom-20 right-3 w-1.5 h-1.5 rounded-full bg-[#77cd3a]/30 lg:group-hover:animate-pulse" />
         </div>
 
-        {/* 3. CONTAINER ẢNH (Aspect Ratio 1:1 hình vuông chuẩn chỉnh) */}
+        {/* 3. CONTAINER ẢNH */}
         <div className="relative w-full aspect-square overflow-hidden z-10">
           <div className="w-full h-full flex items-center justify-center p-3 sm:p-4">
-            <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl border border-neutral-100 dark:border-white/5 bg-neutral-50 dark:bg-neutral-900/50 shadow-inner">
+            <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl border border-neutral-100 dark:border-[#77cd3a]/10 bg-neutral-50/50 dark:bg-neutral-900/60 shadow-inner">
               <img
                 src={product.images?.[0]?.url || "/placeholder.png"}
                 alt={product.name}
-                className="w-[85%] h-[85%] object-contain lg:group-hover:scale-[1.04] transition-transform duration-500 ease-out mix-blend-multiply dark:mix-blend-screen dark:invert"
+                className="product-target-img w-[85%] h-[85%] object-contain lg:group-hover:scale-[1.04] transition-transform duration-500 ease-out mix-blend-multiply dark:mix-blend-screen"
               />
             </div>
           </div>
@@ -111,12 +155,20 @@ const ProductCard = ({ product }) => {
           </div>
         </div>
 
-        {/* 5. NÚT GIỎ HÀNG (Ẩn trên desktop khi không hover, hiện trên mobile) */}
+        {/* 5. NÚT GIỎ HÀNG */}
         {product.stock > 0 && (
           <button
             onClick={async (e) => {
               e.preventDefault();
               e.stopPropagation();
+
+              // Kích hoạt hiệu ứng bay ngay lập tức (Không chờ đợi bất đồng bộ)
+              runFlyToCartAnimation(e.currentTarget);
+
+              // Đồng bộ Redux + Gửi log tracking AI (Tham số 'true' giúp Hook không bắn Toast)
+              await handleCartAction(product, "ADD", 1, true);
+
+              // Lưu dữ liệu backend qua Thunk và hiển thị một Toast duy nhất tại đây
               try {
                 await dispatch(
                   addToCartThunk({ productId: product._id, quantity: 1 }),
@@ -125,17 +177,16 @@ const ProductCard = ({ product }) => {
               } catch (error) {
                 toast.error("Failed to add product to cart");
               }
-              // handleCartAction(product, "ADD", 1);
             }}
             className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 md:bottom-[82px] md:right-5 w-8 h-8 sm:w-9 sm:h-9 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full flex items-center justify-center shadow-xs active:scale-90 md:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200 hover:!bg-[#77cd3a] hover:!text-white z-30 cursor-pointer"
             aria-label="Add to cart"
           >
-            <Plus size={14} strokeWidth={2.5} />
+            <Plus size={14} strokeWidth={2.5} className="pointer-events-none" />
           </button>
         )}
       </div>
 
-      {/* TẬP HỢP ANIMATION CHỐNG XUNG ĐỘT CPU */}
+      {/* STYLE CODES */}
       <style>{`
         @keyframes floatSlow {
           0%, 100% { transform: translateY(0px) rotate(-12deg); }
@@ -149,7 +200,6 @@ const ProductCard = ({ product }) => {
           0%, 100% { transform: translateY(0px) rotate(45deg); }
           50% { transform: translateY(-6px) rotate(38deg); }
         }
-
         .lg\\:group-hover\\:animate-float-slow { animation: floatSlow 5s ease-in-out infinite; }
         .lg\\:group-hover\\:animate-float-medium { animation: floatMedium 4s ease-in-out infinite; }
         .lg\\:group-hover\\:animate-float-fast { animation: floatFast 3.2s ease-in-out infinite; }
