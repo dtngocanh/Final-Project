@@ -1,7 +1,7 @@
 # scheduler.py
 from ingest import start_ingest
 from freqb import sync_recommendations_to_products
-from personalize_rec import run_recommender_system 
+from personalize_recmd import run_recommender_system 
 from recommend_engine import build_final_recommendations
 
 def run_all():
