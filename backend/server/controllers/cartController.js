@@ -289,7 +289,7 @@ export const addToCart = async (req, res, next) => {
     const qty = Math.min(quantity, product.stock);
 
     if (existing) {
-      existing.quantity += qty;
+      existing.quantity = Math.min(existing.quantity + quantity, product.stock);
     } else {
       cart.push({
         product: productId,
@@ -299,6 +299,9 @@ export const addToCart = async (req, res, next) => {
     }
 
     user.cartItems = cart;
+
+    user.total_cart = calculateCartTotal(cart);
+
     await user.save();
 
     const populated = await user.populate("cartItems.product");
@@ -325,6 +328,7 @@ export const removeFromCart = async (req, res) => {
     return !itemProductId.equals(productId);
   });
 
+  user.total_cart = calculateCartTotal(user.cartItems);
   await user.save();
 
   const populated = await user.populate("cartItems.product");
@@ -342,7 +346,8 @@ export const updateQty = async (req, res) => {
     return itemProductId.equals(productId);
   });
 
-  if (!item) return res.status(404).json({ message: "Product not found in cart" });
+  if (!item)
+    return res.status(404).json({ message: "Product not found in cart" });
 
   item.quantity += change;
 
@@ -352,6 +357,8 @@ export const updateQty = async (req, res) => {
       return !itemProductId.equals(productId);
     });
   }
+
+  user.total_cart = calculateCartTotal(user.cartItems);
 
   await user.save();
 
@@ -366,7 +373,8 @@ export const clearCart = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    user.cartItems = []; 
+    user.cartItems = [];
+    user.total_cart = 0;
     await user.save();
 
     res.json({ cartItems: [] });
@@ -374,4 +382,8 @@ export const clearCart = async (req, res) => {
     console.error("Error clearing cart:", error);
     res.status(500).json({ message: "Internal server error" });
   }
+};
+
+const calculateCartTotal = (cart) => {
+  return cart.reduce((total, item) => total + item.quantity * item.price, 0);
 };

@@ -6,6 +6,8 @@ import { toast } from "react-toastify";
 export const fetchCart = createAsyncThunk("cart/fetch", async (_, thunkAPI) => {
   try {
     const res = await axiosInstance.get("/cart/get");
+    console.log(res.data.total_cart);
+    
     return res.data; // Trả về { success: true, cartItems: [...], total_cart: ... }
   } catch (error) {
     return thunkAPI.rejectWithValue(
