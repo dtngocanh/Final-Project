@@ -14,7 +14,7 @@ from huggingface_hub import InferenceClient
 import uvicorn
 
 import threading
-from scheduler import run_all_tasks
+from scheduler import run_all
 
 # =====================================================
 # 1. ENV & APP CONFIG
