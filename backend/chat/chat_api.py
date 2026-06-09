@@ -208,19 +208,17 @@ class ChatRequest(BaseModel):
     message: str
     session_id: str = "guest"
 # CRON JOB
+# Trong file chat_api.py
+from scheduler import run_all
+
 @app.get("/trigger-all")
 def trigger_all(secret: str):
-    """
-    Endpoint to trigger the recommendation pipeline via external Cron Job.
-    """
-    # Security check to prevent unauthorized execution
     if secret != os.getenv("CRON_SECRET"):
         return {"error": "Unauthorized"}
     
-    # Run in a background thread to prevent timeout on Render
-    threading.Thread(target=run_all_tasks).start()
-    
-    return {"status": "Pipeline started in the background!"}
+    import threading
+    threading.Thread(target=run_all).start()
+    return {"status": "Pipeline started"}
 
 # =====================================================
 # 6. MAIN API ENDPOINT
