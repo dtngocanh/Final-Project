@@ -21,10 +21,3 @@ A modern e-commerce platform specializing in fresh food and groceries. The proje
 * **Database:** MongoDB / SQL
 * **Hosting:** Render
 
-
-## Local Setup
-
-* **Clone the repository:**
-   git clone git@github.com:dtngocanh/Final-Project.git
-* **Run:**
-   npm install all 
