@@ -35,6 +35,7 @@ jobs:
           MIN_SUPPORT: ${{ secrets.MIN_SUPPORT }}
           MIN_CONFIDENCE: ${{ secrets.MIN_CONFIDENCE }}
           PORT: ${{ secrets.PORT }}
+          RENDER: true
         run: |
           cd backend/chat
           echo "Starting pipeline..."
