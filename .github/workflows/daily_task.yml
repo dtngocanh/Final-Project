@@ -1,0 +1,45 @@
+name: Daily Data Pipeline
+
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd backend/chat
+          pip install -r requirements.txt
+          pip install pandas pymongo python-dotenv scikit-learn scipy mlxtend huggingface_hub sentence-transformers
+
+      - name: Run Pipeline
+        env:
+          # Truyền tất cả các Secrets bạn đã tạo vào môi trường chạy
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          COLLECTION_NAME: ${{ secrets.COLLECTION_NAME }}
+          ORDER_COLLECTION: ${{ secrets.ORDER_COLLECTION }}
+          MIN_SUPPORT: ${{ secrets.MIN_SUPPORT }}
+          MIN_CONFIDENCE: ${{ secrets.MIN_CONFIDENCE }}
+          PORT: ${{ secrets.PORT }}
+        run: |
+          cd backend/chat
+          echo "Starting pipeline..."
+          python ingest.py
+          python freqb.py
+          python personalize_recmd.py
+          python recommend_engine.py
+          echo "Pipeline finished successfully!"
