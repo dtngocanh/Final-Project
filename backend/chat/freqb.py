@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from dotenv import load_dotenv
 from pymongo import MongoClient, UpdateOne
-from mlxtend.frequent_patterns import apriori, association_rules
+from mlxtend.frequent_patterns import fpgrowth, association_rules
 from mlxtend.preprocessing import TransactionEncoder
 
 # 1. KẾT NỐI
@@ -13,7 +13,7 @@ order_col = db["orders"]
 product_col = db["products"]
 
 def sync_recommendations_to_products():
-    print("--- BẮT ĐẦU QUÁ TRÌNH SYNC DỮ LIỆU TỐI ƯU ---")
+    print("--- BẮT ĐẦU QUÁ TRÌNH SYNC DỮ LIỆU TỐI ƯU (FP-GROWTH) ---")
     
     # Bước 0: Reset dữ liệu cũ
     product_col.update_many({}, {"$unset": {"frequentlyBoughtTogether": ""}})
@@ -32,20 +32,21 @@ def sync_recommendations_to_products():
     # Danh sách bán chạy nhất toàn sàn (Global Top)
     global_popular = sorted(product_stats.keys(), key=lambda x: product_stats[x], reverse=True)
 
-    # Bước 2: Chạy Apriori (Chỉ lấy đơn có từ 2 món trở lên)
+    # Bước 2: Chạy FP-Growth (Thay thế cho Apriori)
     multi_item_tx = [t for t in transactions if len(t) > 1]
-    apriori_map = {}
+    frequent_map = {} # Đổi tên biến cho đúng ngữ nghĩa
     
     if multi_item_tx:
-        print("Step 1: Analyzing orders with Apriori...")
+        print("Step 1: Analyzing orders with FP-Growth (Faster & More Efficient)...")
         te = TransactionEncoder()
         te_ary = te.fit(multi_item_tx).transform(multi_item_tx)
         df_onehot = pd.DataFrame(te_ary, columns=te.columns_)
         
-        # Hạ min_support để tránh bị trống kết quả
-        frequent_itemsets = apriori(df_onehot, min_support=0.005, use_colnames=True)
+        # SỬ DỤNG FPGROWTH: Giữ nguyên min_support và use_colnames
+        frequent_itemsets = fpgrowth(df_onehot, min_support=0.005, use_colnames=True)
+        
         if not frequent_itemsets.empty:
-            # Dùng metric lift để tìm sự liên quan mạnh
+            # Thuật toán sinh luật kết hợp (association_rules) giữ nguyên 100%
             rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
             rules = rules.sort_values(by=['lift', 'confidence'], ascending=False)
             
@@ -53,9 +54,9 @@ def sync_recommendations_to_products():
                 if len(row['antecedents']) == 1:
                     origin = list(row['antecedents'])[0]
                     target = list(row['consequents'])[0]
-                    if origin not in apriori_map: apriori_map[origin] = []
-                    if target not in apriori_map[origin] and len(apriori_map[origin]) < 10:
-                        apriori_map[origin].append(target)
+                    if origin not in frequent_map: frequent_map[origin] = []
+                    if target not in frequent_map[origin] and len(frequent_map[origin]) < 10:
+                        frequent_map[origin].append(target)
 
     # Bước 3: Mapping thông tin sản phẩm và Gom nhóm Category
     all_products = list(product_col.find({}, {"_id": 1, "name": 1, "category": 1, "image": 1, "images": 1, "price": 1}))
@@ -89,9 +90,9 @@ def sync_recommendations_to_products():
         p_name = p['name']
         final_names = []
 
-        # Lớp 1: Ưu tiên Apriori (Mua cùng nhau)
-        if p_name in apriori_map:
-            final_names.extend([name for name in apriori_map[p_name] if name in info_lookup])
+        # Lớp 1: Ưu tiên FP-Growth (Mua cùng nhau)
+        if p_name in frequent_map:
+            final_names.extend([name for name in frequent_map[p_name] if name in info_lookup])
 
         # Lớp 2: Fallback - Sản phẩm bán chạy trong cùng Category
         if len(final_names) < 4:
@@ -99,7 +100,7 @@ def sync_recommendations_to_products():
             for f_name in cat_fallbacks:
                 if f_name != p_name and f_name not in final_names:
                     final_names.append(f_name)
-                if len(final_names) >= 6: break # Lấy dư một chút để lọc
+                if len(final_names) >= 6: break
 
         # Lớp 3: Fallback cuối cùng - Sản phẩm bán chạy nhất hệ thống
         if len(final_names) < 4:

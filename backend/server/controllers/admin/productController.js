@@ -29,7 +29,7 @@ export const replenishStock = async (req, res) => {
     const newLog = await RestockLog.create({
       product: productId,
       quantityAdded: Number(quantity),
-      // supplier: "Veganic Wholesale Farm"
+      // supplier: "Veggies Wholesale Farm"
     });
 
     res.status(200).json({

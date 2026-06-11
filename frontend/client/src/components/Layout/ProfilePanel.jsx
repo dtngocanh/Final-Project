@@ -199,7 +199,7 @@ const ProfilePanel = () => {
           
           <div className="mt-6 flex items-center gap-2 opacity-30 text-[9px] dark:text-gray-400 tracking-wider">
             <ShieldCheck size={12} />
-            <span>Data protected by Veganic Security Protocol</span>
+            <span>Data protected by Veggies Security Protocol</span>
           </div>
         </div>
       </aside>

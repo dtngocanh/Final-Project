@@ -87,7 +87,6 @@ const App = () => {
             <ChatBot />
             <Footer />
           </div>
-          // Trong file App.js
           <ToastContainer
             autoClose={1500}
             hideProgressBar={false} 

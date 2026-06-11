@@ -69,7 +69,7 @@ const FruitLoader = () => {
                    transition={{ duration: 2, repeat: Infinity }}
                  >
                    
-                   Veganic welcome
+                   Veggies welcome
                  </motion.p>
                </div>
       </div>

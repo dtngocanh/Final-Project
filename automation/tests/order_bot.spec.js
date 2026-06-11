@@ -53,7 +53,7 @@ const expandedRules = {
   "Lime": ["Salmon", "Shrimp", "Avocado", "Watermelon", "Ginger"]
 };
 
-test("Veganic Mart: Bulk Orders with 2-3 Proteins & Anti-Drift Logic", async ({ browser }) => {
+test("Veggies Mart: Bulk Orders with 2-3 Proteins & Anti-Drift Logic", async ({ browser }) => {
   test.setTimeout(0);
 
   const dataDir = path.join(__dirname, "../data");

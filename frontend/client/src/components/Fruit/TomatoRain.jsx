@@ -30,13 +30,13 @@ const SideFloatFruits = () => {
         // Hiệu ứng "gió thổi" lãng mạn: đung đưa sang trái phải
         windSwing: 15 + Math.random() * 15, // Độ đung đưa ngẫu nhiên (15px - 30px)
         
-        isLucky: i === 7 // Quả số 7 là quả may mắn (mã may mắn của Veganic)
+        isLucky: i === 7 // Quả số 7 là quả may mắn (mã may mắn của Veggies)
       };
     });
   }, []);
 
   const prizes = [
-    { code: "VEGANIC_CUTIE", desc: "Voucher 20% OFF" },
+    { code: "Veggies_CUTIE", desc: "Voucher 20% OFF" },
     { code: "SHIP_THUAN_MAT", desc: "Free Shipping" },
     { code: "MON_QUA_NHO", desc: "Voucher 50k" },
     { code: "HAPPY_VEGAN", desc: "Chúc bạn 1 ngày vui vẻ 😆" }
@@ -131,7 +131,7 @@ const SideFloatFruits = () => {
 
               <div className="relative z-10 flex flex-col items-center">
                 <div className="text-6xl mb-6">🍑✨</div>
-                <h3 className="text-xl md:text-2xl font-black mb-2 text-gray-950 dark:text-white tracking-tighter uppercase">Veganic Magic!</h3>
+                <h3 className="text-xl md:text-2xl font-black mb-2 text-gray-950 dark:text-white tracking-tighter uppercase">Veggies Magic!</h3>
                 <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-6">Bạn đã săn được một món quà nhỏ</p>
 
                 <div className="w-full p-4 bg-gray-50 dark:bg-black/20 rounded-2xl mb-8 border border-gray-100 dark:border-white/5">

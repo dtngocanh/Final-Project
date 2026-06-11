@@ -27,7 +27,7 @@ const RecentOrdersTable = ({ orders }) => {
             Recent Transactions
           </h3>
           <p className="text-xs text-gray-400">
-            Latest activity from Veganic shop
+            Latest activity from Veggies shop
           </p>
         </div>
         <Link

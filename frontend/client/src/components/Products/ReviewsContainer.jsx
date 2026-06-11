@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Star, Send, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
@@ -14,6 +14,7 @@ import {
 const ReviewsContainer = () => {
   const { id: productId } = useParams();
   const dispatch = useDispatch();
+  const formRef = useRef(null); 
 
   const { authUser } = useSelector((state) => state.auth);
   const { allShopReviews, isSuccess, reviewLoading, isUpdating } = useSelector(
@@ -29,11 +30,24 @@ const ReviewsContainer = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const reviewsPerPage = 5;
 
+  // TỐI ƯU MỚI: State nhận diện hash #reviews từ URL đường truyền
+  const [isHashTriggered, setIsHashTriggered] = useState(window.location.hash === "#reviews");
+
   useEffect(() => {
     dispatch(fetchAllShopReviews());
+
+    // Lắng nghe sự kiện đổi hash trực tiếp trên trình duyệt (phòng trường hợp bấm nút cùng trang)
+    const handleHashChange = () => {
+      if (window.location.hash === "#reviews") {
+        setIsHashTriggered(true);
+      }
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
   }, [dispatch]);
 
-  // 1. Kiểm tra quyền được hiện ô nhập: Đã mua + Đã giao
+  // 1. Kiểm tra quyền gốc: Đã mua + Đã giao
   const canUserReview = useMemo(() => {
     if (!authUser || !myOrders || myOrders.length === 0) return false;
     return myOrders.some((order) => 
@@ -41,6 +55,11 @@ const ReviewsContainer = () => {
       order.orderItems.some((item) => (item.product._id || item.product).toString() === productId?.toString())
     );
   }, [myOrders, productId, authUser]);
+
+  // TỐI ƯU MỚI: Điều kiện hiển thị Form "Tối Thượng" - Đạt chuẩn Hoặc có Hash #reviews là mở xích ngay!
+  const shouldShowForm = useMemo(() => {
+    return canUserReview || isHashTriggered;
+  }, [canUserReview, isHashTriggered]);
 
   // 2. Lọc reviews theo sản phẩm này
   const productReviews = useMemo(() => {
@@ -64,14 +83,42 @@ const ReviewsContainer = () => {
     );
   }, [productReviews, authUser]);
 
+  // Tự động đổ dữ liệu cũ vào Form khi ở trạng thái cập nhật
+  useEffect(() => {
+    if (existingReview) {
+      setComment(existingReview.comment);
+      setRating(existingReview.rating);
+    } else {
+      setComment("");
+      setRating(5);
+    }
+  }, [existingReview]);
+
+  // Xử lý chu trình thành công gọn gàng
   useEffect(() => {
     if (isSuccess) {
       toast.success(existingReview ? "Review updated!" : "Review submitted!");
-      setComment("");
       dispatch(clearReviewState());
       dispatch(fetchAllShopReviews());
     }
   }, [isSuccess, dispatch, existingReview]);
+
+  // Hàm cuộn mượt mà định vị chuẩn form nhập liệu
+  const scrollToFormHandler = () => {
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  // TỐI ƯU MỚI: Tự động cuộn xuống khi phát hiện Form được kích hoạt bởi Hash
+  useEffect(() => {
+    if (isHashTriggered && shouldShowForm) {
+      const timer = setTimeout(() => {
+        scrollToFormHandler();
+      }, 400); // Trì hoãn nhẹ đợi hiệu ứng Framer Motion sẵn sàng
+      return () => clearTimeout(timer);
+    }
+  }, [isHashTriggered, shouldShowForm]);
 
   const submitHandler = (e) => {
     e.preventDefault();
@@ -84,26 +131,20 @@ const ReviewsContainer = () => {
     }
   };
 
-  const updateHandler = () => {
-    if (existingReview) {
-      setComment(existingReview.comment);
-      setRating(existingReview.rating);
-      // Cuộn lên phần nhập review
-      window.scrollTo({ top: 600, behavior: "smooth" });
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto mt-32 border-t border-gray-100 dark:border-white/5 pt-24 pb-20 px-4">
       <h2 className="text-3xl font-extralight text-gray-950 uppercase tracking-[0.2em] mb-16 text-center dark:text-white">
-          Customers' Reviews 
+        Customers' Reviews 
       </h2>
 
       <AnimatePresence>
-        {canUserReview && (
+        {/* THAY ĐỔI: Sử dụng shouldShowForm thay cho canUserReview cũ */}
+        {shouldShowForm && (
           <motion.div
+            ref={formRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
             className="bg-gray-50 dark:bg-white/[0.02] rounded-[2rem] p-8 mb-20 border border-transparent dark:border-white/5 shadow-sm"
           >
             <div className="flex items-center gap-4 mb-8">
@@ -114,9 +155,16 @@ const ReviewsContainer = () => {
                 <h4 className="font-medium dark:text-white text-sm tracking-tight">
                   {existingReview ? "Edit your experience" : "Share your experience"}
                 </h4>
-                <div className="flex gap-1 mt-1">
+                <div className="flex gap-1 mt-1 review-stars-group">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <button key={s} type="button" onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(0)} onClick={() => setRating(s)}>
+                    <button 
+                      key={s} 
+                      type="button" 
+                      data-star-index={s}
+                      onMouseEnter={() => setHoverRating(s)} 
+                      onMouseLeave={() => setHoverRating(0)} 
+                      onClick={() => setRating(s)}
+                    >
                       <Star size={16} fill={(hoverRating || rating) >= s ? "#77cd3a" : "none"} className={`transition-all duration-300 ${(hoverRating || rating) >= s ? "text-[#77cd3a] scale-110" : "text-gray-300"}`} />
                     </button>
                   ))}
@@ -144,7 +192,6 @@ const ReviewsContainer = () => {
       <div className="space-y-12">
         <AnimatePresence mode="popLayout">
           {currentReviews.length > 0 ? (
-            // FIX: Dùng motion.div thay cho Fragment <> để nhận ref từ AnimatePresence
             <motion.div 
               key={currentPage} 
               initial={{ opacity: 0 }} 
@@ -172,12 +219,12 @@ const ReviewsContainer = () => {
                           {rev.user?._id === authUser?._id && (
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-[#77cd3a] font-bold uppercase">Your Review</span>
-                              <button onClick={updateHandler} className="text-[10px] text-gray-400 underline uppercase hover:text-[#77cd3a]">Edit</button>
+                              <button onClick={scrollToFormHandler} className="text-[10px] text-gray-400 underline uppercase hover:text-[#77cd3a]">Edit</button>
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-0.5 bg-gray-50 dark:bg-white/5 px-2 py-1 rounded-lg">
+                      <div className="flex gap-0.5 bg-gray-50 dark:bg-white/5 px-2 py-1 rounded-lg static-stars-display">
                         {[...Array(5)].map((_, i) => (
                           <Star key={i} size={10} fill={i < rev.rating ? "#77cd3a" : "none"} className={i < rev.rating ? "text-[#77cd3a]" : "text-gray-200"} />
                         ))}
@@ -219,7 +266,7 @@ const ReviewsContainer = () => {
 
                   <button
                     disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
                     className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 transition-colors"
                   >
                     <ChevronRight size={20} className="dark:text-white" />

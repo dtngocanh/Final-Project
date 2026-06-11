@@ -86,7 +86,7 @@ const Footer = () => {
                 className="font-serif italic text-2xl md:text-3xl tracking-tighter ml-[-6px]" 
                 style={{ color: activeColor }}
               >
-                Veganic
+                Veggies
               </span>
             </Link>
             
@@ -97,7 +97,7 @@ const Footer = () => {
             <div className="space-y-4 w-full break-all">
               <div className="flex items-center space-x-3 text-[10px] font-bold tracking-[0.2em] text-gray-400 hover:text-[#77cd3af2] transition-all cursor-pointer group uppercase">
                 <Mail size={14} className="flex-shrink-0" style={{ color: activeColor }} />
-                <span className="dark:text-gray-400 truncate">hello@veganic.com</span>
+                <span className="dark:text-gray-400 truncate">hello@Veggies.com</span>
               </div>
               <div className="flex items-center space-x-3 text-[10px] font-bold tracking-[0.2em] text-gray-400 hover:text-[#77cd3af2] transition-all cursor-pointer group uppercase">
                 <MapPin size={14} className="flex-shrink-0" style={{ color: activeColor }} />
@@ -150,7 +150,7 @@ const Footer = () => {
           {/* Copyright text */}
           <div className="text-center sm:text-right">
             <p className="text-gray-400 text-[9px] md:text-[10px] uppercase tracking-[0.2em] sm:tracking-[0.3em] font-semibold">
-              © 2026 VEGANIC SANCTUARY. ALL RIGHTS RESERVED.
+              © 2026 Veggies SANCTUARY. ALL RIGHTS RESERVED.
             </p>
             <div className="flex items-center justify-center sm:justify-end gap-2 mt-2 opacity-40">
               <div className="w-1.5 h-1.5 rounded-full bg-[#77cd3af2] animate-pulse" />

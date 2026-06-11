@@ -132,7 +132,7 @@ const NotFound = () => {
 
       <div className="absolute bottom-10 text-center w-full opacity-30">
         <p className="text-[9px] uppercase tracking-[0.4em] dark:text-gray-500 font-medium">
-          Veganic Sanctuary • 2026
+          Veggies Sanctuary • 2026
         </p>
       </div>
     </div>

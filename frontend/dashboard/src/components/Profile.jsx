@@ -56,7 +56,7 @@ const Profile = () => {
   const updateProfile = () => {
     setLoading(true);
     setTimeout(() => {
-      toast.success("Hệ thống Veganic đã lưu rồi nhé ní! 🌿");
+      toast.success("Hệ thống Veggies đã lưu rồi nhé ní! 🌿");
       setLoading(false);
     }, 800);
   };
@@ -108,7 +108,7 @@ const Profile = () => {
               </span>
             </h1>
             <p className="text-[9px] md:text-[10px] text-gray-400 uppercase tracking-[0.3em] mt-1 font-bold">
-              Veganic Admin Portal
+              Veggies Admin Portal
             </p>
           </div>
         </div>

@@ -76,8 +76,8 @@ CATEGORY_KEYWORDS = {
 }
 
 SMALL_TALKS = {
-    "hi": "Hello! Welcome to Veganic Mart. How can I assist you today?",
-    "hello": "Hello! Welcome to Veganic Mart. How can I assist you today?",
+    "hi": "Hello! Welcome to Veggies Mart. How can I assist you today?",
+    "hello": "Hello! Welcome to Veggies Mart. How can I assist you today?",
     "hey": "Hi there! What are you looking for today?",
     "thanks": "You're very welcome!",
     "thank you": "You're very welcome!",
@@ -286,7 +286,7 @@ Answer:"""
 RULE: You MUST start your response by saying something like: "To make {dish_name}, you typically need {required_ingredients_str}."
 Then, warmly tell them which of those ingredients we currently have from the ITEMS IN STOCK."""
 
-        prompt = f"""You are a smart, friendly shopping assistant for Veganic Mart.
+        prompt = f"""You are a smart, friendly shopping assistant for Veggies Mart.
 [RULES]
 1. Reply concisely in English (max 3-4 sentences).
 2. Look strictly at the ITEMS IN STOCK.

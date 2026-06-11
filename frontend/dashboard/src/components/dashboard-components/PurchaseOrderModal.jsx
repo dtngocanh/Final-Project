@@ -41,7 +41,7 @@ const PurchaseOrderModal = ({ isOpen, onClose, products }) => {
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white w-full max-w-md rounded-[35px] p-8 border border-gray-100 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <h3 className="text-xl font-bold text-gray-900 mb-1">Purchase Order</h3>
-        <p className="text-xs text-gray-400 mb-6">Replenish stock for your Veganic catalog items.</p>
+        <p className="text-xs text-gray-400 mb-6">Replenish stock for your Veggies catalog items.</p>
         
         <form onSubmit={handleReplenishSubmit} className="space-y-5">
           {/* Ô chọn Sản phẩm */}

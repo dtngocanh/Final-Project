@@ -72,7 +72,7 @@ const ShippingForm = ({ shippingDetails, setShippingDetails }) => {
               label: "Email Address",
               name: "email",
               icon: Mail,
-              placeholder: "hello@veganic.com",
+              placeholder: "hello@Veggies.com",
             },
             {
               label: "Phone Number",

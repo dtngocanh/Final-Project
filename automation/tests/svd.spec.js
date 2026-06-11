@@ -2,7 +2,7 @@ const { test, expect, chromium } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-test('Dat hang tu dong - Chon cong thuc Veganic & Thanh toan COD', async () => {
+test('Dat hang tu dong - Chon cong thuc Veggies & Thanh toan COD', async () => {
     test.setTimeout(0); // Chạy không giới hạn thời gian cho danh sách dài
 
     const dataDir = path.join(__dirname, '../data');
@@ -26,7 +26,7 @@ test('Dat hang tu dong - Chon cong thuc Veganic & Thanh toan COD', async () => {
 
     // Lọc lấy các nick có realIndex <= 500, sau đó ĐẢO NGƯỢC để chạy từ 500 về 1
     const accountsList = accountsWithIndex
-        .filter(user => user.realIndex <= 500)
+        .filter(user => user.realIndex <= 399)
         .reverse();
 
     const streets = [
@@ -103,10 +103,10 @@ test('Dat hang tu dong - Chon cong thuc Veganic & Thanh toan COD', async () => {
                 await page.waitForLoadState('networkidle');
                 await page.waitForTimeout(1500); // Chờ React render xong trang chi tiết recipe
 
-                // Tìm và click ADD ALL TO CART của Veganic
-                console.log('   ↳ Thêm nguyên liệu Veganic vào giỏ...');
-                const veganicSection = page.locator('div, section').filter({ hasText: /Available In Veganic/i }).last();
-                const addAllBtn = veganicSection.locator('button:has-text("ADD ALL TO CART")').first();
+                // Tìm và click ADD ALL TO CART của Veggies
+                console.log('   ↳ Thêm nguyên liệu Veggies vào giỏ...');
+                const VeggiesSection = page.locator('div, section').filter({ hasText: /Available In Veggies/i }).last();
+                const addAllBtn = VeggiesSection.locator('button:has-text("ADD ALL TO CART")').first();
                 
                 await addAllBtn.waitFor({ state: 'visible', timeout: 5000 });
                 await addAllBtn.scrollIntoViewIfNeeded();

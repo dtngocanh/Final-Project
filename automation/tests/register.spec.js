@@ -8,19 +8,19 @@ test('Đăng ký 500 user với định dạng email .ic', async ({ page }) => {
 
     const dataDir = path.join(__dirname, '../data');
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir); 
-    const accountsFile = path.join(dataDir, 'accounts.json');
+    const accountsFile = path.join(dataDir, 'accounts2.json');
 
     let accountsList = [];
     const interests = ['HEALTHY', 'SEAFOOD', 'FRUIT'];
 
-    for (let i = 1; i <= 500; i++) {
+    for (let i = 501; i <= 899; i++) {
         const firstName = faker.person.firstName();
         const lastName = faker.person.lastName();
         const fullName = `${firstName} ${lastName}`;
         
         // Tạo email kiểu: john.doe.ic@gmail.com
         const email = `${firstName}.${lastName}.${i}.ic@gmail.com`.toLowerCase();
-        const password = "Password123";
+        const password = "Singalong1201";
         
         let userInterest = interests[i % 3];
 

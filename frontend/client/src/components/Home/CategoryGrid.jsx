@@ -58,7 +58,7 @@ const CategoryGrid = () => {
             whileInView={{ opacity: 1, y: 0 }}
             className="text-2xl md:text-4xl font-light text-gray-900 dark:text-white tracking-tight leading-tight"
           >
-            Veganic{" "}
+            Veggies{" "}
             <span className="font-serif italic border-b border-[#77cd3af2]/30 text-[#025c37] dark:text-[#77cd3af2]">
               Category
             </span>
