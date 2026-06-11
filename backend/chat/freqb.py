@@ -3,7 +3,6 @@ import pandas as pd
 from dotenv import load_dotenv
 from pymongo import MongoClient, UpdateOne
 from mlxtend.frequent_patterns import fpgrowth, association_rules
-from mlxtend.preprocessing import TransactionEncoder
 
 # 1. KẾT NỐI
 load_dotenv()
@@ -18,35 +17,42 @@ def sync_recommendations_to_products():
     # Bước 0: Reset dữ liệu cũ
     product_col.update_many({}, {"$unset": {"frequentlyBoughtTogether": ""}})
 
-    # Bước 1: Lấy đơn hàng và tính độ phổ biến (Popularity)
-    orders = list(order_col.find({}, {"orderItems.name": 1}))
-    transactions = [[item['name'] for item in o.get('orderItems', [])] 
-                    for o in orders if len(o.get('orderItems', [])) > 0]
+    # Bước 1: Lấy đơn hàng bằng Cursor (Giải phóng RAM, không dùng list)
+    order_cursor = order_col.find({}, {"orderItems.name": 1})
     
-    # Tính toán sản phẩm bán chạy nhất để làm Fallback
+    transactions = []
     product_stats = {}
-    for t in transactions:
-        for item in t:
-            product_stats[item] = product_stats.get(item, 0) + 1
     
+    for o in order_cursor:
+        items = [item['name'] for item in o.get('orderItems', []) if item.get('name')]
+        if items:
+            transactions.append(items)
+            for item in items:
+                product_stats[item] = product_stats.get(item, 0) + 1
+                
+    if not transactions:
+        print("Không có dữ liệu đơn hàng để xử lý.")
+        return
+
     # Danh sách bán chạy nhất toàn sàn (Global Top)
     global_popular = sorted(product_stats.keys(), key=lambda x: product_stats[x], reverse=True)
 
-    # Bước 2: Chạy FP-Growth (Thay thế cho Apriori)
+    # Bước 2: Chạy FP-Growth với cơ chế Tiết kiệm Bộ nhớ (Sparse Data)
     multi_item_tx = [t for t in transactions if len(t) > 1]
-    frequent_map = {} # Đổi tên biến cho đúng ngữ nghĩa
+    frequent_map = {} 
     
     if multi_item_tx:
-        print("Step 1: Analyzing orders with FP-Growth (Faster & More Efficient)...")
-        te = TransactionEncoder()
-        te_ary = te.fit(multi_item_tx).transform(multi_item_tx)
-        df_onehot = pd.DataFrame(te_ary, columns=te.columns_)
+        print("Step 1: Analyzing orders with FP-Growth (Memory Optimized)...")
         
-        # SỬ DỤNG FPGROWTH: Giữ nguyên min_support và use_colnames
-        frequent_itemsets = fpgrowth(df_onehot, min_support=0.005, use_colnames=True)
+        # GIẢI PHÁP THAY THẾ TRANSACTIONENCODER NẶNG NỀ:
+        # Sử dụng thuộc tính explode kết hợp get_dummies và ép kiểu dữ liệu về 'Sparse[bool]'
+        s = pd.Series(multi_item_tx)
+        df_onehot = pd.get_dummies(s.explode()).groupby(level=0).max().astype(pd.SparseDtype(bool, False))
+        
+        # Nâng nhẹ min_support từ 0.005 lên 0.01 (1%) giúp thuật toán chạy nhanh và lọc nhiễu tốt hơn hẳn
+        frequent_itemsets = fpgrowth(df_onehot, min_support=0.01, use_colnames=True)
         
         if not frequent_itemsets.empty:
-            # Thuật toán sinh luật kết hợp (association_rules) giữ nguyên 100%
             rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
             rules = rules.sort_values(by=['lift', 'confidence'], ascending=False)
             
@@ -58,8 +64,8 @@ def sync_recommendations_to_products():
                     if target not in frequent_map[origin] and len(frequent_map[origin]) < 10:
                         frequent_map[origin].append(target)
 
-    # Bước 3: Mapping thông tin sản phẩm và Gom nhóm Category
-    all_products = list(product_col.find({}, {"_id": 1, "name": 1, "category": 1, "image": 1, "images": 1, "price": 1}))
+    # Bước 3: Mapping thông tin sản phẩm (Sử dụng Cursor)
+    product_cursor = product_col.find({}, {"_id": 1, "name": 1, "category": 1, "image": 1, "images": 1, "price": 1})
     
     def get_first_image(p):
         imgs = p.get('images') or p.get('image') or []
@@ -67,18 +73,25 @@ def sync_recommendations_to_products():
         if isinstance(imgs, str) and imgs != "": return imgs
         return ""
 
-    info_lookup = {p['name']: {
-        "id": p['_id'], 
-        "image": get_first_image(p),
-        "price": p.get('price', 0)
-    } for p in all_products}
-
-    # Gom nhóm theo Category và SẮP XẾP theo độ phổ biến
+    info_lookup = {}
     cat_map = {}
-    for p in all_products:
-        cat = p['category']
-        if cat not in cat_map: cat_map[cat] = []
-        cat_map[cat].append(p['name'])
+    all_products_minimal = []
+
+    for p in product_cursor:
+        p_name = p['name']
+        p_cat = p.get('category', 'Uncategorized')
+        
+        info_lookup[p_name] = {
+            "id": p['_id'], 
+            "image": get_first_image(p),
+            "price": p.get('price', 0)
+        }
+        
+        if p_cat not in cat_map: 
+            cat_map[p_cat] = []
+        cat_map[p_cat].append(p_name)
+        
+        all_products_minimal.append({"_id": p['_id'], "name": p_name, "category": p_cat})
     
     for cat in cat_map:
         cat_map[cat].sort(key=lambda x: product_stats.get(x, 0), reverse=True)
@@ -86,15 +99,16 @@ def sync_recommendations_to_products():
     # Bước 4: Tạo danh sách Update với Logic 3 lớp
     print("Step 2: Building refined recommendation sets...")
     bulk_updates = []
-    for p in all_products:
+    
+    for p in all_products_minimal:
         p_name = p['name']
         final_names = []
 
-        # Lớp 1: Ưu tiên FP-Growth (Mua cùng nhau)
+        # Lớp 1: FP-Growth
         if p_name in frequent_map:
             final_names.extend([name for name in frequent_map[p_name] if name in info_lookup])
 
-        # Lớp 2: Fallback - Sản phẩm bán chạy trong cùng Category
+        # Lớp 2: Fallback Category
         if len(final_names) < 4:
             cat_fallbacks = cat_map.get(p['category'], [])
             for f_name in cat_fallbacks:
@@ -102,14 +116,14 @@ def sync_recommendations_to_products():
                     final_names.append(f_name)
                 if len(final_names) >= 6: break
 
-        # Lớp 3: Fallback cuối cùng - Sản phẩm bán chạy nhất hệ thống
+        # Lớp 3: Fallback Global Top
         if len(final_names) < 4:
             for g_name in global_popular:
                 if g_name != p_name and g_name not in final_names and g_name in info_lookup:
                     final_names.append(g_name)
                 if len(final_names) >= 4: break
 
-        # Chốt danh sách 4 món và format
+        # Format kết quả
         formatted_list = []
         for n in final_names[:4]:
             info = info_lookup[n]
@@ -124,12 +138,17 @@ def sync_recommendations_to_products():
             {"_id": p['_id']}, 
             {"$set": {"frequentlyBoughtTogether": formatted_list}}
         ))
+        
+        # Batch write cụm 200 sản phẩm một để tránh quá tải RAM mạng
+        if len(bulk_updates) >= 200:
+            product_col.bulk_write(bulk_updates)
+            bulk_updates = []
 
-    # Bước 5: Thực thi ghi vào DB
+    # Bước 5: Ghi nốt phần còn dư vào DB
     if bulk_updates:
-        result = product_col.bulk_write(bulk_updates)
-        print(f"--- THÀNH CÔNG ---")
-        print(f"Đã cập nhật gợi ý cho {result.modified_count} sản phẩm.")
+        product_col.bulk_write(bulk_updates)
+        
+    print("--- THÀNH CÔNG HOÀN TOÀN ---")
 
 if __name__ == "__main__":
     sync_recommendations_to_products()
