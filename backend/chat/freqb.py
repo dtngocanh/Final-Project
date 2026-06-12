@@ -12,47 +12,57 @@ order_col = db["orders"]
 product_col = db["products"]
 
 def sync_recommendations_to_products():
-    print("--- BẮT ĐẦU QUÁ TRÌNH SYNC DỮ LIỆU TỐI ƯU (FP-GROWTH) ---")
+    print("--- BẮT ĐẦU QUÁ TRÌNH SYNC DỮ LIỆU SIÊU TỐI ƯU RAM (FP-GROWTH) ---")
     
     # Bước 0: Reset dữ liệu cũ
     product_col.update_many({}, {"$unset": {"frequentlyBoughtTogether": ""}})
 
-    # Bước 1: Lấy đơn hàng bằng Cursor (Giải phóng RAM, không dùng list)
+    # Bước 1: Lấy đơn hàng bằng Cursor (Đọc cuốn chiếu, cực nhẹ RAM)
     order_cursor = order_col.find({}, {"orderItems.name": 1})
     
-    transactions = []
+    raw_transactions = []
     product_stats = {}
     
     for o in order_cursor:
         items = [item['name'] for item in o.get('orderItems', []) if item.get('name')]
-        if items:
-            transactions.append(items)
+        # Chỉ lấy các đơn hàng có từ 2 sản phẩm trở lên để tìm quy luật mua kèm
+        if len(items) > 1:
+            raw_transactions.append(items)
             for item in items:
                 product_stats[item] = product_stats.get(item, 0) + 1
                 
-    if not transactions:
-        print("Không có dữ liệu đơn hàng để xử lý.")
+    if not raw_transactions:
+        print("Không có dữ liệu đơn hàng hợp lệ để phân tích.")
         return
 
-    # Danh sách bán chạy nhất toàn sàn (Global Top)
+    # Danh sách bán chạy nhất toàn sàn (Global Top) dùng để Fallback
     global_popular = sorted(product_stats.keys(), key=lambda x: product_stats[x], reverse=True)
 
-    # Bước 2: Chạy FP-Growth với cơ chế Tiết kiệm Bộ nhớ (Sparse Data)
-    multi_item_tx = [t for t in transactions if len(t) > 1]
+    # 🌟 CHIẾN THUẬT SIÊU TỐI ƯU: LỌC BỎ SẢN PHẨM RÁC/ÍT BÁN ĐỂ GIẢM SỐ CỘT MA TRẬN
+    # Nếu sản phẩm xuất hiện ít hơn 2 lần trên toàn hệ thống, loại bỏ thẳng tay để giảm tải RAM lên tới 80%
+    min_item_appearance = 2 
+    frequent_products = {items for items, count in product_stats.items() if count >= min_item_appearance}
+
+    filtered_transactions = []
+    for t in raw_transactions:
+        clean_t = [item for item in t if item in frequent_products]
+        if len(clean_t) > 1: # Giữ lại nếu sau khi lọc vẫn còn > 1 sản phẩm mua chung
+            filtered_transactions.append(clean_t)
+
     frequent_map = {} 
     
-    if multi_item_tx:
-        print("Step 1: Analyzing orders with FP-Growth (Memory Optimized)...")
+    if filtered_transactions:
+        print(f"Step 1: Analyzing {len(filtered_transactions)} filtered orders with FP-Growth...")
         
-        # GIẢI PHÁP THAY THẾ TRANSACTIONENCODER NẶNG NỀ:
-        # Sử dụng thuộc tính explode kết hợp get_dummies và ép kiểu dữ liệu về 'Sparse[bool]'
-        s = pd.Series(multi_item_tx)
+        # Biến đổi danh sách thành dạng Series và ép kiểu dữ liệu Sparse tối đa
+        s = pd.Series(filtered_transactions)
         df_onehot = pd.get_dummies(s.explode()).groupby(level=0).max().astype(pd.SparseDtype(bool, False))
         
-        # Nâng nhẹ min_support từ 0.005 lên 0.01 (1%) giúp thuật toán chạy nhanh và lọc nhiễu tốt hơn hẳn
-        frequent_itemsets = fpgrowth(df_onehot, min_support=0.01, use_colnames=True)
+        # Đặt min_support an toàn là 0.02 (2%). Đơn hàng giả lập nhiều cần support cao để tránh bùng nổ tổ hợp luật.
+        frequent_itemsets = fpgrowth(df_onehot, min_support=0.02, use_colnames=True)
         
         if not frequent_itemsets.empty:
+            # Sinh luật kết hợp với ngưỡng lift=1.0
             rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
             rules = rules.sort_values(by=['lift', 'confidence'], ascending=False)
             
@@ -64,7 +74,7 @@ def sync_recommendations_to_products():
                     if target not in frequent_map[origin] and len(frequent_map[origin]) < 10:
                         frequent_map[origin].append(target)
 
-    # Bước 3: Mapping thông tin sản phẩm (Sử dụng Cursor)
+    # Bước 3: Mapping thông tin sản phẩm (Dùng Cursor)
     product_cursor = product_col.find({}, {"_id": 1, "name": 1, "category": 1, "image": 1, "images": 1, "price": 1})
     
     def get_first_image(p):
@@ -139,12 +149,12 @@ def sync_recommendations_to_products():
             {"$set": {"frequentlyBoughtTogether": formatted_list}}
         ))
         
-        # Batch write cụm 200 sản phẩm một để tránh quá tải RAM mạng
-        if len(bulk_updates) >= 200:
+        # Ghi cuộn chiếu từng cụm 100 sản phẩm một để xả bớt RAM mạng
+        if len(bulk_updates) >= 100:
             product_col.bulk_write(bulk_updates)
             bulk_updates = []
 
-    # Bước 5: Ghi nốt phần còn dư vào DB
+    # Bước 5: Thực thi nốt số còn lại
     if bulk_updates:
         product_col.bulk_write(bulk_updates)
         
