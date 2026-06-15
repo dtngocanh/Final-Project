@@ -288,7 +288,7 @@ const ConfirmStep = ({ shippingDetails, cart, paymentMethod }) => {
                   className="font-semibold text-slate-800 text-sm truncate"
                   title={productName}
                 >
-                  ={productName}
+                  {productName}
                 </p>
                 <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
                   <span>
