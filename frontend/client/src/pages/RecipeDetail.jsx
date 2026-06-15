@@ -294,7 +294,7 @@ const RecipeDetail = () => {
               <section className="mb-8">
                 <div className="flex items-center justify-between mb-5 gap-4">
                   <h3 className="text-xl font-medium dark:text-white">
-                    Available In Veganic
+                    Available In Veggies
                   </h3>
 
                   {/* NÚT THÊM TẤT CẢ NGUYÊN LIỆU VÀO GIỎ HÀNG */}

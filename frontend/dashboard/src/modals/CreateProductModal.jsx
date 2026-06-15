@@ -122,7 +122,7 @@ const CreateProductModal = () => {
             </span>
           </h2>
           <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1">
-            Add fresh items to Veganic Mart
+            Add fresh items to Veggies Mart
           </p>
         </div>
 

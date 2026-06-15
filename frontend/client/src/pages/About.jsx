@@ -125,7 +125,7 @@ const About = () => {
               <span className="font-serif italic text-[#77cd3af2] text-6xl drop-shadow-sm">Green Side</span>
             </h2>
             <div className="space-y-8 text-xl text-gray-500 dark:text-gray-400 leading-relaxed font-light italic">
-              <p>Veganic is a movement towards a <span className="text-gray-900 dark:text-white not-italic font-medium border-b border-[#77cd3af2]/30">conscious sanctuary</span>.</p>
+              <p>Veggies is a movement towards a <span className="text-gray-900 dark:text-white not-italic font-medium border-b border-[#77cd3af2]/30">conscious sanctuary</span>.</p>
               <p>Every choice here is a seed planted for a greener tomorrow.</p>
             </div>
           </div>

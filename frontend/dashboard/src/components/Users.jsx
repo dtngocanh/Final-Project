@@ -84,7 +84,7 @@ const Users = () => {
               Community <span className="text-[#77cd3af2] font-serif italic font-normal">Members</span>
             </h1>
             <p className="text-gray-400 text-[10px] font-black mt-1 tracking-[0.3em] uppercase opacity-70">
-              Veganic Mart Admin Portal
+              Veggies Mart Admin Portal
             </p>
           </div>
           <button className="flex items-center gap-2 px-6 py-3.5 bg-[#77cd3af2] text-white rounded-[22px] font-bold shadow-lg shadow-green-100 hover:scale-105 active:scale-95 transition-all">

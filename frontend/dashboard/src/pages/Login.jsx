@@ -79,7 +79,7 @@ const Login = () => {
                 className="w-6 h-6 object-contain"
               />
               <span className="uppercase tracking-[0.4em] text-[11px] font-bold text-[#025c37]">
-                Veganic Mart
+                Veggies Mart
               </span>
             </div>
 

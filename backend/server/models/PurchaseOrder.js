@@ -17,7 +17,7 @@ const restockLogSchema = new mongoose.Schema(
     // Tên nhà cung cấp
     supplier: {
       type: String,
-      default: "Veganic Wholesale Farm",
+      default: "Veggies Wholesale Farm",
     },
     operator: {
       type: String,

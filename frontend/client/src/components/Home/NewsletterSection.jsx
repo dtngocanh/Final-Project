@@ -41,7 +41,7 @@ const NewsletterSection = () => {
             <div className="flex items-center justify-center gap-2 mb-4 text-[#025c37] dark:text-[#77cd3af2]">
               {/* <Leaf size={14} fill="currentColor" /> */}
               <img src="/hahahaha.png"/>
-              <span className="uppercase tracking-[0.4em] text-[9px] font-black">Veganic</span>
+              <span className="uppercase tracking-[0.4em] text-[9px] font-black">Veggies</span>
             </div>
             
             <h2 className="text-3xl md:text-4xl font-light text-gray-900 dark:text-white tracking-tight leading-tight">

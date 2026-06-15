@@ -79,7 +79,7 @@ const Contact = () => {
             <span className="uppercase tracking-[0.3em] text-[10px] font-bold opacity-60 dark:text-gray-400">Get in touch</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-light tracking-tighter text-gray-900 dark:text-white">
-            Contact <span className="font-serif italic text-[#77cd3af2]">Veganic</span>
+            Contact <span className="font-serif italic text-[#77cd3af2]">Veggies</span>
           </h1>
         </motion.div>
 
@@ -88,7 +88,7 @@ const Contact = () => {
           {/* CONTACT INFO */}
           <div className="space-y-12">
             {[
-              { icon: Mail, label: "Email", value: "hello@veganic.com" },
+              { icon: Mail, label: "Email", value: "hello@Veggies.com" },
               { icon: Phone, label: "Phone", value: "+1 (555) 123-4567" },
               { icon: MapPin, label: "Address", value: "123 Organic Lane, Green City, ST 12345" }
             ].map((item, idx) => (

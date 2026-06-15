@@ -37,7 +37,7 @@ const Header = () => {
 
         <p className="flex items-center gap-2 text-xs md:text-sm">
           <span className="text-gray-400 font-medium hidden sm:inline">
-            {user?.name || "Veganic Seller"}
+            {user?.name || "Veggies Seller"}
           </span>
           <span className="text-gray-300 hidden sm:inline">/</span>
           {/* 3. Hiển thị động theo URL thực tế */}

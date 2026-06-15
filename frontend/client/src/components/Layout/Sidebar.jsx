@@ -173,7 +173,7 @@ const Sidebar = () => {
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1">
-              <span className="uppercase tracking-[0.25em] text-[10px] font-black text-[#025c37] dark:text-[#77cd3af2]">Veganic</span>
+              <span className="uppercase tracking-[0.25em] text-[10px] font-black text-[#025c37] dark:text-[#77cd3af2]">Veggies</span>
               <span className="text-[9px]">🌱</span>
             </div>
             <h2 className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500 font-medium">

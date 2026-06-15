@@ -8,21 +8,81 @@ import { useCartActions } from "../../hooks/useCartActions";
 import FloatingDecor from "../Fruit/FloatingDecor";
 import FruitLoader from "../Fruit/FruitLoader";
 
-const ProductSlider = ({ title = "Seasonal Picks" }) => {
+const ProductSlider = ({ title = "Seasonal Picks", products: incomingProducts, loading: incomingLoading }) => {
   const scrollRef = useRef(null);
   const dispatch = useDispatch();
-  const { products, loading } = useSelector((state) => state.product);
-  const { handleCartAction } = useCartActions();
+  
+  // Móc dữ liệu store tổng để làm fallback khi dùng độc lập không truyền prop
+  const { products: storeProducts, loading: storeLoading } = useSelector((state) => state.product);
+  
+  // BẢO VỆ DỮ LIỆU: Ưu tiên tuyệt đối dữ liệu truyền từ Index.jsx vào
+  const products = incomingProducts !== undefined ? incomingProducts : storeProducts;
+  const isLoading = incomingLoading !== undefined ? incomingLoading : storeLoading;
 
-  // Biến kiểm soát vận tốc cuộn mượt bằng bánh xe chuột
+  const { handleCartAction } = useCartActions();
   const scrollVelocity = useRef(0);
   const isAnimationLoopRunning = useRef(false);
 
+  // Chỉ tự fetch dữ liệu tổng nếu như KHÔNG có prop incomingProducts truyền xuống
   useEffect(() => {
-    dispatch(fetchAllProducts());
-  }, [dispatch]);
+    if (incomingProducts === undefined) {
+      dispatch(fetchAllProducts());
+    }
+  }, [dispatch, incomingProducts]);
 
-  // Điều hướng bằng cách bấm mũi tên (Giữ smooth chuẩn)
+  // HÀM XỬ LÝ HIỆU ỨNG ẢNH BAY
+  const handleFlyToCart = (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const cardContainer = e.currentTarget.closest(".group");
+    const productImage = cardContainer?.querySelector(".product-img-target");
+    const cartIcon = document.getElementById("navbar-cart-icon");
+
+    if (productImage && cartIcon) {
+      const imgRect = productImage.getBoundingClientRect();
+      const cartRect = cartIcon.getBoundingClientRect();
+
+      const flyImg = document.createElement("img");
+      flyImg.src = productImage.src;
+      flyImg.className = "fly-to-cart-element";
+
+      if (productImage.classList.contains("dark:invert") && document.documentElement.classList.contains("dark")) {
+        flyImg.style.filter = "invert(1)";
+      }
+
+      const initialWidth = imgRect.width;
+      const initialHeight = imgRect.height;
+
+      flyImg.style.width = `${initialWidth}px`;
+      flyImg.style.height = `${initialHeight}px`;
+      flyImg.style.left = `${imgRect.left}px`;
+      flyImg.style.top = `${imgRect.top}px`;
+
+      const targetWidth = 24; 
+      const targetHeight = 24;
+      const targetLeft = cartRect.left + cartRect.width / 2 - targetWidth / 2;
+      const targetTop = cartRect.top + cartRect.height / 2 - targetHeight / 2;
+
+      flyImg.style.setProperty("--fly-X", `${targetLeft - imgRect.left}px`);
+      flyImg.style.setProperty("--fly-Y", `${targetTop - imgRect.top}px`);
+      flyImg.style.setProperty("--target-width", `${targetWidth}px`);
+      flyImg.style.setProperty("--target-height", `${targetHeight}px`);
+
+      document.body.appendChild(flyImg);
+
+      setTimeout(() => {
+        flyImg.remove();
+        handleCartAction(product, "ADD", 1);
+        cartIcon.classList.add("cart-bounce-feedback");
+        setTimeout(() => cartIcon.classList.remove("cart-bounce-feedback"), 300);
+      }, 800);
+    } else {
+      handleCartAction(product, "ADD", 1);
+    }
+  };
+
+  // Điều hướng bằng mũi tên
   const scroll = (direction) => {
     if (scrollRef.current) {
       const cardWidth = window.innerWidth < 768 ? 190 : 284;
@@ -33,7 +93,7 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
     }
   };
 
-  // TỐI ƯU HIỆU NĂNG CAO: Thuật toán cuộn mượt bằng requestAnimationFrame chống lag giật
+  // Cuộn mượt bằng chuột
   useEffect(() => {
     const slider = scrollRef.current;
     if (!slider) return;
@@ -42,26 +102,17 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
       if (Math.abs(scrollVelocity.current) < 0.2) {
         scrollVelocity.current = 0;
         isAnimationLoopRunning.current = false;
-        return; // Dừng loop khi đã trượt hết đà để tiết kiệm CPU
+        return;
       }
-
-      // Cuộn slider dựa trên vận tốc hiện tại
       slider.scrollLeft += scrollVelocity.current;
-      // Giảm dần vận tốc (tạo độ ma sát trượt bánh xe tự nhiên)
       scrollVelocity.current *= 0.88; 
-
       requestAnimationFrame(smoothScrollLoop);
     };
 
     const handleWheelScroll = (e) => {
-      // Chỉ can thiệp trên Desktop
       if (window.innerWidth >= 1024 && e.deltaY !== 0) {
-        e.preventDefault(); // Ngăn cuộn dọc trang web
-        
-        // Cộng dồn lực lăn chuột vào vận tốc trượt ngang
+        e.preventDefault(); 
         scrollVelocity.current += e.deltaY * 0.15;
-
-        // Giới hạn vận tốc tối đa để không bị trượt quá nhanh
         scrollVelocity.current = Math.max(Math.min(scrollVelocity.current, 50), -50);
 
         if (!isAnimationLoopRunning.current) {
@@ -72,9 +123,7 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
     };
 
     slider.addEventListener("wheel", handleWheelScroll, { passive: false });
-    return () => {
-      slider.removeEventListener("wheel", handleWheelScroll);
-    };
+    return () => slider.removeEventListener("wheel", handleWheelScroll);
   }, []);
 
   const renderProductTag = (product) => {
@@ -105,8 +154,9 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
     );
   };
 
+  // Chia cặp đôi (Dọc) cho Slider xếp 2 tầng hàng ngang
   const chunkedProducts = React.useMemo(() => {
-    if (!products) return [];
+    if (!products || !Array.isArray(products)) return [];
     const chunks = [];
     for (let i = 0; i < products.length; i += 2) {
       chunks.push(products.slice(i, i + 2));
@@ -114,16 +164,23 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
     return chunks;
   }, [products]);
 
-  if (loading) return <FruitLoader />;
-  if (chunkedProducts.length === 0) return null;
+  // CHẶN LOADING ĐÚNG THỜI ĐIỂM
+  if (isLoading && (!products || products.length === 0)) return <FruitLoader />;
+  
+  // KHÔNG CHẶN RETURN NULL NỮA - Trả về khung trống tinh tế nếu chưa có sản phẩm
+  if (!products || products.length === 0) {
+    return (
+      <section className="py-12 bg-white dark:bg-[#030303] text-center text-neutral-400 font-extralight tracking-wider uppercase text-xs">
+        {title} Series is empty
+      </section>
+    );
+  }
 
   return (
     <section className="py-12 md:py-20 bg-white dark:bg-[#030303] overflow-hidden transition-colors duration-500 relative">
       <FloatingDecor />
 
       <div className="max-w-[1450px] mx-auto px-4 sm:px-8 relative z-10">
-        
-        {/* Header Section */}
         <div className="flex items-center justify-between mb-8 md:mb-12 border-b border-neutral-100 dark:border-white/5 pb-4 md:pb-6">
           <h2 className="text-xl md:text-3xl font-extralight tracking-tight text-gray-950 dark:text-white uppercase leading-none">
             {title} <span className="font-serif italic lowercase text-neutral-400">series</span>
@@ -138,93 +195,59 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
           </div>
         </div>
 
-        {/* Slider Area */}
-        <div 
-          ref={scrollRef} 
-          className="flex gap-4 md:gap-6 overflow-x-auto snap-x sm:snap-none snap-mandatory no-scrollbar pb-6 px-1 will-change-scroll"
-        >
+        <div ref={scrollRef} className="flex gap-4 md:gap-6 overflow-x-auto snap-x sm:snap-none snap-mandatory no-scrollbar pb-6 px-1 will-change-scroll">
           {chunkedProducts.map((pair, pairIdx) => (
-            <div 
-              key={pairIdx} 
-              className="flex flex-col gap-4 md:gap-6 min-w-[170px] sm:min-w-[240px] md:min-w-[260px] max-w-[180px] sm:max-w-none snap-start"
-            >
+            <div key={pairIdx} className="flex flex-col gap-4 md:gap-6 min-w-[170px] sm:min-w-[240px] md:min-w-[260px] max-w-[180px] sm:max-w-none snap-start">
               {pair.map((product, idx) => (
                 <motion.div
                   key={product._id}
                   initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }} // Thay whileInView bằng animate thường để cứu hiệu năng GPU khi trượt nhanh
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min((pairIdx * 2 + idx) * 0.02, 0.3), duration: 0.3 }}
                   className="group relative w-full"
                 >
-                  {/* CONTAINER CARD */}
                   <div className="relative flex flex-col bg-white dark:bg-neutral-900 rounded-2xl sm:rounded-[2rem] overflow-hidden border border-neutral-100 dark:border-neutral-800/60 shadow-sm lg:hover:border-[#77cd3a]/40 lg:hover:shadow-[0_20px_40px_rgba(119,205,58,0.06)] transition-all duration-300 transform-gpu">
-                    
-                    {/* BACKGROUND GRADIENT */}
                     <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-[#77cd3a]/4 via-transparent to-transparent lg:group-hover:from-[#77cd3a]/18 lg:group-hover:via-[#77cd3a]/4 transition-all duration-300 pointer-events-none z-0" />
                     
-                    {/* HỆ THỐNG ICON RAU CỦ TRÔI NỔI */}
                     <div className="absolute inset-0 opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 overflow-hidden">
-                      <div className="absolute bottom-16 -left-1 w-5 h-5 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 -rotate-12 transform lg:group-hover:animate-float-slow">
-                        <Carrot size={18} />
-                      </div>
-                      
-                      <div className="absolute top-1/2 -right-2 w-5 h-5 text-[#77cd3a]/20 dark:text-[#77cd3a]/10 rotate-45 transform lg:group-hover:animate-float-fast">
-                        <Citrus size={16} />
-                      </div>
-                      
-                      <div className="absolute top-16 left-2 w-4 h-4 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 rotate-12 transform lg:group-hover:animate-float-medium">
-                        <Leaf size={14} fill="currentColor" />
-                      </div>
-
+                      <div className="absolute bottom-16 -left-1 w-5 h-5 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 -rotate-12 transform lg:group-hover:animate-float-slow"><Carrot size={18} /></div>
+                      <div className="absolute top-1/2 -right-2 w-5 h-5 text-[#77cd3a]/20 dark:text-[#77cd3a]/10 rotate-45 transform lg:group-hover:animate-float-fast"><Citrus size={16} /></div>
+                      <div className="absolute top-16 left-2 w-4 h-4 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 rotate-12 transform lg:group-hover:animate-float-medium"><Leaf size={14} fill="currentColor" /></div>
                       <div className="absolute bottom-20 right-3 w-1.5 h-1.5 rounded-full bg-[#77cd3a]/30 lg:group-hover:animate-pulse" />
                     </div>
 
-                    {/* Container Ảnh */}
                     <Link to={`/product/${product._id}`} className="block relative w-full aspect-square overflow-hidden z-10">
                       <div className="w-full h-full flex items-center justify-center p-3 sm:p-4">
                         <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-xl sm:rounded-2xl border border-neutral-100 dark:border-white/5 bg-neutral-50 dark:bg-neutral-900/50 shadow-inner">
                           <img
                             src={product.images?.[0]?.url || "/placeholder.png"}
                             alt={product.name}
-                            className="w-[85%] h-[85%] object-contain lg:group-hover:scale-[1.04] transition-transform duration-500 ease-out mix-blend-multiply dark:mix-blend-screen dark:invert"
+                            className="product-img-target w-[85%] h-[85%] object-contain lg:group-hover:scale-[1.04] transition-transform duration-500 ease-out mix-blend-multiply dark:mix-blend-screen dark:invert"
                           />
                         </div>
                       </div>
                       
-                      {/* Rating Tag */}
                       <div className="absolute top-2 left-2 sm:top-4 sm:left-4 flex items-center gap-0.5 sm:gap-1 bg-white/90 dark:bg-neutral-950/90 px-1.5 py-0.5 rounded-md backdrop-blur-md border border-neutral-200/30 dark:border-neutral-800/50">
                         <Star size={8} fill="#77cd3a" className="text-[#77cd3a]" />
                         <span className="text-[9px] font-bold text-neutral-600 dark:text-neutral-400">{product.ratings?.toFixed(1) || "0.0"}</span>
                       </div>
-
                       {renderProductTag(product)}
                     </Link>
 
-                    {/* Thanh phân cách */}
                     <div className="mx-4 sm:mx-8 h-[1px] bg-neutral-100 dark:bg-neutral-800/40 relative z-10" />
 
-                    {/* Thông tin sản phẩm */}
                     <div className="px-3 py-4 sm:px-6 sm:py-6 text-center relative z-20 bg-transparent">
                       <h3 className="text-xs sm:text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1 sm:mb-1.5 truncate lg:group-hover:text-neutral-950 dark:lg:group-hover:text-white transition-colors duration-200 leading-tight">
                         {product.name}
                       </h3>
                       <div className="flex flex-col xs:flex-row items-center justify-center gap-0.5 xs:gap-1">
-                        <span className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-neutral-100">
-                          ${product.price?.toFixed(2)}
-                        </span>
-                        <span className="text-[8px] sm:text-[9px] text-neutral-400 font-medium uppercase tracking-tight">
-                          / per kg
-                        </span>
+                        <span className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-neutral-100">${product.price?.toFixed(2)}</span>
+                        <span className="text-[8px] sm:text-[9px] text-neutral-400 font-medium uppercase tracking-tight">/ per kg</span>
                       </div>
                     </div>
 
-                    {/* NÚT GIỎ HÀNG */}
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleCartAction(product, "ADD", 1);
-                      }}
+                      onClick={(e) => handleFlyToCart(e, product)}
                       className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 md:bottom-[82px] md:right-5 w-8 h-8 sm:w-9 sm:h-9 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full flex items-center justify-center shadow-xs active:scale-90 md:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200 hover:!bg-[#77cd3a] hover:!text-white z-30 cursor-pointer"
                       aria-label="Add to cart"
                     >
@@ -241,25 +264,26 @@ const ProductSlider = ({ title = "Seasonal Picks" }) => {
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Tối ưu hóa render cuộn trên trình duyệt */
-        .will-change-scroll {
-          will-change: scroll-left;
+        .will-change-scroll { will-change: scroll-left; }
+        .fly-to-cart-element {
+          position: fixed;
+          object-fit: contain;
+          z-index: 99999;
+          pointer-events: none;
+          mix-blend-mode: multiply;
+          animation: absoluteStraightFly 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          transform-origin: center center;
         }
-
-        @keyframes floatSlow {
-          0%, 100% { transform: translateY(0px) rotate(-12deg); }
-          50% { transform: translateY(-5px) rotate(-16deg); }
+        .dark .fly-to-cart-element { mix-blend-mode: screen; }
+        @keyframes absoluteStraightFly {
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--fly-X), var(--fly-Y)) scale(0.12); width: var(--target-width); height: var(--target-height); opacity: 0; }
         }
-        @keyframes floatMedium {
-          0%, 100% { transform: translateY(0px) translateX(0px) rotate(12deg); }
-          50% { transform: translateY(-4px) translateX(3px) rotate(9deg); }
-        }
-        @keyframes floatFast {
-          0%, 100% { transform: translateY(0px) rotate(45deg); }
-          50% { transform: translateY(-6px) rotate(38deg); }
-        }
-
+        .cart-bounce-feedback { animation: miniPop 0.3s ease-out both; }
+        @keyframes miniPop { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
+        @keyframes floatSlow { 0%, 100% { transform: translateY(0px) rotate(-12deg); } 50% { transform: translateY(-5px) rotate(-16deg); } }
+        @keyframes floatMedium { 0%, 100% { transform: translateY(0px) translateX(0px) rotate(12deg); } 50% { transform: translateY(-4px) translateX(3px) rotate(9deg); } }
+        @keyframes floatFast { 0%, 100% { transform: translateY(0px) rotate(45deg); } 50% { transform: translateY(-6px) rotate(38deg); } }
         .animate-float-slow { animation: floatSlow 5s ease-in-out infinite; }
         .animate-float-medium { animation: floatMedium 4s ease-in-out infinite; }
         .animate-float-fast { animation: floatFast 3.2s ease-in-out infinite; }

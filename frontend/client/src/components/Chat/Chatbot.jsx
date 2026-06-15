@@ -60,13 +60,13 @@ const ChatBot = () => {
             exit={{ opacity: 0, y: 50, scale: 0.9 }}
             className="absolute bottom-20 right-0 w-[380px] h-[550px] bg-white rounded-[35px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden border border-gray-100"
           >
-            {/* Header with Veganic Logo */}
+            {/* Header with Veggies Logo */}
             <header className="bg-[#025c37] p-5 text-white flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner">
                  <img src='/hahahaha.png' className='size-[24px]'/>
               </div>
               <div>
-                <h3 className="font-bold text-base leading-tight">Veganic Mart</h3>
+                <h3 className="font-bold text-base leading-tight">Veggies Mart</h3>
                 <p className="text-[10px] text-green-200 flex items-center gap-1">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   Online Support
@@ -81,7 +81,7 @@ const ChatBot = () => {
               <div className="flex flex-col items-start">
                 <div className="p-4 rounded-[22px] rounded-tl-none text-sm bg-white border border-green-100 text-gray-700 shadow-sm leading-relaxed">
                   Hi <b>{displayName}</b>!  <br/> 
-                  Welcome to Veganic Mart. How can I help you find fresh products today? 
+                  Welcome to Veggies Mart. How can I help you find fresh products today? 
                 </div>
               </div>
 
@@ -113,7 +113,7 @@ const ChatBot = () => {
                               src={p.image} 
                               alt={p.name}
                               className="w-full h-full object-contain mix-blend-multiply"
-                              onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=Veganic"; }}
+                              onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=Veggies"; }}
                             />
                           </div>
                           <div className="p-4 bg-gray-50/50 border-t border-gray-50">

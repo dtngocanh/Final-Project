@@ -191,7 +191,7 @@ const LoginModal = () => {
                   className="w-5 h-5 object-contain"
                 />
                 <span className="uppercase tracking-[0.3em] text-[10px] font-black text-[#025c37] dark:text-[#77cd3af2]">
-                  Veganic Mart
+                  Veggies Mart
                 </span>
               </div>
 

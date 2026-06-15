@@ -88,7 +88,7 @@ const SearchOverlay = () => {
         <div className="p-5 sm:p-8">
           <div className="flex flex-col items-center mb-6 text-center select-none">
             <span className="text-[#025c37] dark:text-[#77cd3af2] tracking-[0.3em] text-[10px] font-bold uppercase mb-1.5 opacity-80">
-              Veganic Mart
+              Veggies Mart
             </span>
             <h2 className="text-xl sm:text-2xl font-light text-gray-800 dark:text-gray-100 tracking-tight">
               What are you{" "}

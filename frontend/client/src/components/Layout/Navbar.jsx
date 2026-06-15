@@ -109,10 +109,11 @@ const Navbar = () => {
             />
           </button>
 
-          {/* Shopping Cart */}
+          {/* Shopping Cart - ĐÃ THÊM ID: navbar-cart-icon VÀ CẢI TIẾN TRANSITION */}
           <button
+            id="navbar-cart-icon"
             onClick={() => dispatch(toggleCart())}
-            className="relative p-1.5 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-all hover:scale-105 group"
+            className="relative p-1.5 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 hover:scale-105 group"
             aria-label="Cart"
           >
             <ShoppingBag

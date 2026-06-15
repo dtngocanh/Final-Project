@@ -70,7 +70,7 @@ const startServer = async () => {
     await connectCloudinary();
 
     // 5. Định nghĩa các Route chính
-    app.get("/", (req, res) => res.send("API Veganic Mart is working"));
+    app.get("/", (req, res) => res.send("API Veggies Mart is working"));
 
     app.use("/user", userRouter);
     app.use("/admin", adminRouter);

@@ -32,6 +32,76 @@ const RecommendSlider = () => {
     return (list || []).filter((p) => p && p._id && p.stock > 0);
   }, [list]);
 
+  // HÀM XỬ LÝ HIỆU ỨNG ẢNH BAY THẲNG TUỐT MƯỢT MÀ, THU NHỎ DẦN VÀO GIỎ HÀNG
+  const handleFlyToCart = (e, product) => {
+    e.preventDefault();
+
+    const cardContainer = e.currentTarget.closest(".group\\/card");
+    const productImage = cardContainer?.querySelector(".product-img-target");
+    const cartIcon = document.getElementById("navbar-cart-icon");
+
+    if (productImage && cartIcon) {
+      const imgRect = productImage.getBoundingClientRect();
+      const cartRect = cartIcon.getBoundingClientRect();
+
+      const flyImg = document.createElement("img");
+      flyImg.src = productImage.src;
+      flyImg.className = "fly-to-cart-element";
+
+      if (
+        productImage.classList.contains("dark:invert") &&
+        document.documentElement.classList.contains("dark")
+      ) {
+        flyImg.style.filter = "invert(1)";
+      }
+
+      // Lấy kích thước ban đầu của ảnh để gán cứng lúc xuất phát (tránh bị nhảy size đột ngột)
+      const initialWidth = imgRect.width;
+      const initialHeight = imgRect.height;
+
+      flyImg.style.width = `${initialWidth}px`;
+      flyImg.style.height = `${initialHeight}px`;
+      flyImg.style.left = `${imgRect.left}px`;
+      flyImg.style.top = `${imgRect.top}px`;
+
+      // Tính toán khoảng cách dịch chuyển chính xác (Delta) đến đích giỏ hàng
+      // Đích đến sẽ thu nhỏ về khít icon giỏ hàng
+      const targetWidth = 24; 
+      const targetHeight = 24;
+      const targetLeft = cartRect.left + cartRect.width / 2 - targetWidth / 2;
+      const targetTop = cartRect.top + cartRect.height / 2 - targetHeight / 2;
+
+      const translateX = targetLeft - imgRect.left;
+      const translateY = targetTop - imgRect.top;
+
+      flyImg.style.setProperty("--fly-X", `${translateX}px`);
+      flyImg.style.setProperty("--fly-Y", `${translateY}px`);
+      flyImg.style.setProperty("--target-width", `${targetWidth}px`);
+      flyImg.style.setProperty("--target-height", `${targetHeight}px`);
+
+      document.body.appendChild(flyImg);
+
+      // Rút ngắn thời gian bay xuống còn 650ms cho có cảm giác tốc độ, dứt khoát
+      const animationDuration = 1100; 
+
+      setTimeout(() => {
+        flyImg.remove();
+        
+        // Thêm sản phẩm vào Redux
+        handleCartAction(product, "ADD", 1);
+
+        // Hiệu ứng phản hồi nhún nhảy nhẹ nhàng của icon giỏ hàng khi tiếp nhận
+        cartIcon.classList.add("cart-bounce-feedback");
+        setTimeout(() => {
+          cartIcon.classList.remove("cart-bounce-feedback");
+        }, 300);
+      }, animationDuration);
+
+    } else {
+      handleCartAction(product, "ADD", 1);
+    }
+  };
+
   const scroll = (direction) => {
     if (scrollRef.current) {
       const clientWidth = scrollRef.current.clientWidth;
@@ -44,7 +114,6 @@ const RecommendSlider = () => {
     }
   };
 
-  // ĐÃ SỬA: Tối ưu responsive hoàn hảo cho Tag biến động theo kích thước card
   const renderProductTag = (product) => {
     let tagText = product.tag;
     let tagClass = "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
@@ -54,7 +123,6 @@ const RecommendSlider = () => {
         tagText = `-${product.discount}%`;
         tagClass = "bg-rose-500 text-white font-medium";
       } else if (product.ratings >= 4.8) {
-        // Sử dụng cấu trúc hiển thị thông minh: mobile hiện "Best", desktop hiện "Best Seller"
         tagText = (
           <>
             <span className="inline sm:hidden">Best</span>
@@ -68,7 +136,9 @@ const RecommendSlider = () => {
     }
 
     return (
-      <span className={`absolute top-2 right-2 sm:top-3 sm:right-3 z-10 px-1.5 py-0.5 sm:px-2.5 rounded-full text-[8px] sm:text-[9px] font-bold tracking-wider sm:tracking-wide uppercase select-none shadow-xs backdrop-blur-md max-w-[70px] sm:max-w-none truncate text-center ${tagClass}`}>
+      <span
+        className={`absolute top-2 right-2 sm:top-3 sm:right-3 z-10 px-1.5 py-0.5 sm:px-2.5 rounded-full text-[8px] sm:text-[9px] font-bold tracking-wider sm:tracking-wide uppercase select-none shadow-xs backdrop-blur-md max-w-[70px] sm:max-w-none truncate text-center ${tagClass}`}
+      >
         {tagText}
       </span>
     );
@@ -81,7 +151,6 @@ const RecommendSlider = () => {
       <FloatingDecor />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 relative z-10">
-        
         {/* HEADER */}
         <div className="flex flex-col items-center mb-10 md:mb-16 text-center select-none">
           <div className="flex flex-col items-center mb-4">
@@ -91,12 +160,17 @@ const RecommendSlider = () => {
                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                 className="absolute inset-0 rounded-full bg-gradient-to-r from-[#77cd3a]/30 via-transparent to-transparent p-[1px]"
                 style={{
-                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMask:
+                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                   WebkitMaskComposite: "xor",
                   maskComposite: "exclude",
                 }}
               />
-              <img src="/logohaha.png" alt="logo" className="w-6 h-6 object-contain relative z-10" />
+              <img
+                src="/logohaha.png"
+                alt="logo"
+                className="w-6 h-6 object-contain relative z-10"
+              />
             </div>
             <span className="text-[10px] font-bold tracking-[0.3em] text-[#77cd3a] uppercase">
               Personalized Picks
@@ -106,10 +180,12 @@ const RecommendSlider = () => {
           <div className="relative max-w-2xl mx-auto w-full space-y-2">
             <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-neutral-950 dark:text-white flex items-center justify-center gap-3">
               <span className="h-[1px] w-6 md:w-12 bg-neutral-200 dark:bg-neutral-800 rounded-full hidden sm:block" />
-              <span className="font-fredoka text-neutral-900 dark:text-neutral-100">Just for you</span>
+              <span className="font-fredoka text-neutral-900 dark:text-neutral-100">
+                Just for you
+              </span>
               <span className="h-[1px] w-6 md:w-12 bg-neutral-200 dark:bg-neutral-800 rounded-full hidden sm:block" />
             </h3>
-            
+
             <p className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 max-w-md mx-auto font-normal leading-relaxed tracking-wide">
               Handpicked organic products tailored to your healthy lifestyle.
             </p>
@@ -118,7 +194,6 @@ const RecommendSlider = () => {
 
         {/* SLIDER WRAPPER */}
         <div className="relative group/slider">
-          
           {/* NAVIGATION BUTTONS */}
           <button
             onClick={() => scroll("left")}
@@ -146,42 +221,32 @@ const RecommendSlider = () => {
                 key={product._id}
                 className="w-[155px] sm:w-[185px] md:w-[225px] lg:w-[245px] flex-shrink-0 snap-start group/card h-full"
               >
-                {/* CONTAINER CARD */}
                 <div className="flex flex-col h-full bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800/60 rounded-2xl md:rounded-[1.75rem] overflow-hidden transition-all duration-400 ease-out hover:border-[#77cd3a]/40 hover:shadow-[0_20px_40px_rgba(119,205,58,0.08)] relative">
-                  
-                  {/* BACKGROUND GRADIENT */}
                   <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-[#77cd3a]/4 via-transparent to-transparent group-hover/card:from-[#77cd3a]/18 group-hover/card:via-[#77cd3a]/4 transition-all duration-500 pointer-events-none z-0" />
-                  
-                  {/* HỆ THỐNG ICON RAU CỦ TRÔI NỔI NGHỆ THUẬT */}
+
+                  {/* ICON RAU CỦ TRÔI NỔI */}
                   <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-all duration-700 pointer-events-none z-10 overflow-hidden">
                     <div className="absolute bottom-14 -left-1 w-5 h-5 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 -rotate-12 transform group-hover/card:animate-float-slow">
                       <Carrot size={18} />
                     </div>
-                    
                     <div className="absolute top-1/2 -right-2 w-5 h-5 text-[#77cd3a]/20 dark:text-[#77cd3a]/10 rotate-45 transform group-hover/card:animate-float-fast">
                       <Citrus size={16} />
                     </div>
-                    
                     <div className="absolute top-16 left-2 w-4 h-4 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 rotate-12 transform group-hover/card:animate-float-medium">
                       <Leaf size={14} fill="currentColor" />
                     </div>
-
                     <div className="absolute bottom-16 right-3 w-1.5 h-1.5 rounded-full bg-[#77cd3a]/30 group-hover/card:animate-pulse" />
                   </div>
 
                   {/* UPPER PART: IMAGE BOX */}
                   <div className="relative w-full aspect-[4/3] md:aspect-square p-3 sm:p-4 md:p-5 flex items-center justify-center rounded-t-2xl md:rounded-t-[1.75rem] overflow-hidden z-10">
-                    
-                    {/* RATING BADGE */}
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 flex items-center gap-0.5 bg-white/90 dark:bg-neutral-950/90 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-neutral-600 dark:text-neutral-400 border border-neutral-200/30 dark:border-neutral-800/50 backdrop-blur-md">
                       <Star size={8} fill="#77cd3a" className="text-[#77cd3a]" />
                       <span>{product.ratings?.toFixed(1) || "0.0"}</span>
                     </div>
 
-                    {/* DYNAMIC STATUS TAG */}
                     {renderProductTag(product)}
 
-                    {/* PRODUCT IMAGE */}
                     <Link
                       to={`/product/${product._id}`}
                       className="w-full h-full flex items-center justify-center p-2 relative z-10"
@@ -189,17 +254,13 @@ const RecommendSlider = () => {
                       <img
                         src={product.images?.[0]?.url || product.image || "/placeholder.png"}
                         alt={product.name}
-                        className="max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-screen dark:invert"
+                        className="product-img-target max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-screen dark:invert"
                         loading="lazy"
                       />
                     </Link>
 
-                    {/* QUICK ADD TO CART BUTTON */}
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleCartAction(product, "ADD", 1);
-                      }}
+                      onClick={(e) => handleFlyToCart(e, product)}
                       className="absolute bottom-3 right-3 w-8 h-8 md:w-9 md:h-9 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full flex items-center justify-center shadow-xs md:opacity-0 group-hover/card:opacity-100 transition-all duration-300 hover:!bg-[#77cd3a] hover:!text-white z-20"
                       aria-label="Add to cart"
                     >
@@ -210,26 +271,19 @@ const RecommendSlider = () => {
                   {/* LOWER PART: INFOS */}
                   <div className="p-3 sm:p-4 flex flex-col justify-between flex-1 min-h-[95px] md:min-h-[110px] relative z-20 bg-transparent">
                     <div className="w-full space-y-1">
-                      {/* WHY RECOMMEND TAG */}
                       <div className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-semibold">
                         <Leaf size={8} className="text-[#77cd3a] flex-shrink-0" />
-                        <span className="truncate max-w-full">
-                          {product.reason || "Organic Pick"}
-                        </span>
+                        <span className="truncate max-w-full">{product.reason || "Organic Pick"}</span>
                       </div>
-
-                      {/* PRODUCT NAME */}
                       <h4 className="text-xs md:text-sm font-semibold text-neutral-800 dark:text-neutral-200 tracking-tight truncate transition-colors duration-200 group-hover/card:text-neutral-950 dark:group-hover/card:text-white">
                         {product.name}
                       </h4>
                     </div>
 
-                    {/* PRICE ROW */}
                     <div className="pt-2 mt-auto border-t border-neutral-100 dark:border-neutral-800/40 flex items-center justify-between">
                       <span className="text-xs md:text-sm font-bold text-neutral-900 dark:text-neutral-100">
                         ${Number(product.price || 0).toFixed(2)}
                       </span>
-                      
                       <span className="text-[10px] font-semibold text-[#77cd3a] opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 hidden sm:inline-block">
                         Detail →
                       </span>
@@ -253,11 +307,11 @@ const RecommendSlider = () => {
                 </span>
               </Link>
             </div>
-
           </div>
         </div>
       </div>
 
+      {/* STYLE TAG TỐI ƯU ĐƯỜNG BAY TUYẾN TÍNH CHUẨN RESPONSIVE */}
       <style>{`
         .mobile-slider {
           scroll-snap-type: x mandatory;
@@ -270,6 +324,48 @@ const RecommendSlider = () => {
         .mobile-slider::-webkit-scrollbar {
           display: none; 
         }
+
+        /* PHẦN TỬ BAY: BẮT ĐẦU BẰNG KÍCH THƯỚC THẬT CỦA SẢN PHẨM */
+    .fly-to-cart-element {
+      position: fixed;
+      object-fit: contain;
+      z-index: 99999;
+      pointer-events: none;
+      mix-blend-mode: multiply;
+      
+      /* Giữ thời gian 0.8s, dùng cubic-bezier chuẩn để ảnh tự lướt nhanh lúc đầu và giảm tốc mượt lúc cuối */
+      animation: absoluteStraightFly 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      transform-origin: center center;
+    }
+
+    .dark .fly-to-cart-element {
+      mix-blend-mode: screen;
+    }
+
+    /* CHỈ GIỮ 0% VÀ 100% - KHÔNG CHÈN MỐC TRUNG GIAN GÂY GÃY ĐƯỜNG BAY */
+    @keyframes absoluteStraightFly {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        /* Bay thẳng tắp một mạch đến đích không dừng lại giữa đường */
+        transform: translate(var(--fly-X), var(--fly-Y)) scale(0.12);
+        width: var(--target-width);
+        height: var(--target-height);
+        opacity: 0;
+      }
+    }
+
+    /* NAVBAR ICON NHÚN NHẸ */
+    .cart-bounce-feedback {
+      animation: miniPop 0.3s ease-out both;
+    }
+    @keyframes miniPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
         
         @keyframes floatSlow {
           0%, 100% { transform: translateY(0px) rotate(-12deg); }

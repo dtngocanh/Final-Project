@@ -46,7 +46,7 @@ const ForgotPassword = () => {
           <div className="text-center mb-10 relative z-20">
             <div className="flex items-center justify-center gap-2 mb-4 opacity-70">
                 <img src="/hahahaha.png" alt="logo" className="w-5 h-5 object-contain" />
-                <span className="uppercase tracking-[0.4em] text-[10px] font-bold text-[#025c37]">Veganic Mart</span>
+                <span className="uppercase tracking-[0.4em] text-[10px] font-bold text-[#025c37]">Veggies Mart</span>
             </div>
             
             <h2 className="text-3xl font-normal text-[#1a2e35]">

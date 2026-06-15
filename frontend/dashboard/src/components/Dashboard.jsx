@@ -91,7 +91,7 @@ const Dashboard = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Veganic-Revenue-${new Date().toLocaleDateString()}.csv`;
+    a.download = `Veggies-Revenue-${new Date().toLocaleDateString()}.csv`;
     a.click();
     toast.success("Export file succesfully!");
   };
@@ -160,11 +160,11 @@ const Dashboard = () => {
                 <greeting.icon size={20} />
               </div>
               <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">
-                {greeting.text}, {user?.name || "Veganic Seller"}
+                {greeting.text}, {user?.name || "Veggies Seller"}
               </span>
             </div>
             <h1 className="text-4xl font-light">
-              Veganic{" "}
+              Veggies{" "}
               <span className="text-[#77cd3af2] font-serif italic">
                 Dashboard
               </span>

@@ -41,24 +41,24 @@ const SideFloatFruits = () => {
       return {
         id: i,
         image: randomImage,
-        left: Math.random() * 100,
-        delay: Math.random() * 12,
-        duration,
-        size,
-        opacity,
-        blur,
-        zIndex,
-        depthLayer,
-        windSwing: 25 + Math.random() * 25, // Độ lắc lư rộng hơn cho lãng mạn
-        isLucky: i === 7 && depthLayer === 1 // Chỉ quả ở tầng trung mới được trúng thưởng
+        left: Math.random() * 100, // Vị trí ngang ngẫu nhiên
+        delay: Math.random() * 10, // Delay xuất hiện ngẫu nhiên (tăng lên cho thoáng)
+        duration: 8 + Math.random() * 8, // Tốc độ rơi chậm hơn cho lãng mạn (8s - 16s)
+        size: 30 + Math.random() * 20, // Kích thước ngẫu nhiên (30px - 50px)
+        
+        // Hiệu ứng "gió thổi" lãng mạn: đung đưa sang trái phải
+        windSwing: 15 + Math.random() * 15, // Độ đung đưa ngẫu nhiên (15px - 30px)
+        
+        isLucky: i === 7 // Quả số 7 là quả may mắn (mã may mắn của Veggies)
       };
     });
   }, []);
 
   const prizes = [
-    { code: "VEGANIC_AURA", desc: "Voucher Độc Quyền 25% OFF" },
-    { code: "FREE_LUXURY_SHIP", desc: "Miễn Phí Vận Chuyển Hỏa Tốc" },
-    { code: "GOLDEN_VEGAN", desc: "Voucher Quà Tặng 100k" }
+    { code: "Veggies_CUTIE", desc: "Voucher 20% OFF" },
+    { code: "SHIP_THUAN_MAT", desc: "Free Shipping" },
+    { code: "MON_QUA_NHO", desc: "Voucher 50k" },
+    { code: "HAPPY_VEGAN", desc: "Chúc bạn 1 ngày vui vẻ 😆" }
   ];
 
   const handleClick = (isLucky) => {
@@ -148,9 +148,24 @@ const SideFloatFruits = () => {
               <h3 className="text-xl font-bold uppercase tracking-widest mb-1 text-emerald-400">Veganic Reward</h3>
               <p className="text-xs text-zinc-400 mb-6">Mã giảm giá đặc biệt dành riêng cho bạn</p>
 
-              <div className="p-4 bg-zinc-900 border border-white/5 rounded-2xl mb-6 select-all cursor-pointer group">
-                <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">{wonVoucher.desc}</span>
-                <span className="font-mono text-xl font-black text-white group-hover:text-emerald-400 transition-colors">{wonVoucher.code}</span>
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="text-6xl mb-6">🍑✨</div>
+                <h3 className="text-xl md:text-2xl font-black mb-2 text-gray-950 dark:text-white tracking-tighter uppercase">Veggies Magic!</h3>
+                <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-6">Bạn đã săn được một món quà nhỏ</p>
+
+                <div className="w-full p-4 bg-gray-50 dark:bg-black/20 rounded-2xl mb-8 border border-gray-100 dark:border-white/5">
+                  <span className="font-sans text-[10px] text-gray-400 uppercase tracking-widest font-bold block mb-1">{wonVoucher.desc}</span>
+                  <span className="font-mono text-lg font-black tracking-widest text-[#77cd3a] block">{wonVoucher.code}</span>
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setWonVoucher(null)}
+                  className="px-12 py-3.5 bg-[#77cd3a] text-black font-bold rounded-full text-[10px] uppercase tracking-[0.3em] shadow-lg shadow-[#77cd3a]/20"
+                >
+                  OK
+                </motion.button>
               </div>
 
               <button
