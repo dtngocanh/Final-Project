@@ -40,7 +40,7 @@ jobs:
           cd backend/chat
           echo "Starting pipeline..."
           python ingest.py
-          python freqb.py
+          # python freqb.py
           python personalize_recmd.py
           python recommend_engine.py
           echo "Pipeline finished successfully!"
