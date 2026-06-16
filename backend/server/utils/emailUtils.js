@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import nodeMailer from "nodemailer";
+import { Resend } from 'resend';
 
 // 1. Generate Email Template (HTML)
 export const generateEmailTemplate = (resetPasswordUrl) => {
@@ -56,23 +57,45 @@ export const generateResetPasswordToken = () => {
 };
 
 // 3. Configure Email Delivery via Nodemailer
-export const sendEmail = async ({ email, subject, message }) => {
-  console.log("Sending email using host:", process.env.SMTP_HOST);
-  const transporter = nodeMailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: +process.env.SMTP_PORT,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_MAIL,
-      pass: process.env.SMTP_PASSWORD,
-    }
-  });
-  const mailOptions = {
-    from: `FreshMart Support <${process.env.SMTP_MAIL}>`,
-    to: email,
-    subject: subject,
-    html: message,
-  };
+// export const sendEmail = async ({ email, subject, message }) => {
+//   console.log("Sending email using host:", process.env.SMTP_HOST);
+//   const transporter = nodeMailer.createTransport({
+//     host: process.env.SMTP_HOST,
+//     port: +process.env.SMTP_PORT,
+//     secure: false,
+//     auth: {
+//       user: process.env.SMTP_MAIL,
+//       pass: process.env.SMTP_PASSWORD,
+//     }
+//   });
+//   const mailOptions = {
+//     from: `FreshMart Support <${process.env.SMTP_MAIL}>`,
+//     to: email,
+//     subject: subject,
+//     html: message,
+//   };
 
-  await transporter.sendMail(mailOptions);
+//   await transporter.sendMail(mailOptions);
+// };
+
+
+const resend = new Resend(process.env.SMTP_PASSWORD);
+
+export const sendEmail = async ({ email, subject, message }) => {
+  try {
+    const data = await resend.emails.send({
+      from: 'FreshMart Support <onboarding@resend.dev>', 
+      to: email,
+      subject: subject,
+      html: message, 
+    });
+
+    console.log("[RESEND_SUCCESS] Email sent successfully:", data.id);
+    return data;
+  } catch (error) {
+    console.error("[EMAIL_ERROR] Resend failed to send email:", error);
+    throw error; 
+  }
 };
+
+
