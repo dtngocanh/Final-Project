@@ -61,9 +61,10 @@ export const forgotPassword = createAsyncThunk(
   "auth/forgot/password",
   async (email, thunkAPI) => {
     try {
-      // console.log(email);   //{email: ''}
+      const frontendUrl = window.location.origin;
+
       const res = await axiosInstance.post(
-        `/user/password/forgot?frontendUrl=http://localhost:5173`,
+        `/user/password/forgot?frontendUrl=${frontendUrl}`,
         email,
       );
       toast.success(res.data.message);

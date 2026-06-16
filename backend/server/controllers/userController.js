@@ -13,7 +13,7 @@ export const register = async (req, res) => {
     const existingUser = await User.findOne({ email });
 
     if (existingUser)
-      return res.status(404).json({ message: "Email already exists." });
+      return res.status(400).json({ message: "Email already exists." });
 
     const user = await User.create({ name, email, password });
 
@@ -45,7 +45,7 @@ export const login = async (req, res, next) => {
     if (user.role !== "user") {
       return next(new ErrorHandler("Access denied", 403));
     }
-    sendToken(user, 200, "Welcome back! Happy shopping.", res);
+    sendToken(user, 200, "Login successfull!", res);
   } catch (error) {
     console.log(error.message);
     res.json({ success: false, message: error.message });
