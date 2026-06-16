@@ -10,12 +10,12 @@ import { sendToken } from "../utils/sendToken.js";
 // 1. QUÊN MẬT KHẨU: Gửi mail chứa link kèm token
 export const forgotPassword = async (req, res) => {
   // console.log(req.body);
-  const { email } = req.body; 
+  const { email } = req.body;
   const { frontendUrl } = req.query;
 
   const user = await User.findOne({ email });
   // console.log(user);
-  
+
   if (!user) return res.status(404).json({ message: "Email not found." });
 
   // Tạo token reset
@@ -38,16 +38,14 @@ export const forgotPassword = async (req, res) => {
       message,
     });
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Verification email sent! Check your inbox.",
-      });
+    res.status(200).json({
+      success: true,
+      message: "Verification email sent! Check your inbox.",
+    });
   } catch (error) {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
-    // console.error(error);
+    console.error("[EMAIL_ERROR] Failed to send email:", error);
     await user.save({ validateBeforeSave: false });
     res.status(500).json({ message: "Cannot send email, please try again!" });
   }
@@ -76,12 +74,10 @@ export const resetPassword = async (req, res) => {
   user.resetPasswordExpire = undefined;
   await user.save();
 
-  res
-    .status(200)
-    .json({
-      success: true,
-      message: "Your password reset successfully!",
-    });
+  res.status(200).json({
+    success: true,
+    message: "Your password reset successfully!",
+  });
 };
 // 3. CẬP NHẬT MẬT KHẨU (Khi đang đăng nhập)
 export const updatePassword = async (req, res) => {
