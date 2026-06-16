@@ -9,10 +9,13 @@ import { sendToken } from "../utils/sendToken.js";
 
 // 1. QUÊN MẬT KHẨU: Gửi mail chứa link kèm token
 export const forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  // console.log(req.body);
+  const { email } = req.body; 
   const { frontendUrl } = req.query;
 
   const user = await User.findOne({ email });
+  // console.log(user);
+  
   if (!user) return res.status(404).json({ message: "Email not found." });
 
   // Tạo token reset
@@ -31,7 +34,7 @@ export const forgotPassword = async (req, res) => {
   try {
     await sendEmail({
       email: user.email,
-      subject: "Reset Hehe Store Password",
+      subject: "Reset FreshMart Password",
       message,
     });
 
@@ -44,6 +47,7 @@ export const forgotPassword = async (req, res) => {
   } catch (error) {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
+    // console.error(error);
     await user.save({ validateBeforeSave: false });
     res.status(500).json({ message: "Cannot send email, please try again!" });
   }
