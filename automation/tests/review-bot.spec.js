@@ -35,7 +35,7 @@ test("Veggies Mart: Full Automation Campaign", async ({ browser }) => {
     const dataDir = path.join(__dirname, "../data");
     const accountsFile = path.join(dataDir, "accounts2.json");
     const allAccounts = JSON.parse(fs.readFileSync(accountsFile, "utf-8"));
-    const testAccounts = allAccounts.slice(50, 300);
+    const testAccounts = allAccounts.slice(0, 400);
 
     for (const acc of testAccounts) {
         const context = await browser.newContext({

@@ -17,7 +17,7 @@ uri = os.getenv("MONGO_URI")
 db_name = os.getenv("DB_NAME")
 
 if not uri or not db_name:
-    print("❌ LỖI: Chưa cấu hình MONGO_URI hoặc DB_NAME trong file .env!")
+    print(" LỖI: Chưa cấu hình MONGO_URI hoặc DB_NAME trong file .env!")
     sys.exit(1)
 
 client = MongoClient(uri)
@@ -27,7 +27,7 @@ product_col = db["products"]
 
 def sync_recommendations_to_products():
     print("==============================================================")
-    print("🚀 BẮT ĐẦU TIẾN TRÌNH SYNC GỢI Ý SIÊU TỐC - CHỐNG TREO TUYỆT ĐỐI")
+    print(" BẮT ĐẦU TIẾN TRÌNH SYNC GỢI Ý SIÊU TỐC - CHỐNG TREO TUYỆT ĐỐI")
     print("==============================================================")
     
     # ------------------------------------------------------------
@@ -37,7 +37,7 @@ def sync_recommendations_to_products():
     order_col.create_index([("orderItems.name", 1)], background=True)
     order_col.create_index([("orderItems.1", 1)], background=True)
     
-    print("🧹 Đang dọn dẹp dữ liệu gợi ý cũ...")
+    print(" Đang dọn dẹp dữ liệu gợi ý cũ...")
     product_col.update_many({}, {"$unset": {"frequentlyBoughtTogether": ""}})
 
     # ------------------------------------------------------------
@@ -53,16 +53,16 @@ def sync_recommendations_to_products():
     product_stats = {doc["_id"]: doc["count"] for doc in order_col.aggregate(pipeline)}
     
     if not product_stats:
-        print("❌ Không tìm thấy dữ liệu đơn hàng hợp lệ.")
+        print(" Không tìm thấy dữ liệu đơn hàng hợp lệ.")
         return
 
-    print(f"👉 Tìm thấy tổng cộng {len(product_stats)} sản phẩm khác nhau trên toàn sàn.")
+    print(f" Tìm thấy tổng cộng {len(product_stats)} sản phẩm khác nhau trên toàn sàn.")
     global_popular = list(product_stats.keys())
     
     # LỌC BỎ SẢN PHẨM RÁC/HIẾM: Nâng lên 3 lần xuất hiện để dọn dẹp bộ nhớ ma trận
     MIN_ITEM_APPEARANCE = 3 
     frequent_products = {name for name, count in product_stats.items() if count >= MIN_ITEM_APPEARANCE}
-    print(f"👉 Giữ lại {len(frequent_products)} sản phẩm phổ biến (xuất hiện >= {MIN_ITEM_APPEARANCE} lần).")
+    print(f" Giữ lại {len(frequent_products)} sản phẩm phổ biến (xuất hiện >= {MIN_ITEM_APPEARANCE} lần).")
 
     # ------------------------------------------------------------
     # BƯỚC 2: STREAMING ĐƠN HÀNG VÀ CHẠY FP-GROWTH
@@ -77,14 +77,14 @@ def sync_recommendations_to_products():
     for o in order_cursor:
         count_orders += 1
         if count_orders % 2000 == 0:
-            print(f"   ⚡ Đã quét qua {count_orders} đơn hàng...")
+            print(f"    Đã quét qua {count_orders} đơn hàng...")
             
         clean_t = [item['name'] for item in o.get('orderItems', []) if item.get('name') in frequent_products]
         if len(clean_t) > 1:
             filtered_transactions.append(clean_t)
             
     order_cursor.close()
-    print(f"✅ Tải xong. Có {len(filtered_transactions)} đơn hàng hợp lệ đưa vào AI training.")
+    print(f" Tải xong. Có {len(filtered_transactions)} đơn hàng hợp lệ đưa vào AI training.")
 
     frequent_map = {} 
     if filtered_transactions:
@@ -100,22 +100,79 @@ def sync_recommendations_to_products():
         del filtered_transactions, te_ary # Giải phóng RAM ngay tức khắc
         
         frequent_itemsets = fpgrowth(df_onehot, min_support=MIN_SUPPORT, use_colnames=True)
-        print(f"   📈 Đã tạo ra {len(frequent_itemsets)} tập phổ biến.")
+        print(f"   Đã tạo ra {len(frequent_itemsets)} tập phổ biến.")
         
         if not frequent_itemsets.empty:
-            rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
-            rules = rules.sort_values(by=['lift', 'confidence'], ascending=False)
-            
-            # Khớp quy luật nhanh bằng itertuples
-            for row in rules[['antecedents', 'consequents']].itertuples(index=False):
-                if len(row.antecedents) == 1:
-                    origin = next(iter(row.antecedents))
-                    target = next(iter(row.consequents))
-                    
-                    if origin not in frequent_map: 
-                        frequent_map[origin] = []
-                    if target not in frequent_map[origin] and len(frequent_map[origin]) < 10:
+
+            rules = association_rules(
+                frequent_itemsets,
+                metric="lift",
+                min_threshold=1.0
+            )
+
+            # Lọc rule chất lượng hơn
+            MIN_CONFIDENCE = 0.4
+            rules = rules[rules["confidence"] >= MIN_CONFIDENCE]
+
+            rules = rules.sort_values(
+                by=["lift", "confidence"],
+                ascending=False
+            )
+
+            print("\n")
+            print("=" * 120)
+            print(" TOP 100 FP-GROWTH RULES")
+            print("=" * 120)
+
+            single_rules = rules[
+                (rules["antecedents"].apply(len) == 1)
+                &
+                (rules["consequents"].apply(len) == 1)
+            ]
+
+            for _, row in single_rules.head(100).iterrows():
+
+                antecedent = list(row["antecedents"])[0]
+                consequent = list(row["consequents"])[0]
+
+                print(
+                    f"{antecedent:<40}"
+                    f" -> "
+                    f"{consequent:<40}"
+                    f"| support={row['support']:.3f}"
+                    f" | confidence={row['confidence']:.3f}"
+                    f" | lift={row['lift']:.3f}"
+                )
+
+            print("=" * 120)
+            print(f" Tổng số rule tìm được: {len(rules)}")
+            print(f" Rule 1→1 tìm được: {len(single_rules)}")
+            print("=" * 120)
+
+            # Tạo frequent_map cho recommendation
+            for row in rules.itertuples():
+
+                antecedents = list(row.antecedents)
+                consequents = list(row.consequents)
+
+                if len(antecedents) != 1:
+                    continue
+
+                origin = antecedents[0]
+
+                if origin not in frequent_map:
+                    frequent_map[origin] = []
+
+                for target in consequents:
+
+                    if target == origin:
+                        continue
+
+                    if target not in frequent_map[origin]:
                         frequent_map[origin].append(target)
+
+                    if len(frequent_map[origin]) >= 10:
+                        break
         del df_onehot
 
     # ------------------------------------------------------------
@@ -209,7 +266,7 @@ def sync_recommendations_to_products():
         if len(bulk_updates) >= 200:
             product_col.bulk_write(bulk_updates, ordered=False)
             total_processed += len(bulk_updates)
-            print(f"   💾 Đã lưu thành công bộ gợi ý cho {total_processed} sản phẩm...")
+            print(f"    Đã lưu thành công bộ gợi ý cho {total_processed} sản phẩm...")
             bulk_updates = []
 
     # Ghi nốt phần dư thừa còn lại
