@@ -9,6 +9,7 @@ import RecommendSlider from "../components/Home/RecommendSlider";
 import { fetchAllProducts } from "../store/slices/productSlice"; 
 import RecentlyViewed from "../components/Home/RecentlyViewed";
 import RecipeBento from "../components/Home/RecipeBento";
+import MealPlanBanner from "../components/Home/MealPlanBanner";
 const Index = () => {
   const dispatch = useDispatch(); 
 
@@ -37,6 +38,7 @@ const Index = () => {
           products={newProducts} 
           loading={loading} 
         />
+        <MealPlanBanner/>
         <RecentlyViewed/>
       
         

@@ -39,11 +39,47 @@ const ProductSlider = ({
   const scrollVelocity = useRef(0);
   const isAnimationLoopRunning = useRef(false);
 
-  useEffect(() => {
-    if (incomingProducts === undefined) {
-      dispatch(fetchAllProducts());
-    }
-  }, [dispatch, incomingProducts]);
+ useEffect(() => {
+    const slider = scrollRef.current;
+    if (!slider) return;
+
+    const smoothScrollLoop = () => {
+      if (Math.abs(scrollVelocity.current) < 0.2) {
+        scrollVelocity.current = 0;
+        isAnimationLoopRunning.current = false;
+        return;
+      }
+      slider.scrollLeft += scrollVelocity.current;
+      scrollVelocity.current *= 0.88;
+      requestAnimationFrame(smoothScrollLoop);
+    };
+
+    const handleWheelScroll = (e) => {
+      // Chỉ xử lý trên màn hình lớn (Desktop / Laptop)
+      if (window.innerWidth >= 1024) {
+        
+        // KIỂM TRA HƯỚNG CUỘN: Nếu người dùng đang cuộn dọc (deltaY lớn hơn deltaX), cho qua để cuộn trang tự nhiên
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          return; 
+        }
+
+        // Nếu họ đang vuốt chuột/trackpad theo chiều ngang (deltaX có giá trị)
+        if (e.deltaX !== 0) {
+          e.preventDefault(); // Chỉ chặn hành vi mặc định khi thực sự cuộn ngang
+          scrollVelocity.current += e.deltaX * 0.15;
+          scrollVelocity.current = Math.max(Math.min(scrollVelocity.current, 50), -50);
+
+          if (!isAnimationLoopRunning.current) {
+            isAnimationLoopRunning.current = true;
+            requestAnimationFrame(smoothScrollLoop);
+          }
+        }
+      }
+    };
+
+    slider.addEventListener("wheel", handleWheelScroll, { passive: false });
+    return () => slider.removeEventListener("wheel", handleWheelScroll);
+  }, []);
 
   // HÀM XỬ LÝ KHI USER BẤM VÀO XEM CHI TIẾT SẢN PHẨM
   const handleProductDetailClick = (e, product) => {

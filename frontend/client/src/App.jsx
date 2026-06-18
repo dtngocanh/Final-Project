@@ -22,6 +22,8 @@ import About from "./pages/About";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
+import MealPlans from "./pages/MealPlans";
+import MealPlanDetail from "./pages/MealPlanDetail";
 import { useEffect } from "react";
 
 import { getUser } from "./store/slices/authSlice";
@@ -83,6 +85,8 @@ const App = () => {
               <Route path="/recipes" element={<Recipes />} />
               <Route path="/all-recipes" element={<AllRecipes />} />
               <Route path="/notifications" element={<NotificationPage />} />
+              <Route path="/meal-plans" element={<MealPlans />} />
+              <Route path="/meal-plan/:category" element={<MealPlanDetail />} />
             </Routes>
             <ChatBot />
             <Footer />
