@@ -26,7 +26,7 @@ test('Dat hang tu dong - Stable Checkout Flow', async () => {
 
     // Chạy dải account từ 400 đến 450
     const accountsList = accountsWithIndex.filter(
-    user => user.realIndex >= 150 && user.realIndex <= 400
+    user => user.realIndex >= 300 && user.realIndex <= 400
 );
 
     const streets = [

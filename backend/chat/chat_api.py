@@ -1,6 +1,7 @@
 import os
 import time
 import re
+import json
 from typing import Dict, List, Any
 from dotenv import load_dotenv
 
@@ -9,11 +10,8 @@ from pydantic import BaseModel
 from pymongo import MongoClient
 from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
-# Thay vì import requests, ta dùng InferenceClient của Hugging Face
 from huggingface_hub import InferenceClient 
 import uvicorn
-
-
 
 # =====================================================
 # 1. ENV & APP CONFIG
@@ -40,117 +38,94 @@ collection = db[os.getenv("COLLECTION_NAME", "products")]
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # =====================================================
-# 3. TỰ ĐỘNG CHECK MÔI TRƯỜNG (LOCAL VS RENDER)
+# 3. ENVIRONMENT CHECK (LOCAL VS RENDER)
 # =====================================================
 IS_RENDER = os.getenv("RENDER") is not None
-
 model_embedding = None
-hf_client = None  # Khởi tạo client Hugging Face trực tuyến
+hf_client = None  
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 if IS_RENDER:
-    print("[MOI TRUONG RENDER]: Dung API Hugging Face Online de TIET KIEM RAM (0MB)!")
+    print("[ENVIRONMENT]: Render detected. Using online Hugging Face Client.")
     if HF_TOKEN:
-        # Khởi tạo InferenceClient với token của bạn
         hf_client = InferenceClient(provider="hf-inference", api_key=HF_TOKEN)
     else:
-        print("[HF API WARNING]: Thieu bien moi truong HF_TOKEN tren Render!")
+        print("[WARNING]: Missing HF_TOKEN on Render environment!")
 else:
-    print("[MOI TRUONG LOCAL]: Tai model Offline vao RAM de NE CHAN MANG VA DNS!")
+    print("[ENVIRONMENT]: Local detected. Loading offline model to avoid network lag.")
     try:
         from sentence_transformers import SentenceTransformer
         model_embedding = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-        print("Model Embedding Offline da san sang tai Local!")
     except Exception as e:
-        print(f"Khong the load model offline tai Local: {e}. Vui long chay `pip install sentence-transformers` để test Local.")
+        print(f"Cannot load offline model: {e}")
 
 embedding_cache: Dict[str, List[float]] = {}
 chat_history: Dict[str, List[str]] = {}
 
-CATEGORY_KEYWORDS = {
-    "fruit": "Fruits", "apple": "Fruits", "banana": "Fruits",
-    "juice": "Juices", "drink": "Juices",
-    "vegetable": "Vegetables", "salad": "Vegetables",
-    "fish": "Seafood", "shrimp": "Seafood", "seafood": "Seafood",
-    "milk": "Dairy", "pork": "Meat", "beef": "Meat", "meat": "Meat"
-}
+# Cấu hình địa chỉ Ngũ Hành Sơn & Biểu phí cân nặng chuẩn GHN
+STORE_INFO = """
+[STORE INFORMATION & GHN NATIONWIDE SHIPPING POLICY]
+- Store Name: Veggies Mart (Veganic Mart project)
+- Warehouse Address: 150 Ngu Hanh Son, My An, Ngu Hanh Son, Da Nang, Vietnam
+- Contact Phone / Zalo: 0901234567
+
+- Shipping Partner: Giao Hang Nhanh (GHN Express) - Nationwide Delivery
+- Delivery Time:
+  * Intra-province (Da Nang): 1 - 2 days (GHN Fast) or within 4 hours (GHN Express Same-day).
+  * Domestic/Nationwide (Other provinces/cities): 2 - 4 days depending on the distance.
+
+- GHN Weight-Based Shipping Fees Matrix (Nationwide):
+  1. Intra-Province (Inside Da Nang):
+     * Under 2kg: Flat rate $1.2 (approx. 30,000 VND).
+     * From 2kg to 5kg: Flat rate $2.0 (approx. 50,000 VND).
+     * Over 5kg: $2.0 + $0.2 for each additional 1kg.
+  2. Intra-Region (Central Vietnam provinces near Da Nang):
+     * Under 2kg: Flat rate $1.8 (approx. 45,000 VND).
+     * Over 2kg: Extra $0.3 for each additional 1kg.
+  3. Inter-Region (Special Cities like Hanoi, Ho Chi Minh City, or Southern/Northern provinces):
+     * Under 2kg: Flat rate $2.5 (approx. 60,000 VND).
+     * Over 2kg: Extra $0.5 for each additional 1kg.
+
+- Free Shipping Policy: Free standard shipping for ALL orders over $50 nationwide (Maximum support up to 5kg, over 5kg will charge extra weight fee according to GHN matrix).
+- Cash on Delivery (COD): Supported nationwide with 0% extra fee.
+"""
 
 SMALL_TALKS = {
-    "hi": "Hello! Welcome to Veggies Mart. How can I assist you today?",
-    "hello": "Hello! Welcome to Veggies Mart. How can I assist you today?",
-    "hey": "Hi there! What are you looking for today?",
-    "thanks": "You're very welcome!",
-    "thank you": "You're very welcome!",
+    "hi": "Hello! Welcome to Veggies Mart. How can I help you today?",
+    "hello": "Hello! Welcome to Veggies Mart. How can I help you today?",
+    "hey": "Hi there! What fresh products are you looking for today?",
+    "thanks": "You are very welcome!",
+    "thank you": "You are very welcome!",
 }
 
 # =====================================================
-# 4. HELPER FUNCTIONS (ĐÃ VIẾT LẠI BẰNG INFERENCECLIENT)
+# 4. HELPER FUNCTIONS
 # =====================================================
 def get_embedding(text: str) -> List[float]:
-    """Hàm phân tách triệt để: Local xài offline hoàn toàn, Render xài InferenceClient mới"""
     text = text.strip().lower()
     if text in embedding_cache:
         return embedding_cache[text]
     
-    # -------------------------------------------------
-    # TRƯỜNG HỢP 1: CHẠY TRÊN RENDER -> DÙNG HUGGING FACE CLIENT
-    # -------------------------------------------------
     if IS_RENDER:
-        print(f"[EMBEDDING]: Dang goi InferenceClient Hugging Face cho: '{text}'")
-        
         if not hf_client:
-            print("[HF API ERROR]: hf_client chua duoc khoi tao do thieu HF_TOKEN!")
             return None
-
-        max_retries = 3
-        retry_delay = 2 
-        
-        for attempt in range(max_retries):
-            try:
-                # Sử dụng tính năng feature_extraction tích hợp sẵn của client mới
-                # Phương thức này tương đương hoàn toàn với việc gọi POST lên model
-                vector = hf_client.feature_extraction(
-                    text,
-                    model="sentence-transformers/all-MiniLM-L6-v2"
-                )
-                
-                # Inference Client tự parse kết quả thành List/Array, không cần res.json()
-                if isinstance(vector, list) or hasattr(vector, "tolist"):
-                    if hasattr(vector, "tolist"):  # Phòng trường hợp trả về numpy array
-                        vector = vector.tolist()
-                    
-                    embedding_cache[text] = vector
-                    return vector
-                
-            except Exception as e:
-                # Thư viện huggingface_hub tự động handle lỗi 503 (Model loading) và tự retry nội bộ.
-                # Nếu lọt vào đây tức là lỗi timeout hoặc lỗi kết nối nặng.
-                error_msg = str(e)
-                print(f"[HF API RE-TRY]: Loi lay embedding lan {attempt + 1}: {error_msg}")
-                
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                else:
-                    print("[HF API CRITICAL]: Da thu lai het 3 lan nhung ket noi Hugging Face that bai hoàn toan!")
-        
-        return None 
-
-    # -------------------------------------------------
-    # TRƯỜNG HỢP 2: CHẠY TẠI LOCAL -> CHẠY OFFLINE 100%
-    # -------------------------------------------------
+        try:
+            vector = hf_client.feature_extraction(text, model="sentence-transformers/all-MiniLM-L6-v2")
+            if hasattr(vector, "tolist"):
+                vector = vector.tolist()
+            embedding_cache[text] = vector
+            return vector
+        except Exception as e:
+            print(f"[HF EMBEDDING ERROR]: {e}")
+            return None 
     else:
-        print(f"[EMBEDDING]: Dang xu ly OFFLINE hoan toan bang RAM may cho: '{text}'")
         try:
             if model_embedding:
-                vector_np = model_embedding.encode(text)
-                vector = vector_np.tolist()
+                vector = model_embedding.encode(text).tolist()
                 embedding_cache[text] = vector
                 return vector
-            else:
-                print("[LOCAL EMBEDDING ERROR]: Model chua duoc load thanh cong vao RAM. Vui long kiem tra `pip install sentence-transformers`")
         except Exception as e:
-            print(f"[LOCAL EMBEDDING ERROR]: Loi chay offline: {e}")
-        
+            print(f"[LOCAL EMBEDDING ERROR]: {e}")
         return []
 
 def query_groq_llm(prompt: str) -> str:
@@ -159,59 +134,80 @@ def query_groq_llm(prompt: str) -> str:
             messages=[{"role": "user", "content": prompt}],
             model="llama-3.1-8b-instant",
             temperature=0.1,
-            max_tokens=150
+            max_tokens=250 
         )
         return completion.choices[0].message.content.strip()
     except Exception as e:
         print(f"[GROQ LLM ERROR]: {e}")
         return ""
 
-def detect_category_filter(message: str) -> Dict[str, Any]:
-    msg = message.lower()
-    for keyword, category in CATEGORY_KEYWORDS.items():
-        if keyword in msg:
-            return {"category": category}
-    return {}
-
-# =====================================================
-# 5. MONGODB SEARCH LOGIC
-# =====================================================
-def batch_regex_search(keywords: List[str], cat_filter: dict) -> List[dict]:
-    if not keywords:
+def advanced_regex_search(user_message: str) -> List[dict]:
+    """
+    Tìm kiếm thông minh: 
+    - Nếu khách gõ 1 từ duy nhất (ví dụ: 'apple'), hệ thống bắt ép tìm đúng từ độc lập (chứa quả táo), 
+      không cho trả về các cụm từ ghép như 'apple juice'.
+    - Nếu khách gõ cụm từ (ví dụ: 'apple juice'), hệ thống tìm kiếm chính xác cụm từ đó.
+    """
+    clean_msg = user_message.strip().lower()
+    clean_msg = re.sub(r'[^\w\s]', '', clean_msg) # Xóa ký tự đặc biệt
+    
+    if not clean_msg:
         return []
-    regex_list = [{"name": {"$regex": re.escape(kw), "$options": "i"}} for kw in keywords[:5]]
-    query = {"$or": regex_list}
-    if cat_filter:
-        query.update(cat_filter)
-    return list(collection.find(query).limit(10))
+        
+    words = clean_msg.split()
+    
+    # TRƯỜNG HỢP 1: Khách chỉ gõ đúng 1 từ đơn (ví dụ: "apple" hoặc "táo")
+    if len(words) == 1:
+        target_word = words[0]
+        # Sử dụng \\b để ép MongoDB tìm từ đứng độc lập (Word Boundary)
+        query = {"name": {"$regex": f"\\b{re.escape(target_word)}\\b", "$options": "i"}}
+        results = list(collection.find(query).limit(12))
+        
+        # Nếu tìm khít từ mà không có hàng, ta mới xả kho cho tìm kiếm chuỗi con thoải mái
+        if not results:
+            query_fallback = {"name": {"$regex": re.escape(target_word), "$options": "i"}}
+            results = list(collection.find(query_fallback).limit(12))
+        return results
 
-def vector_product_search(query_vector: List[float], cat_filter: dict) -> List[dict]:
+    # TRƯỜNG HỢP 2: Khách gõ nguyên cụm từ dài (ví dụ: "apple juice" hoặc "nước ép táo")
+    else:
+        # Tìm kiếm khớp toàn bộ cụm từ mà khách gõ trước
+        query_phrase = {"name": {"$regex": re.escape(clean_msg), "$options": "i"}}
+        results = list(collection.find(query_phrase).limit(12))
+        
+        # Nếu không có cụm từ chính xác, tách từ tìm kiếm theo kiểu cũ để giữ độ linh hoạt
+        if not results:
+            regex_conditions = [{"name": {"$regex": re.escape(w), "$options": "i"}} for w in words if len(w) > 2]
+            if regex_conditions:
+                results = list(collection.find({"$or": regex_conditions}).limit(12))
+                
+        return results
+
+def vector_product_search(query_vector: List[float]) -> List[dict]:
     if not query_vector:
         return []
-    vector_search_stage = {
-        "index": "vector_index",
-        "path": "embedding",
-        "queryVector": query_vector,
-        "numCandidates": 20,
-        "limit": 6
-    }
     pipeline = [
-        {"$vectorSearch": vector_search_stage},
+        {
+            "$vectorSearch": {
+                "index": "vector_index",
+                "path": "embedding",
+                "queryVector": query_vector,
+                "numCandidates": 20,
+                "limit": 6
+            }
+        },
         {"$addFields": {"search_score": {"$meta": "vectorSearchScore"}}},
-        {"$match": {"search_score": {"$gte": 0.65}}},
-        {"$project": {"_id": 1, "name": 1, "price": 1, "images": 1, "category": 1}}
+        {"$match": {"search_score": {"$gte": 0.60}}}, 
+        {"$project": {"_id": 1, "name": 1, "price": 1, "images": 1, "category": 1, "weight": 1}}
     ]
     return list(collection.aggregate(pipeline))
 
 class ChatRequest(BaseModel):
     message: str
     session_id: str = "guest"
-# CRON JOB
-# Trong file chat_api.py
-
 
 # =====================================================
-# 6. MAIN API ENDPOINT
+# 5. MAIN API ENDPOINT
 # =====================================================
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
@@ -220,122 +216,90 @@ def chat_endpoint(request: ChatRequest):
         message = request.message.strip()
         session_id = request.session_id
 
-        print("\n" + "=" * 60)
-        print(f"[1. USER MESSAGE]: {message}")
+        print(f"\n--- [USER MESSAGE]: {message} ---")
 
         if message.lower() in SMALL_TALKS:
             return {"answer": SMALL_TALKS[message.lower()], "products": []}
 
-        if session_id not in chat_history:
-            chat_history[session_id] = []
-
-        extraction_prompt = f"""Analyze the user's shopping request: "{message}"
-Format your response STRICTLY in one of these two ways:
-1. If they want to make/cook a dish: "RECIPE | [Dish Name] | [ingredient1, ingredient2, ingredient3]"
-2. If they just want to search products: "SEARCH | None | [keyword1, keyword2]"
-Do not say anything else.
-Answer:"""
-       
-        ai_analysis = query_groq_llm(extraction_prompt)
-        print(f"[2. AI EXTRACTION]: {ai_analysis}")
-
-        search_keywords = []
-        is_recipe = False
-        dish_name = ""
-        required_ingredients_str = ""
-
-        if "|" in ai_analysis:
-            parts = [p.strip() for p in ai_analysis.split("|")]
-            if len(parts) >= 3:
-                intent_type = parts[0].upper()
-                dish_name = parts[1]
-                required_ingredients_str = parts[2]
-                search_keywords = [kw.strip().lower() for kw in required_ingredients_str.split(",") if len(kw.strip()) > 2]
-                if "RECIPE" in intent_type:
-                    is_recipe = True
-
-        cat_filter = detect_category_filter(message)
-        search_results = []
-
-        if search_keywords:
-            search_results = batch_regex_search(search_keywords, cat_filter)
-
+        # --- BƯỚC 1: TÌM KIẾM SẢN PHẨM TRƯỚC ---
+        search_results = advanced_regex_search(message)
+        
         if len(search_results) == 0:
             query_vector = get_embedding(message)
-            
-            if query_vector is None:
-                return {
-                    "answer": "I'm sorry, our connection to the AI server is a bit unstable right now. Could you please try again in a few seconds?", 
-                    "products": []
-                }
-                
-            search_results = vector_product_search(query_vector, cat_filter)
+            if query_vector:
+                search_results = vector_product_search(query_vector)
 
-        print(f"[INFO] Database yielded {len(search_results)} matching items.")
-
+        # Chuẩn bị danh sách tồn kho có kèm CÂN NẶNG của từng món để LLM tính toán
         stock_list = []
         for item in search_results:
             clean_name = item['name'].replace('-', ' ').replace('_', ' ').title()
-            stock_list.append(f"- {clean_name} (${item.get('price', 0)})")
-       
+            # Nếu chưa có field weight trong DB, mặc định gán 0.5kg để bot có dữ liệu tính
+            weight = item.get('weight', 0.5) 
+            stock_list.append(f"- {clean_name} (${item.get('price', 0)}) | Weight: {weight}kg")
         available_stock = "\n".join(stock_list) if stock_list else "None"
-       
-        expert_context = ""
-        if is_recipe:
-            expert_context = f"""The user wants to make {dish_name}.
-RULE: You MUST start your response by saying something like: "To make {dish_name}, you typically need {required_ingredients_str}."
-Then, warmly tell them which of those ingredients we currently have from the ITEMS IN STOCK."""
 
-        prompt = f"""You are a smart, friendly shopping assistant for Veggies Mart.
-[RULES]
-1. Reply concisely in English (max 3-4 sentences).
-2. Look strictly at the ITEMS IN STOCK.
-3. {expert_context}
-4. If stock is "None", reply EXACTLY: "I'm sorry, we don't have ingredients for that at the moment."
-5. DO NOT recommend or mention prices for products not listed in stock.
+        # --- BƯỚC 2: 1-LLM CALL (Gộp xử lý thông tin kho + Phí ship cân nặng) ---
+        prompt = f"""You are a smart, fast shopping assistant for Veggies Mart.
+Our shop is located in Ngu Hanh Son district, Da Nang.
 
-ITEMS IN STOCK:
+{STORE_INFO}
+
+ITEMS IN STOCK CURRENTLY (WITH WEIGHTS):
 {available_stock}
+
+[INSTRUCTIONS]
+1. Read the CUSTOMER message. Check if they ask about products, recipes, or shipping costs based on weight.
+2. Reply friendly and flexibly in simple English (maximum 3 sentences).
+3. If they ask about shipping fees, calculate using the GHN rules above based on the total weight of items they want.
+4. At the very end of your response, you MUST output a technical JSON block containing the intent analysis:
+[INTENT_JSON]
+{{"intent": "SHIPPING" or "CONTACT" or "PRODUCT" or "RECIPE", "dish_name": "Name of dish or None"}}
+[/INTENT_JSON]
 
 CUSTOMER: {message}
 ASSISTANT:"""
-       
-        ai_answer = query_groq_llm(prompt)
-        if "ASSISTANT:" in ai_answer:
-            ai_answer = ai_answer.split("ASSISTANT:")[-1].strip()
+        
+        ai_raw_response = query_groq_llm(prompt)
+        
+        ai_answer = ai_raw_response
+        intent_data = {"intent": "PRODUCT", "dish_name": None}
+        
+        if "[INTENT_JSON]" in ai_raw_response:
+            parts = ai_raw_response.split("[INTENT_JSON]")
+            ai_answer = parts[0].strip()
+            json_str_part = parts[1].split("[/INTENT_JSON]")[0].strip()
+            try:
+                intent_data = json.loads(json_str_part)
+            except Exception:
+                pass
 
-        print(f"[3. AI FINAL ANSWER]: {ai_answer}")
+        print(f"[AI RESPONSE TEXT]: {ai_answer}")
+        print(f"[AI INTENT EXTRACT]: {intent_data}")
 
-        chat_history[session_id].append(f"User: {message}")
-        chat_history[session_id].append(f"Assistant: {ai_answer}")
-        if len(chat_history[session_id]) > 4:
-            chat_history[session_id] = chat_history[session_id][-4:]
-
-        products = []
+        # --- BƯỚC 3: ĐÓNG GÓI SẢN PHẨM TRẢ VỀ FRONT-END ---
+        products_payload = []
         ai_lower = ai_answer.lower()
-       
-        if "i'm sorry" in ai_lower or "don't have" in ai_lower or available_stock == "None":
-            pass
-        else:
+        
+        if not ("sorry" in ai_lower and "don't have" in ai_lower) and available_stock != "None":
             for doc in search_results:
                 image_url = ""
                 if isinstance(doc.get("images"), list) and len(doc["images"]) > 0:
                     image_url = doc["images"][0].get("url", "")
 
-                products.append({
+                products_payload.append({
                     "id": str(doc["_id"]),
                     "name": doc["name"],
                     "price": doc.get("price", 0),
-                    "image": image_url
+                    "image": image_url,
+                    "weight": doc.get("weight", 0.5) # Trả thêm cân nặng về client nếu cần dùng
                 })
 
-        print(f"[INFO] TOTAL ROUND-TRIP: {time.time() - total_start:.2f}s\n" + "=" * 60)
-       
-        return {"answer": ai_answer, "products": products[:6]}
+        print(f"[INFO] ROUND-TRIP TIME: {time.time() - total_start:.2f}s")
+        return {"answer": ai_answer, "products": products_payload[:6]}
 
     except Exception as e:
         print("[CRITICAL ERROR]:", str(e))
-        return {"answer": "I'm sorry, our system encountered a brief error. Could you try asking again?", "products": []}
+        return {"answer": "I'm sorry, our system encountered an error. Please try again.", "products": []}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

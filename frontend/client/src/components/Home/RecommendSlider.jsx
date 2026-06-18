@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -16,10 +16,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { fetchRecommendations } from "../../store/slices/recommendSlice.js";
 import { addToCartThunk } from "../../store/slices/cartSlice.js";
+import { addToRecentlyViewed } from "../../store/slices/interactionSlice.js";
 
 const RecommendSlider = () => {
   const scrollRef = useRef(null);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const { list = [], isLoading } = useSelector((state) => state.recommend);
 
@@ -31,7 +33,18 @@ const RecommendSlider = () => {
     return (list || []).filter((p) => p && p._id && p.stock > 0);
   }, [list]);
 
-  // HÀM XỬ LÝ HIỆU ỨNG ẢNH BAY THẲNG TUỐT MƯỢT MÀ, THU NHỎ DẦN VÀO GIỎ HÀNG
+  // HÀM XỬ LÝ KHI NGƯỜI DÙNG BẤM XEM CHI TIẾT SẢN PHẨM GỢI Ý
+  const handleProductDetailClick = (e, product) => {
+    e.preventDefault();
+
+    // Ghi nhận ngay vào danh sách RAM "Sản phẩm vừa xem" để hiển thị tức thì
+    dispatch(addToRecentlyViewed(product));
+
+    // Tiến hành chuyển sang trang thông tin chi tiết
+    navigate(`/product/${product._id}`);
+  };
+
+  // HÀM XỬ LÝ HIỆU ỨNG ẢNH BAY THẲNG TUỐT MƯỢT MÀ
   const handleFlyToCart = (e, product) => {
     e.preventDefault();
 
@@ -39,7 +52,7 @@ const RecommendSlider = () => {
     const productImage = cardContainer?.querySelector(".product-img-target");
     const cartIcon = document.getElementById("navbar-cart-icon");
 
-    dispatch(addToCartThunk({productId: product._id, quantity: 1}));
+    dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
 
     if (productImage && cartIcon) {
       const imgRect = productImage.getBoundingClientRect();
@@ -49,14 +62,6 @@ const RecommendSlider = () => {
       flyImg.src = productImage.src;
       flyImg.className = "fly-to-cart-element";
 
-      if (
-        productImage.classList.contains("dark:invert") &&
-        document.documentElement.classList.contains("dark")
-      ) {
-        flyImg.style.filter = "invert(1)";
-      }
-
-      // Lấy kích thước ban đầu của ảnh để gán cứng lúc xuất phát (tránh bị nhảy size đột ngột)
       const initialWidth = imgRect.width;
       const initialHeight = imgRect.height;
 
@@ -65,9 +70,7 @@ const RecommendSlider = () => {
       flyImg.style.left = `${imgRect.left}px`;
       flyImg.style.top = `${imgRect.top}px`;
 
-      // Tính toán khoảng cách dịch chuyển chính xác (Delta) đến đích giỏ hàng
-      // Đích đến sẽ thu nhỏ về khít icon giỏ hàng
-      const targetWidth = 24; 
+      const targetWidth = 24;
       const targetHeight = 24;
       const targetLeft = cartRect.left + cartRect.width / 2 - targetWidth / 2;
       const targetTop = cartRect.top + cartRect.height / 2 - targetHeight / 2;
@@ -82,28 +85,27 @@ const RecommendSlider = () => {
 
       document.body.appendChild(flyImg);
 
-      // Rút ngắn thời gian bay xuống còn 650ms cho có cảm giác tốc độ, dứt khoát
-      const animationDuration = 1100; 
+      const animationDuration = 1100;
 
       setTimeout(() => {
         flyImg.remove();
-        
+
         // Hiệu ứng phản hồi nhún nhảy nhẹ nhàng của icon giỏ hàng khi tiếp nhận
         cartIcon.classList.add("cart-bounce-feedback");
         setTimeout(() => {
           cartIcon.classList.remove("cart-bounce-feedback");
         }, 300);
       }, animationDuration);
-
     } else {
-      handleCartAction(product, "ADD", 1);
+      dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
     }
   };
 
   const scroll = (direction) => {
     if (scrollRef.current) {
       const clientWidth = scrollRef.current.clientWidth;
-      const amount = direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
+      const amount =
+        direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
 
       scrollRef.current.scrollBy({
         left: amount,
@@ -114,7 +116,8 @@ const RecommendSlider = () => {
 
   const renderProductTag = (product) => {
     let tagText = product.tag;
-    let tagClass = "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
+    let tagClass =
+      "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
 
     if (!tagText) {
       if (product.discount > 0) {
@@ -239,23 +242,31 @@ const RecommendSlider = () => {
                   {/* UPPER PART: IMAGE BOX */}
                   <div className="relative w-full aspect-[4/3] md:aspect-square p-3 sm:p-4 md:p-5 flex items-center justify-center rounded-t-2xl md:rounded-t-[1.75rem] overflow-hidden z-10">
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 flex items-center gap-0.5 bg-white/90 dark:bg-neutral-950/90 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-neutral-600 dark:text-neutral-400 border border-neutral-200/30 dark:border-neutral-800/50 backdrop-blur-md">
-                      <Star size={8} fill="#77cd3a" className="text-[#77cd3a]" />
+                      <Star
+                        size={8}
+                        fill="#77cd3a"
+                        className="text-[#77cd3a]"
+                      />
                       <span>{product.ratings?.toFixed(1) || "0.0"}</span>
                     </div>
 
                     {renderProductTag(product)}
 
-                    <Link
-                      to={`/product/${product._id}`}
-                      className="w-full h-full flex items-center justify-center p-2 relative z-10"
+                    <div
+                      onClick={(e) => handleProductDetailClick(e, product)}
+                      className="w-full h-full flex items-center justify-center p-2 relative z-10 cursor-pointer"
                     >
                       <img
-                        src={product.images?.[0]?.url || product.image || "/placeholder.png"}
+                        src={
+                          product.images?.[0]?.url ||
+                          product.image ||
+                          "/placeholder.png"
+                        }
                         alt={product.name}
-                        className="product-img-target max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-screen dark:invert"
+                        className="product-img-target max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-normal dark:brightness-95"
                         loading="lazy"
                       />
-                    </Link>
+                    </div>
 
                     <button
                       onClick={(e) => handleFlyToCart(e, product)}
@@ -270,8 +281,13 @@ const RecommendSlider = () => {
                   <div className="p-3 sm:p-4 flex flex-col justify-between flex-1 min-h-[95px] md:min-h-[110px] relative z-20 bg-transparent">
                     <div className="w-full space-y-1">
                       <div className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-semibold">
-                        <Leaf size={8} className="text-[#77cd3a] flex-shrink-0" />
-                        <span className="truncate max-w-full">{product.reason || "Organic Pick"}</span>
+                        <Leaf
+                          size={8}
+                          className="text-[#77cd3a] flex-shrink-0"
+                        />
+                        <span className="truncate max-w-full">
+                          {product.reason || "Organic Pick"}
+                        </span>
                       </div>
                       <h4 className="text-xs md:text-sm font-semibold text-neutral-800 dark:text-neutral-200 tracking-tight truncate transition-colors duration-200 group-hover/card:text-neutral-950 dark:group-hover/card:text-white">
                         {product.name}
@@ -293,7 +309,10 @@ const RecommendSlider = () => {
 
             {/* SHOW ALL BLOCK */}
             <div className="flex-shrink-0 w-[110px] sm:w-[130px] flex flex-col items-center justify-center snap-start pl-2 md:row-span-2">
-              <Link to="/products" className="group/all flex flex-col items-center gap-1.5">
+              <Link
+                to="/products"
+                className="group/all flex flex-col items-center gap-1.5"
+              >
                 <div className="w-9 h-9 md:w-11 md:h-11 rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 flex items-center justify-center group-hover/all:border-[#77cd3a] group-hover/all:bg-[#77cd3a]/5 transition-all duration-300">
                   <ArrowRight
                     size={14}
@@ -309,7 +328,6 @@ const RecommendSlider = () => {
         </div>
       </div>
 
-      {/* STYLE TAG TỐI ƯU ĐƯỜNG BAY TUYẾN TÍNH CHUẨN RESPONSIVE */}
       <style>{`
         .mobile-slider {
           scroll-snap-type: x mandatory;
@@ -323,47 +341,42 @@ const RecommendSlider = () => {
           display: none; 
         }
 
-        /* PHẦN TỬ BAY: BẮT ĐẦU BẰNG KÍCH THƯỚC THẬT CỦA SẢN PHẨM */
-    .fly-to-cart-element {
-      position: fixed;
-      object-fit: contain;
-      z-index: 99999;
-      pointer-events: none;
-      mix-blend-mode: multiply;
-      
-      /* Giữ thời gian 0.8s, dùng cubic-bezier chuẩn để ảnh tự lướt nhanh lúc đầu và giảm tốc mượt lúc cuối */
-      animation: absoluteStraightFly 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-      transform-origin: center center;
-    }
+        .fly-to-cart-element {
+          position: fixed;
+          object-fit: contain;
+          z-index: 99999;
+          pointer-events: none;
+          mix-blend-mode: multiply;
+          animation: absoluteStraightFly 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          transform-origin: center center;
+        }
 
-    .dark .fly-to-cart-element {
-      mix-blend-mode: screen;
-    }
+        .dark .fly-to-cart-element {
+          mix-blend-mode: normal;
+          filter: brightness(0.95);
+        }
 
-    /* CHỈ GIỮ 0% VÀ 100% - KHÔNG CHÈN MỐC TRUNG GIAN GÂY GÃY ĐƯỜNG BAY */
-    @keyframes absoluteStraightFly {
-      0% {
-        transform: translate(0, 0) scale(1);
-        opacity: 1;
-      }
-      100% {
-        /* Bay thẳng tắp một mạch đến đích không dừng lại giữa đường */
-        transform: translate(var(--fly-X), var(--fly-Y)) scale(0.12);
-        width: var(--target-width);
-        height: var(--target-height);
-        opacity: 0;
-      }
-    }
+        @keyframes absoluteStraightFly {
+          0% {
+            transform: translate(0, 0) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(var(--fly-X), var(--fly-Y)) scale(0.12);
+            width: var(--target-width);
+            height: var(--target-height);
+            opacity: 0;
+          }
+        }
 
-    /* NAVBAR ICON NHÚN NHẸ */
-    .cart-bounce-feedback {
-      animation: miniPop 0.3s ease-out both;
-    }
-    @keyframes miniPop {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.12); }
-      100% { transform: scale(1); }
-    }
+        .cart-bounce-feedback {
+          animation: miniPop 0.3s ease-out both;
+        }
+        @keyframes miniPop {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.12); }
+          100% { transform: scale(1); }
+        }
         
         @keyframes floatSlow {
           0%, 100% { transform: translateY(0px) rotate(-12deg); }
