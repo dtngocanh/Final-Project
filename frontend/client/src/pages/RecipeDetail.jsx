@@ -17,7 +17,6 @@ import { motion } from "framer-motion";
 
 import { axiosInstance } from "../lib/axios.js";
 import ProductCard from "../components/Products/ProductCard.jsx";
-import { useCartActions } from "../hooks/useCartActions.jsx";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { bulkAddCartThunk } from "../store/slices/cartSlice.js";
@@ -25,7 +24,6 @@ import { bulkAddCartThunk } from "../store/slices/cartSlice.js";
 const RecipeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { handleCartAction } = useCartActions(); // Lấy hàm handle giỏ hàng
 
   const dispatch = useDispatch();
 

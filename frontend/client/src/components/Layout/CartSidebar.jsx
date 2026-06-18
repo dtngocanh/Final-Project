@@ -2,7 +2,6 @@ import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toggleCart } from "../../store/slices/popupSlice";
-import { useCartActions } from "../../hooks/useCartActions";
 import { removeFromCartThunk, updateQtyThunk } from "../../store/slices/cartSlice";
 
 const CartSidebar = () => {
@@ -15,7 +14,6 @@ const CartSidebar = () => {
 
   const handleClose = () => dispatch(toggleCart());
 
-  const { handleCartAction } = useCartActions();
 
   // 1. TÍNH TOÁN GIÁ TRỊ TỔNG ĐƠN HÀNG CHUẨN XÁC
   const originalTotal =
@@ -131,7 +129,6 @@ const CartSidebar = () => {
                                 }),
                               );
                             }
-                            // handleCartAction(product, "UPDATE_QTY", -1)
                           }
                           className="p-1 hover:text-[#77cd3af2] transition-colors"
                         >
@@ -153,7 +150,6 @@ const CartSidebar = () => {
                                 }),
                               );
                             }
-                            // handleCartAction(product, "UPDATE_QTY", 1)
                           }
                           disabled={item.quantity >= product.stock}
                           className={`p-1 hover:text-[#77cd3af2] transition-colors ${item.quantity >= product.stock ? "opacity-20 cursor-not-allowed" : ""}`}
@@ -191,7 +187,6 @@ const CartSidebar = () => {
 
                       dispatch(removeFromCartThunk({ productId: product._id }));
                     }}
-                    // handleCartAction(product, "REMOVE")}
                     className="absolute right-0 top-0 md:opacity-0 md:group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all cursor-pointer p-1"
                     aria-label="Remove item"
                   >

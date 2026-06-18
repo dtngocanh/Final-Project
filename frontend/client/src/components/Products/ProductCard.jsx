@@ -3,7 +3,7 @@ import { Star, Plus, Leaf, Carrot, Citrus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { useCartActions } from "../../hooks/useCartActions";
+import { trackClickThunk } from "../../store/slices/interactionSlice";
 import { useProductNavigation } from "../../hooks/useProductNavigation";
 import { addToCartThunk } from "../../store/slices/cartSlice";
 import { addToRecentlyViewed } from "../../store/slices/interactionSlice"; // IMPORT ACTION VỪA XEM GẦN ĐÂY
@@ -12,7 +12,6 @@ import { toast } from "react-toastify";
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { handleCartAction } = useCartActions();
   const { handleProductClick } = useProductNavigation();
 
   // Hàm render Tag Giảm giá / Best Seller đồng bộ logic từ Slider
@@ -74,7 +73,10 @@ const ProductCard = ({ product }) => {
       setTimeout(() => {
         flyer.remove();
         cartIcon.classList.add("cart-bounce-feedback");
-        setTimeout(() => cartIcon.classList.remove("cart-bounce-feedback"), 300);
+        setTimeout(
+          () => cartIcon.classList.remove("cart-bounce-feedback"),
+          300,
+        );
       }, 800);
     } else {
       console.warn("Fly to cart failed: Không tìm thấy ảnh sản phẩm hoặc '#navbar-cart-icon' trên Navbar!");
@@ -173,15 +175,11 @@ const ProductCard = ({ product }) => {
               // Kích hoạt hiệu ứng bay ngay lập tức
               runFlyToCartAnimation(e.currentTarget);
 
-              // Đồng bộ Redux + Gửi log tracking AI (Hook không tự bắn Toast)
-              await handleCartAction(product, "ADD", 1, true);
-
-              // Lưu dữ liệu backend qua Thunk và hiển thị một Toast duy nhất tại đây
               try {
                 await dispatch(
                   addToCartThunk({ productId: product._id, quantity: 1 }),
                 ).unwrap();
-                toast.success(`Added ${product.name} to cart`);
+                // toast.success(`Added ${product.name} to cart`);
               } catch (error) {
                 toast.error("Failed to add product to cart");
               }

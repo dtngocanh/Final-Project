@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom"; 
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -12,17 +12,16 @@ import {
   Citrus,
 } from "lucide-react";
 import FloatingDecor from "../Fruit/FloatingDecor.jsx";
-import { useCartActions } from "../../hooks/useCartActions";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { fetchRecommendations } from "../../store/slices/recommendSlice.js";
-import { addToRecentlyViewed } from "../../store/slices/interactionSlice.js"; 
+import { addToCartThunk } from "../../store/slices/cartSlice.js";
+import { addToRecentlyViewed } from "../../store/slices/interactionSlice.js";
 
 const RecommendSlider = () => {
   const scrollRef = useRef(null);
   const dispatch = useDispatch();
-  const navigate = useNavigate(); 
-  const { handleCartAction } = useCartActions();
+  const navigate = useNavigate();
 
   const { list = [], isLoading } = useSelector((state) => state.recommend);
 
@@ -37,10 +36,10 @@ const RecommendSlider = () => {
   // HÀM XỬ LÝ KHI NGƯỜI DÙNG BẤM XEM CHI TIẾT SẢN PHẨM GỢI Ý
   const handleProductDetailClick = (e, product) => {
     e.preventDefault();
-    
+
     // Ghi nhận ngay vào danh sách RAM "Sản phẩm vừa xem" để hiển thị tức thì
     dispatch(addToRecentlyViewed(product));
-    
+
     // Tiến hành chuyển sang trang thông tin chi tiết
     navigate(`/product/${product._id}`);
   };
@@ -52,6 +51,8 @@ const RecommendSlider = () => {
     const cardContainer = e.currentTarget.closest(".group\\/card");
     const productImage = cardContainer?.querySelector(".product-img-target");
     const cartIcon = document.getElementById("navbar-cart-icon");
+
+    dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
 
     if (productImage && cartIcon) {
       const imgRect = productImage.getBoundingClientRect();
@@ -69,7 +70,7 @@ const RecommendSlider = () => {
       flyImg.style.left = `${imgRect.left}px`;
       flyImg.style.top = `${imgRect.top}px`;
 
-      const targetWidth = 24; 
+      const targetWidth = 24;
       const targetHeight = 24;
       const targetLeft = cartRect.left + cartRect.width / 2 - targetWidth / 2;
       const targetTop = cartRect.top + cartRect.height / 2 - targetHeight / 2;
@@ -84,27 +85,27 @@ const RecommendSlider = () => {
 
       document.body.appendChild(flyImg);
 
-      const animationDuration = 1100; 
+      const animationDuration = 1100;
 
       setTimeout(() => {
         flyImg.remove();
-        handleCartAction(product, "ADD", 1);
 
+        // Hiệu ứng phản hồi nhún nhảy nhẹ nhàng của icon giỏ hàng khi tiếp nhận
         cartIcon.classList.add("cart-bounce-feedback");
         setTimeout(() => {
           cartIcon.classList.remove("cart-bounce-feedback");
         }, 300);
       }, animationDuration);
-
     } else {
-      handleCartAction(product, "ADD", 1);
+      dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
     }
   };
 
   const scroll = (direction) => {
     if (scrollRef.current) {
       const clientWidth = scrollRef.current.clientWidth;
-      const amount = direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
+      const amount =
+        direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
 
       scrollRef.current.scrollBy({
         left: amount,
@@ -115,7 +116,8 @@ const RecommendSlider = () => {
 
   const renderProductTag = (product) => {
     let tagText = product.tag;
-    let tagClass = "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
+    let tagClass =
+      "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
 
     if (!tagText) {
       if (product.discount > 0) {
@@ -240,7 +242,11 @@ const RecommendSlider = () => {
                   {/* UPPER PART: IMAGE BOX */}
                   <div className="relative w-full aspect-[4/3] md:aspect-square p-3 sm:p-4 md:p-5 flex items-center justify-center rounded-t-2xl md:rounded-t-[1.75rem] overflow-hidden z-10">
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 flex items-center gap-0.5 bg-white/90 dark:bg-neutral-950/90 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-neutral-600 dark:text-neutral-400 border border-neutral-200/30 dark:border-neutral-800/50 backdrop-blur-md">
-                      <Star size={8} fill="#77cd3a" className="text-[#77cd3a]" />
+                      <Star
+                        size={8}
+                        fill="#77cd3a"
+                        className="text-[#77cd3a]"
+                      />
                       <span>{product.ratings?.toFixed(1) || "0.0"}</span>
                     </div>
 
@@ -251,11 +257,15 @@ const RecommendSlider = () => {
                       className="w-full h-full flex items-center justify-center p-2 relative z-10 cursor-pointer"
                     >
                       <img
-                        src={product.images?.[0]?.url || product.image || "/placeholder.png"}
+                        src={
+                          product.images?.[0]?.url ||
+                          product.image ||
+                          "/placeholder.png"
+                        }
                         alt={product.name}
                         className="product-img-target max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-normal dark:brightness-95"
                         loading="lazy"
-                  />
+                      />
                     </div>
 
                     <button
@@ -271,8 +281,13 @@ const RecommendSlider = () => {
                   <div className="p-3 sm:p-4 flex flex-col justify-between flex-1 min-h-[95px] md:min-h-[110px] relative z-20 bg-transparent">
                     <div className="w-full space-y-1">
                       <div className="flex items-center gap-1 text-[9px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500 font-semibold">
-                        <Leaf size={8} className="text-[#77cd3a] flex-shrink-0" />
-                        <span className="truncate max-w-full">{product.reason || "Organic Pick"}</span>
+                        <Leaf
+                          size={8}
+                          className="text-[#77cd3a] flex-shrink-0"
+                        />
+                        <span className="truncate max-w-full">
+                          {product.reason || "Organic Pick"}
+                        </span>
                       </div>
                       <h4 className="text-xs md:text-sm font-semibold text-neutral-800 dark:text-neutral-200 tracking-tight truncate transition-colors duration-200 group-hover/card:text-neutral-950 dark:group-hover/card:text-white">
                         {product.name}
@@ -294,7 +309,10 @@ const RecommendSlider = () => {
 
             {/* SHOW ALL BLOCK */}
             <div className="flex-shrink-0 w-[110px] sm:w-[130px] flex flex-col items-center justify-center snap-start pl-2 md:row-span-2">
-              <Link to="/products" className="group/all flex flex-col items-center gap-1.5">
+              <Link
+                to="/products"
+                className="group/all flex flex-col items-center gap-1.5"
+              >
                 <div className="w-9 h-9 md:w-11 md:h-11 rounded-full border border-dashed border-neutral-300 dark:border-neutral-800 flex items-center justify-center group-hover/all:border-[#77cd3a] group-hover/all:bg-[#77cd3a]/5 transition-all duration-300">
                   <ArrowRight
                     size={14}

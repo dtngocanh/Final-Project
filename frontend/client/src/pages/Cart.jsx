@@ -12,7 +12,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import FloatingDecor from "../components/Fruit/FloatingDecor";
-import { useCartActions } from "../hooks/useCartActions";
 import { useProductNavigation } from "../hooks/useProductNavigation";
 import { clearCartThunk, removeFromCartThunk, updateQtyThunk } from "../store/slices/cartSlice";
 import { toast } from "react-toastify";
@@ -21,7 +20,6 @@ const Cart = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { cart, totalCart } = useSelector((state) => state.cart);
-  const { handleCartAction } = useCartActions();
 
   const { handleProductClick } = useProductNavigation();
 

@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom"; 
-import { useCartActions } from "../../hooks/useCartActions";
 import FloatingDecor from "../Fruit/FloatingDecor";
 import FruitLoader from "../Fruit/FruitLoader";
+import { addToCartThunk } from "../../store/slices/cartSlice";
 
 const ProductSlider = ({
   title = "Seasonal Picks",
@@ -35,7 +35,6 @@ const ProductSlider = ({
   const isLoading =
     incomingLoading !== undefined ? incomingLoading : storeLoading;
 
-  const { handleCartAction } = useCartActions();
   const scrollVelocity = useRef(0);
   const isAnimationLoopRunning = useRef(false);
 
@@ -101,6 +100,8 @@ const ProductSlider = ({
     const productImage = cardContainer?.querySelector(".product-img-target");
     const cartIcon = document.getElementById("navbar-cart-icon");
 
+    dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
+
     if (productImage && cartIcon) {
       const imgRect = productImage.getBoundingClientRect();
       const cartRect = cartIcon.getBoundingClientRect();
@@ -131,7 +132,6 @@ const ProductSlider = ({
 
       setTimeout(() => {
         flyImg.remove();
-        handleCartAction(product, "ADD", 1);
         cartIcon.classList.add("cart-bounce-feedback");
         setTimeout(
           () => cartIcon.classList.remove("cart-bounce-feedback"),

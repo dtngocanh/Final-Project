@@ -6,8 +6,8 @@ import { toast } from "react-toastify";
 export const fetchCart = createAsyncThunk("cart/fetch", async (_, thunkAPI) => {
   try {
     const res = await axiosInstance.get("/cart/get");
-    console.log(res.data.total_cart);
-    
+    // console.log(res.data.total_cart);
+
     return res.data; // Trả về { success: true, cartItems: [...], total_cart: ... }
   } catch (error) {
     return thunkAPI.rejectWithValue(
@@ -16,28 +16,6 @@ export const fetchCart = createAsyncThunk("cart/fetch", async (_, thunkAPI) => {
   }
 });
 
-// 2. Thunk: Cập nhật Giỏ hàng (Tăng/Giảm số lượng, Xóa item đơn lẻ)
-export const updateCart = createAsyncThunk(
-  "cart/update",
-  async (cartItems, thunkAPI) => {
-    try {
-      const formattedCart = cartItems.map((item) => ({
-        product: item.product._id || item._id,
-        quantity: item.quantity,
-      }));
-
-      const res = await axiosInstance.post("/cart/update", {
-        cartItems: formattedCart,
-      });
-
-      return res.data; // Trả về data mới nhất từ DB sau khi update
-    } catch (error) {
-      return thunkAPI.rejectWithValue(
-        error.response?.data?.message || "Update failed",
-      );
-    }
-  },
-);
 
 // 3. THÊM MỚI TẠI ĐÂY - Thunk: Thêm gói Combo giảm giá 10%
 export const addComboToCart = createAsyncThunk(
@@ -153,11 +131,6 @@ const cartSlice = createSlice({
         state.loading = false;
       })
 
-      .addCase(updateCart.fulfilled, (state, action) => {
-        state.cart = action.payload.cartItems || [];
-        state.totalCart = action.payload.total_cart || 0;
-      })
-
       .addCase(addComboToCart.pending, (state) => {
         state.loading = true;
       })
@@ -175,15 +148,19 @@ const cartSlice = createSlice({
       })
       .addCase(addToCartThunk.fulfilled, (state, action) => {
         state.cart = action.payload.cartItems;
+        state.totalCart = action.payload.total_cart;
       })
       .addCase(removeFromCartThunk.fulfilled, (state, action) => {
         state.cart = action.payload.cartItems;
+        state.totalCart = action.payload.total_cart;
       })
       .addCase(updateQtyThunk.fulfilled, (state, action) => {
         state.cart = action.payload.cartItems;
+        state.totalCart = action.payload.total_cart;
       })
       .addCase(clearCartThunk.fulfilled, (state, action) => {
-        state.cart = action.payload.cartItems; 
+        state.cart = action.payload.cartItems;
+        state.totalCart = action.payload.total_cart;
       });
   },
 });

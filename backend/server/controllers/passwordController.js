@@ -16,7 +16,7 @@ export const forgotPassword = async (req, res) => {
   const user = await User.findOne({ email });
   // console.log(user);
 
-  if (!user) return res.status(404).json({ message: "Email not found." });
+  if (!user) return res.status(404).json({ message: "Email address not found." });
 
   // Tạo token reset
   const { resetToken, hashedToken, resetPasswordExpireTime } =
@@ -40,7 +40,7 @@ export const forgotPassword = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Verification email sent! Check your inbox.",
+      message: "A password reset link has been sent to your email.",
     });
   } catch (error) {
     user.resetPasswordToken = undefined;

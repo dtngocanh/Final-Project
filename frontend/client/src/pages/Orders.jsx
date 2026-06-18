@@ -20,13 +20,11 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { cancelOrder, fetchMyOrders } from "../store/slices/orderSlice";
-import { useCartActions } from "../hooks/useCartActions";
 const MontionLink = motion.create(Link);
 
 const Orders = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { handleCartAction } = useCartActions();
   const [statusFilter, setStatusFilter] = useState("all");
 
   const { myOrders, fetchingOrders } = useSelector((state) => state.order);
