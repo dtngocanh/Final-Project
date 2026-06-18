@@ -264,6 +264,7 @@ export const bulkAddCart = async (req, res, next) => {
     res.json({
       success: true,
       cartItems: populated.cartItems,
+      total_cart: user.total_cart,
     });
   } catch (err) {
     next(err);
@@ -309,6 +310,7 @@ export const addToCart = async (req, res, next) => {
     res.json({
       success: true,
       cartItems: populated.cartItems,
+      total_cart: user.total_cart,
     });
   } catch (err) {
     next(err);
@@ -332,7 +334,11 @@ export const removeFromCart = async (req, res) => {
   await user.save();
 
   const populated = await user.populate("cartItems.product");
-  res.json({ cartItems: populated.cartItems });
+  res.json({
+    success: true,
+    cartItems: populated.cartItems,
+    total_cart: user.total_cart,
+  });
 };
 
 export const updateQty = async (req, res) => {
@@ -363,7 +369,11 @@ export const updateQty = async (req, res) => {
   await user.save();
 
   const populated = await user.populate("cartItems.product");
-  res.json({ cartItems: populated.cartItems });
+  res.json({
+    success: true,
+    cartItems: populated.cartItems,
+    total_cart: user.total_cart,
+  });
 };
 
 export const clearCart = async (req, res) => {
@@ -377,7 +387,7 @@ export const clearCart = async (req, res) => {
     user.total_cart = 0;
     await user.save();
 
-    res.json({ cartItems: [] });
+    res.json({ success: true, cartItems: [], total_cart: 0 });
   } catch (error) {
     console.error("Error clearing cart:", error);
     res.status(500).json({ message: "Internal server error" });

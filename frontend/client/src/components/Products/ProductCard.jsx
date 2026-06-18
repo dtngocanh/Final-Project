@@ -3,7 +3,6 @@ import { Star, Plus, Leaf, Carrot, Citrus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { useCartActions } from "../../hooks/useCartActions";
 import { trackClickThunk } from "../../store/slices/interactionSlice";
 import { useProductNavigation } from "../../hooks/useProductNavigation";
 import { addToCartThunk } from "../../store/slices/cartSlice";
@@ -12,7 +11,6 @@ import { toast } from "react-toastify";
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { handleCartAction } = useCartActions();
   const { handleProductClick } = useProductNavigation();
 
   // Hàm render Tag Giảm giá / Best Seller đồng bộ logic từ Slider
@@ -47,17 +45,21 @@ const ProductCard = ({ product }) => {
     // Tìm container .group gần nhất từ nút bấm
     const productCardElement = buttonElement.closest(".group");
     const productImg = productCardElement?.querySelector(".product-target-img");
-    
+
     // Tìm giỏ hàng đích (Sử dụng đúng ID navbar-cart-icon đã đồng bộ với Navbar)
-    const cartIcon = document.getElementById("navbar-cart-icon") || document.querySelector(".cart-icon-class");
+    const cartIcon =
+      document.getElementById("navbar-cart-icon") ||
+      document.querySelector(".cart-icon-class");
 
     if (productImg && cartIcon) {
       const imgRect = productImg.getBoundingClientRect();
       const cartRect = cartIcon.getBoundingClientRect();
 
       // Tính khoảng cách di chuyển chính xác tuyệt đối
-      const flyX = cartRect.left - imgRect.left + (cartRect.width / 2) - (imgRect.width / 2);
-      const flyY = cartRect.top - imgRect.top + (cartRect.height / 2) - (imgRect.height / 2);
+      const flyX =
+        cartRect.left - imgRect.left + cartRect.width / 2 - imgRect.width / 2;
+      const flyY =
+        cartRect.top - imgRect.top + cartRect.height / 2 - imgRect.height / 2;
 
       const flyer = document.createElement("img");
       flyer.src = productImg.src;
@@ -79,10 +81,15 @@ const ProductCard = ({ product }) => {
       setTimeout(() => {
         flyer.remove();
         cartIcon.classList.add("cart-bounce-feedback");
-        setTimeout(() => cartIcon.classList.remove("cart-bounce-feedback"), 300);
+        setTimeout(
+          () => cartIcon.classList.remove("cart-bounce-feedback"),
+          300,
+        );
       }, 800);
     } else {
-      console.warn("Fly to cart failed: Khong tìm thay ảnh sản phẩm hoặc '#navbar-cart-icon' trên Navbar!");
+      console.warn(
+        "Fly to cart failed: Khong tìm thay ảnh sản phẩm hoặc '#navbar-cart-icon' trên Navbar!",
+      );
     }
   };
 
@@ -93,7 +100,6 @@ const ProductCard = ({ product }) => {
     >
       {/* CONTAINER CARD */}
       <div className="relative flex flex-col h-full bg-white dark:bg-gradient-to-b dark:from-neutral-900 dark:to-neutral-950/90 rounded-2xl sm:rounded-[2rem] overflow-hidden border border-neutral-100 dark:border-neutral-800/50 shadow-sm lg:hover:border-[#77cd3a]/40 lg:hover:shadow-[0_20px_40px_rgba(119,205,58,0.08)] dark:lg:hover:shadow-[0_20px_40px_rgba(119,205,58,0.04)] transition-all duration-300 transform-gpu">
-        
         {/* 1. BACKGROUND GRADIENT HOVER - ĐÃ FIX LOANG XANH NHẸ CHO CẢ CHẾ ĐỘ SÁNG */}
         <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-[#77cd3a]/2 via-transparent to-transparent lg:group-hover:from-[#77cd3a]/8 dark:lg:group-hover:from-[#77cd3a]/12 lg:group-hover:via-[#77cd3a]/3 transition-all duration-500 pointer-events-none z-0" />
 
@@ -165,15 +171,11 @@ const ProductCard = ({ product }) => {
               // Kích hoạt hiệu ứng bay ngay lập tức (Không chờ đợi bất đồng bộ)
               runFlyToCartAnimation(e.currentTarget);
 
-              // Đồng bộ Redux + Gửi log tracking AI (Tham số 'true' giúp Hook không bắn Toast)
-              await handleCartAction(product, "ADD", 1, true);
-
-              // Lưu dữ liệu backend qua Thunk và hiển thị một Toast duy nhất tại đây
               try {
                 await dispatch(
                   addToCartThunk({ productId: product._id, quantity: 1 }),
                 ).unwrap();
-                toast.success(`Added ${product.name} to cart`);
+                // toast.success(`Added ${product.name} to cart`);
               } catch (error) {
                 toast.error("Failed to add product to cart");
               }

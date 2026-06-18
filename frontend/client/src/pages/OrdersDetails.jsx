@@ -18,7 +18,6 @@ import { motion } from "framer-motion";
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchOrderDetails } from "../store/slices/orderSlice";
-import { useCartActions } from "../hooks/useCartActions";
 import { addToCartThunk } from "../store/slices/cartSlice";
 import { toast } from "react-toastify";
 
@@ -26,7 +25,6 @@ const OrderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { handleCartAction } = useCartActions();
 
   const { orderDetail } = useSelector((state) => state.order);
 

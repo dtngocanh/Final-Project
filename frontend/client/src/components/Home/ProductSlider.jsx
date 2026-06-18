@@ -4,9 +4,9 @@ import { fetchAllProducts } from "../../store/slices/productSlice";
 import { ChevronLeft, ChevronRight, Star, Plus, Leaf, Carrot, Citrus } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { useCartActions } from "../../hooks/useCartActions";
 import FloatingDecor from "../Fruit/FloatingDecor";
 import FruitLoader from "../Fruit/FruitLoader";
+import { addToCartThunk } from "../../store/slices/cartSlice";
 
 const ProductSlider = ({ title = "Seasonal Picks", products: incomingProducts, loading: incomingLoading }) => {
   const scrollRef = useRef(null);
@@ -19,7 +19,6 @@ const ProductSlider = ({ title = "Seasonal Picks", products: incomingProducts, l
   const products = incomingProducts !== undefined ? incomingProducts : storeProducts;
   const isLoading = incomingLoading !== undefined ? incomingLoading : storeLoading;
 
-  const { handleCartAction } = useCartActions();
   const scrollVelocity = useRef(0);
   const isAnimationLoopRunning = useRef(false);
 
@@ -38,6 +37,8 @@ const ProductSlider = ({ title = "Seasonal Picks", products: incomingProducts, l
     const cardContainer = e.currentTarget.closest(".group");
     const productImage = cardContainer?.querySelector(".product-img-target");
     const cartIcon = document.getElementById("navbar-cart-icon");
+
+    dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
 
     if (productImage && cartIcon) {
       const imgRect = productImage.getBoundingClientRect();
@@ -73,7 +74,6 @@ const ProductSlider = ({ title = "Seasonal Picks", products: incomingProducts, l
 
       setTimeout(() => {
         flyImg.remove();
-        handleCartAction(product, "ADD", 1);
         cartIcon.classList.add("cart-bounce-feedback");
         setTimeout(() => cartIcon.classList.remove("cart-bounce-feedback"), 300);
       }, 800);

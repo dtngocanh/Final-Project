@@ -12,15 +12,15 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { useCartActions } from "../hooks/useCartActions";
 import RecommendSuccess from "../components/Layout/RecommendSuccess";
 
 import { fetchRecommendations } from "../store/slices/recommendSlice";
 import { axiosInstance } from "../lib/axios";
+import { addToCartThunk } from "../store/slices/cartSlice";
+import { toast } from "react-toastify";
 
 const Success = () => {
   const dispatch = useDispatch(); // Khai báo dispatch từ hook
-  const { handleCartAction } = useCartActions();
 
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session_id");
@@ -67,7 +67,20 @@ const Success = () => {
 
   const onAddToCart = (e, product) => {
     e.preventDefault();
-    handleCartAction(product, "ADD", 1);
+    dispatch(addToCartThunk({ productId: product._id, quantity: 1 }))
+      .unwrap()
+      .then((response) => {
+        toast.success(`Added ${product.name} to cart!`, {
+          position: "bottom-right",
+          autoClose: 2000,
+          toastId: `add-success-${product._id}`,
+        });
+      })
+      .catch((error) => {
+        toast.error(error || "Failed to add product to cart!");
+      });
+
+    // handleCartAction(product, "ADD", 1);
   };
 
   return (

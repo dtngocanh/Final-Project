@@ -21,7 +21,6 @@ import "swiper/css";
 import "swiper/css/navigation";
 
 import FloatingDecor from "../components/Fruit/FloatingDecor";
-import { useCartActions } from "../hooks/useCartActions";
 import {
   fetchProductDetails,
   fetchRelatedProducts,
@@ -39,7 +38,6 @@ const ProductDetail = () => {
   
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const { handleCartAction } = useCartActions();
   
   const {
     productDetails: product,

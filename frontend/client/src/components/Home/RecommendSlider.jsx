@@ -12,15 +12,14 @@ import {
   Citrus,
 } from "lucide-react";
 import FloatingDecor from "../Fruit/FloatingDecor.jsx";
-import { useCartActions } from "../../hooks/useCartActions";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { fetchRecommendations } from "../../store/slices/recommendSlice.js";
+import { addToCartThunk } from "../../store/slices/cartSlice.js";
 
 const RecommendSlider = () => {
   const scrollRef = useRef(null);
   const dispatch = useDispatch();
-  const { handleCartAction } = useCartActions();
 
   const { list = [], isLoading } = useSelector((state) => state.recommend);
 
@@ -39,6 +38,8 @@ const RecommendSlider = () => {
     const cardContainer = e.currentTarget.closest(".group\\/card");
     const productImage = cardContainer?.querySelector(".product-img-target");
     const cartIcon = document.getElementById("navbar-cart-icon");
+
+    dispatch(addToCartThunk({productId: product._id, quantity: 1}));
 
     if (productImage && cartIcon) {
       const imgRect = productImage.getBoundingClientRect();
@@ -87,9 +88,6 @@ const RecommendSlider = () => {
       setTimeout(() => {
         flyImg.remove();
         
-        // Thêm sản phẩm vào Redux
-        handleCartAction(product, "ADD", 1);
-
         // Hiệu ứng phản hồi nhún nhảy nhẹ nhàng của icon giỏ hàng khi tiếp nhận
         cartIcon.classList.add("cart-bounce-feedback");
         setTimeout(() => {
