@@ -88,8 +88,9 @@ const App = () => {
             <Footer />
           </div>
           <ToastContainer
+            position="bottom-right"
             autoClose={1500}
-            hideProgressBar={false} 
+            hideProgressBar={false}
             newestOnTop={true}
             closeOnClick
             rtl={false}

@@ -163,8 +163,6 @@ const ChatBot = () => {
                                       toast.success(
                                         `Added ${p.name} to cart!`,
                                         {
-                                          position: "bottom-right",
-                                          autoClose: 2000,
                                           toastId: `add-success-${p._id}`,
                                         },
                                       );

@@ -35,10 +35,10 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  
+
   const {
     productDetails: product,
     loading,
@@ -77,27 +77,34 @@ const ProductDetail = () => {
 
   return (
     <main className="min-h-screen pt-28 md:pt-36 pb-24 bg-[#f6f6f9] dark:bg-[#08080a] relative overflow-hidden transition-colors duration-1000 select-none antialiased">
-      <ToastContainer toastStyle={{ borderRadius: "32px", background: "rgba(255,255,255,0.9)", backdropFilter: "blur(20px)", boxShadow: "0 10px 50px rgba(0,0,0,0.03)" }} />
+      <ToastContainer
+        toastStyle={{
+          borderRadius: "32px",
+          background: "rgba(255,255,255,0.9)",
+          backdropFilter: "blur(20px)",
+          boxShadow: "0 10px 50px rgba(0,0,0,0.03)",
+        }}
+      />
 
       <FloatingDecor />
 
       {/* ================= ULTRA-SMOOTH AMBIENT MESH GLOW ================= */}
       {/* Luồng sáng cực mịn, không tạo viền đốm, chuyển động siêu chậm như khói sinh học */}
       <div className="absolute top-0 inset-x-0 h-[100vh] pointer-events-none overflow-hidden z-0">
-        <motion.div 
-          animate={{ 
+        <motion.div
+          animate={{
             x: [-100, 100, -100],
             y: [-50, 50, -50],
-            scale: [1, 1.2, 1]
+            scale: [1, 1.2, 1],
           }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
           className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] bg-radial from-[#77cd3a]/8 via-[#77cd3a]/2 to-transparent dark:from-[#77cd3a]/12 blur-[160px] rounded-full"
         />
-        <motion.div 
-          animate={{ 
+        <motion.div
+          animate={{
             x: [50, -50, 50],
             y: [100, -100, 100],
-            scale: [1.1, 0.9, 1.1]
+            scale: [1.1, 0.9, 1.1],
           }}
           transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
           className="absolute top-[30%] -right-[20%] w-[60vw] h-[60vw] bg-radial from-[#77cd3a]/5 via-transparent to-transparent dark:from-[#77cd3a]/8 blur-[140px] rounded-full"
@@ -105,14 +112,16 @@ const ProductDetail = () => {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 lg:px-12">
-        
         {/* Navigation / Minimal Breadcrumb */}
         <nav className="flex items-center gap-3 text-[10px] uppercase tracking-[0.4em] text-neutral-400 dark:text-neutral-600 mb-12 w-fit">
           <button
             onClick={() => navigate(-1)}
             className="hover:text-neutral-900 dark:hover:text-neutral-100 transition-colors flex items-center gap-2 group font-semibold"
           >
-            <ArrowLeft size={11} className="group-hover:-translate-x-1 transition-transform duration-500 ease-out" /> 
+            <ArrowLeft
+              size={11}
+              className="group-hover:-translate-x-1 transition-transform duration-500 ease-out"
+            />
             <span>Close</span>
           </button>
           <span className="opacity-30">/</span>
@@ -123,9 +132,8 @@ const ProductDetail = () => {
 
         {/* Layout Tỉ lệ vàng: 7 cột (Ảnh) và 5 cột (Thông tin) để tạo khoảng trống thở cực rộng */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 xl:gap-24 items-start">
-          
           {/* ================= CỘT TRÁI: GALLERY PHÓNG KHOÁNG ================= */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.19, 1, 0.22, 1] }}
@@ -158,12 +166,16 @@ const ProductDetail = () => {
                 {[...Array(5)].map((_, i) => {
                   const ratingValue = product.ratings || 0;
                   return (
-                    <Star 
-                      key={i} 
-                      size={11} 
-                      fill={i < Math.floor(ratingValue) ? "#77cd3a" : "none"} 
-                      className={i < Math.floor(ratingValue) ? "text-[#77cd3a]" : "text-neutral-300 dark:text-neutral-800"} 
-                      strokeWidth={i < Math.floor(ratingValue) ? 0 : 1.5} 
+                    <Star
+                      key={i}
+                      size={11}
+                      fill={i < Math.floor(ratingValue) ? "#77cd3a" : "none"}
+                      className={
+                        i < Math.floor(ratingValue)
+                          ? "text-[#77cd3a]"
+                          : "text-neutral-300 dark:text-neutral-800"
+                      }
+                      strokeWidth={i < Math.floor(ratingValue) ? 0 : 1.5}
                     />
                   );
                 })}
@@ -172,7 +184,9 @@ const ProductDetail = () => {
                 </span>
               </div>
               <span className="opacity-30">•</span>
-              <span className="tracking-wide text-[11px] font-normal">{product.numOfReviews} Bespoke Reviews</span>
+              <span className="tracking-wide text-[11px] font-normal">
+                {product.numOfReviews} Bespoke Reviews
+              </span>
             </div>
 
             {/* Mô tả sản phẩm dạng Editorial Line spacing rộng thoáng */}
@@ -183,21 +197,23 @@ const ProductDetail = () => {
             {/* ================= THE NEW INTEGRATED PURCHASE BAR ================= */}
             {/* Thiết kế phẳng hoàn toàn, dùng phân tách khoảng trống (Whitespace) thay vì đóng khung */}
             <div className="flex flex-col gap-6 pt-6 border-t border-neutral-200/50 dark:border-neutral-800/60">
-              
               {/* Hiển thị Giá tiền lớn, sắc nét */}
               <div className="flex items-baseline justify-between">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500 font-medium">Value</span>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500 font-medium">
+                  Value
+                </span>
                 <div className="flex items-baseline text-neutral-900 dark:text-neutral-50">
-                  <span className="text-lg font-light text-neutral-400 mr-0.5">$</span>
+                  <span className="text-lg font-light text-neutral-400 mr-0.5">
+                    $
+                  </span>
                   <span className="text-4xl font-extralight tracking-tight">
-                    {(product.price * quantity).toFixed(2)}
+                    {product?.price ? product.price.toFixed(2) : "0.00"}
                   </span>
                 </div>
               </div>
 
               {/* Hợp nhất Control Số lượng + Nút mua hàng trên 1 hàng ngang cực mượt */}
               <div className="flex items-center gap-3 w-full mt-2">
-                
                 {/* Bộ đếm số lượng dẹp, không viền hộp cứng */}
                 <div className="flex items-center bg-neutral-200/50 dark:bg-neutral-900/60 p-1 rounded-2xl border border-neutral-300/10 h-14">
                   <button
@@ -224,20 +240,31 @@ const ProductDetail = () => {
                   onClick={async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    try {
-                      await dispatch(
-                        addToCartThunk({ productId: product._id, quantity: quantity }),
-                      ).unwrap();
-                      toast.success(`Added ${product.name} to cart`);
-                    } catch (error) {
-                      toast.error("Failed to add product to cart");
-                    }
+                    await dispatch(
+                      addToCartThunk({
+                        productId: product._id,
+                        quantity: quantity,
+                      }),
+                    )
+                      .unwrap()
+                      .then((response) => {
+                        toast.success(`Added ${product.name} to cart!`, {
+                          position: "bottom-right",
+                          autoClose: 2000,
+                          toastId: `add-success-${product._id}`,
+                        });
+                      })
+                      .catch((error) => {
+                        toast.error(error || "Failed to add product to cart!");
+                      });
                   }}
                   disabled={product.stock === 0}
                   className="flex-1 h-14 bg-[#77cd3a] text-white dark:text-neutral-950 font-bold text-[11px] uppercase tracking-[0.25em] rounded-2xl flex items-center justify-center gap-3 shadow-[0_10px_25px_rgba(119,205,58,0.25)] hover:shadow-[0_15px_30px_rgba(119,205,58,0.4)] disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-500 ease-out"
                 >
                   <ShoppingBag size={13} />
-                  <span>{product.stock === 0 ? "Out of Stock" : "Add to Bag"}</span>
+                  <span>
+                    {product.stock === 0 ? "Out of Stock" : "Add to Bag"}
+                  </span>
                 </motion.button>
               </div>
             </div>
@@ -245,13 +272,22 @@ const ProductDetail = () => {
             {/* Meta Footer của cụm thông tin */}
             <div className="mt-8 flex justify-between items-center text-[9px] tracking-[0.15em] uppercase text-neutral-400 dark:text-neutral-600 font-medium px-1">
               <button className="flex items-center gap-1.5 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors group">
-                <Share2 size={10} className="group-hover:scale-110 transition-transform duration-300" /> 
+                <Share2
+                  size={10}
+                  className="group-hover:scale-110 transition-transform duration-300"
+                />
                 <span>Share</span>
               </button>
               <div className="flex items-center gap-3 font-light normal-case">
                 <span>ID: {product._id?.slice(-6)}</span>
                 <span className="w-1 h-1 rounded-full bg-neutral-300 dark:bg-neutral-800" />
-                <span className={product.stock > 10 ? "text-neutral-400" : "text-amber-600 font-normal"}>
+                <span
+                  className={
+                    product.stock > 10
+                      ? "text-neutral-400"
+                      : "text-amber-600 font-normal"
+                  }
+                >
                   {product.stock} pieces available
                 </span>
               </div>
@@ -265,13 +301,13 @@ const ProductDetail = () => {
           <div className="opacity-95 hover:opacity-100 transition-opacity duration-500">
             <BundleSection mainProduct={product} />
           </div>
-          
+
           {recipes && recipes.length > 0 && (
             <div className="pt-12 border-t border-neutral-200/40 dark:border-neutral-900/40">
               <RecipeList recipes={recipes} navigate={navigate} />
             </div>
           )}
-          
+
           <div className="pt-12 border-t border-neutral-200/40 dark:border-neutral-900/40">
             <RelatedProducts products={relatedProducts} />
           </div>
