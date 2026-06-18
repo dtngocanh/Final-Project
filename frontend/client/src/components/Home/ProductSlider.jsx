@@ -38,7 +38,14 @@ const ProductSlider = ({
   const scrollVelocity = useRef(0);
   const isAnimationLoopRunning = useRef(false);
 
- useEffect(() => {
+  useEffect(() => {
+    if (incomingProducts === undefined) {
+      dispatch(fetchAllProducts());
+    }
+  }, [dispatch, incomingProducts]);
+
+  // ĐÃ GỘP VÀ TỐI ƯU DUY NHẤT 1 EFFECT QUẢN LÝ WHEEL SCROLL KHÔNG BỊ KHỰNG
+  useEffect(() => {
     const slider = scrollRef.current;
     if (!slider) return;
 
@@ -54,17 +61,18 @@ const ProductSlider = ({
     };
 
     const handleWheelScroll = (e) => {
-      // Chỉ xử lý trên màn hình lớn (Desktop / Laptop)
       if (window.innerWidth >= 1024) {
-        
-        // KIỂM TRA HƯỚNG CUỘN: Nếu người dùng đang cuộn dọc (deltaY lớn hơn deltaX), cho qua để cuộn trang tự nhiên
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        const absX = Math.abs(e.deltaX);
+        const absY = Math.abs(e.deltaY);
+
+        // NẾU Ý ĐỊNH CỦA USER LÀ CUỘN DỌC (Hoặc lướt xéo thiên về hướng dọc) -> Trả quyền cho trình duyệt ngay lập tức
+        if (absY > absX || (absY > 0 && absX === 0)) {
           return; 
         }
 
-        // Nếu họ đang vuốt chuột/trackpad theo chiều ngang (deltaX có giá trị)
+        // Chỉ chặn hành vi mặc định và xử lý cuộn ngang khi user chủ định lướt ngang rõ ràng
         if (e.deltaX !== 0) {
-          e.preventDefault(); // Chỉ chặn hành vi mặc định khi thực sự cuộn ngang
+          e.preventDefault(); 
           scrollVelocity.current += e.deltaX * 0.15;
           scrollVelocity.current = Math.max(Math.min(scrollVelocity.current, 50), -50);
 
@@ -83,11 +91,7 @@ const ProductSlider = ({
   // HÀM XỬ LÝ KHI USER BẤM VÀO XEM CHI TIẾT SẢN PHẨM
   const handleProductDetailClick = (e, product) => {
     e.preventDefault();
-
-    // Đẩy thông tin sản phẩm vào Redux RAM ngay lập tức để lưu trạng thái "Vừa xem"
     dispatch(addToRecentlyViewed(product));
-
-    // Điều hướng sang trang chi tiết sản phẩm
     navigate(`/product/${product._id}`);
   };
 
@@ -138,8 +142,6 @@ const ProductSlider = ({
           300,
         );
       }, 800);
-    } else {
-      handleCartAction(product, "ADD", 1);
     }
   };
 
@@ -152,41 +154,6 @@ const ProductSlider = ({
       });
     }
   };
-
-  useEffect(() => {
-    const slider = scrollRef.current;
-    if (!slider) return;
-
-    const smoothScrollLoop = () => {
-      if (Math.abs(scrollVelocity.current) < 0.2) {
-        scrollVelocity.current = 0;
-        isAnimationLoopRunning.current = false;
-        return;
-      }
-      slider.scrollLeft += scrollVelocity.current;
-      scrollVelocity.current *= 0.88;
-      requestAnimationFrame(smoothScrollLoop);
-    };
-
-    const handleWheelScroll = (e) => {
-      if (window.innerWidth >= 1024 && e.deltaY !== 0) {
-        e.preventDefault();
-        scrollVelocity.current += e.deltaY * 0.15;
-        scrollVelocity.current = Math.max(
-          Math.min(scrollVelocity.current, 50),
-          -50,
-        );
-
-        if (!isAnimationLoopRunning.current) {
-          isAnimationLoopRunning.current = true;
-          requestAnimationFrame(smoothScrollLoop);
-        }
-      }
-    };
-
-    slider.addEventListener("wheel", handleWheelScroll, { passive: false });
-    return () => slider.removeEventListener("wheel", handleWheelScroll);
-  }, []);
 
   const renderProductTag = (product) => {
     let tagText = product.tag;
