@@ -74,8 +74,8 @@ const RecipeBento = () => {
           <span className="w-6 h-[1px] bg-[#4a7c59]/40"></span>
         </div>
         
-        <h4 className="text-xl md:text-2xl lg:text-3xl font-light tracking-[0.15em] text-neutral-900 dark:text-neutral-100 font-sans leading-none">
-          <span className="uppercase">Foolproof</span>{""}
+        <h4 className="text-xl md:text-2xl lg:text-3xl font-extralight tracking-[0.15em] text-neutral-900 dark:text-neutral-100 font-fredoka leading-none">
+          <span >Foolproof</span>{""}
           <span className="font-serif italic text-neutral-400 dark:text-neutral-500 lowercase ml-1.5 font-normal tracking-normal inline-block transform translate-y-[1px]">
             recipes
           </span>
