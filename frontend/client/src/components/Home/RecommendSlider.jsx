@@ -1,5 +1,5 @@
 import React, { useMemo, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; 
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -16,10 +16,12 @@ import { useCartActions } from "../../hooks/useCartActions";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { fetchRecommendations } from "../../store/slices/recommendSlice.js";
+import { addToRecentlyViewed } from "../../store/slices/interactionSlice.js"; 
 
 const RecommendSlider = () => {
   const scrollRef = useRef(null);
   const dispatch = useDispatch();
+  const navigate = useNavigate(); 
   const { handleCartAction } = useCartActions();
 
   const { list = [], isLoading } = useSelector((state) => state.recommend);
@@ -32,7 +34,18 @@ const RecommendSlider = () => {
     return (list || []).filter((p) => p && p._id && p.stock > 0);
   }, [list]);
 
-  // HÀM XỬ LÝ HIỆU ỨNG ẢNH BAY THẲNG TUỐT MƯỢT MÀ, THU NHỎ DẦN VÀO GIỎ HÀNG
+  // HÀM XỬ LÝ KHI NGƯỜI DÙNG BẤM XEM CHI TIẾT SẢN PHẨM GỢI Ý
+  const handleProductDetailClick = (e, product) => {
+    e.preventDefault();
+    
+    // Ghi nhận ngay vào danh sách RAM "Sản phẩm vừa xem" để hiển thị tức thì
+    dispatch(addToRecentlyViewed(product));
+    
+    // Tiến hành chuyển sang trang thông tin chi tiết
+    navigate(`/product/${product._id}`);
+  };
+
+  // HÀM XỬ LÝ HIỆU ỨNG ẢNH BAY THẲNG TUỐT MƯỢT MÀ
   const handleFlyToCart = (e, product) => {
     e.preventDefault();
 
@@ -48,14 +61,6 @@ const RecommendSlider = () => {
       flyImg.src = productImage.src;
       flyImg.className = "fly-to-cart-element";
 
-      if (
-        productImage.classList.contains("dark:invert") &&
-        document.documentElement.classList.contains("dark")
-      ) {
-        flyImg.style.filter = "invert(1)";
-      }
-
-      // Lấy kích thước ban đầu của ảnh để gán cứng lúc xuất phát (tránh bị nhảy size đột ngột)
       const initialWidth = imgRect.width;
       const initialHeight = imgRect.height;
 
@@ -64,8 +69,6 @@ const RecommendSlider = () => {
       flyImg.style.left = `${imgRect.left}px`;
       flyImg.style.top = `${imgRect.top}px`;
 
-      // Tính toán khoảng cách dịch chuyển chính xác (Delta) đến đích giỏ hàng
-      // Đích đến sẽ thu nhỏ về khít icon giỏ hàng
       const targetWidth = 24; 
       const targetHeight = 24;
       const targetLeft = cartRect.left + cartRect.width / 2 - targetWidth / 2;
@@ -81,16 +84,12 @@ const RecommendSlider = () => {
 
       document.body.appendChild(flyImg);
 
-      // Rút ngắn thời gian bay xuống còn 650ms cho có cảm giác tốc độ, dứt khoát
       const animationDuration = 1100; 
 
       setTimeout(() => {
         flyImg.remove();
-        
-        // Thêm sản phẩm vào Redux
         handleCartAction(product, "ADD", 1);
 
-        // Hiệu ứng phản hồi nhún nhảy nhẹ nhàng của icon giỏ hàng khi tiếp nhận
         cartIcon.classList.add("cart-bounce-feedback");
         setTimeout(() => {
           cartIcon.classList.remove("cart-bounce-feedback");
@@ -247,17 +246,17 @@ const RecommendSlider = () => {
 
                     {renderProductTag(product)}
 
-                    <Link
-                      to={`/product/${product._id}`}
-                      className="w-full h-full flex items-center justify-center p-2 relative z-10"
+                    <div
+                      onClick={(e) => handleProductDetailClick(e, product)}
+                      className="w-full h-full flex items-center justify-center p-2 relative z-10 cursor-pointer"
                     >
                       <img
                         src={product.images?.[0]?.url || product.image || "/placeholder.png"}
                         alt={product.name}
-                        className="product-img-target max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-screen dark:invert"
+                        className="product-img-target max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-normal dark:brightness-95"
                         loading="lazy"
-                      />
-                    </Link>
+                  />
+                    </div>
 
                     <button
                       onClick={(e) => handleFlyToCart(e, product)}
@@ -311,7 +310,6 @@ const RecommendSlider = () => {
         </div>
       </div>
 
-      {/* STYLE TAG TỐI ƯU ĐƯỜNG BAY TUYẾN TÍNH CHUẨN RESPONSIVE */}
       <style>{`
         .mobile-slider {
           scroll-snap-type: x mandatory;
@@ -325,47 +323,42 @@ const RecommendSlider = () => {
           display: none; 
         }
 
-        /* PHẦN TỬ BAY: BẮT ĐẦU BẰNG KÍCH THƯỚC THẬT CỦA SẢN PHẨM */
-    .fly-to-cart-element {
-      position: fixed;
-      object-fit: contain;
-      z-index: 99999;
-      pointer-events: none;
-      mix-blend-mode: multiply;
-      
-      /* Giữ thời gian 0.8s, dùng cubic-bezier chuẩn để ảnh tự lướt nhanh lúc đầu và giảm tốc mượt lúc cuối */
-      animation: absoluteStraightFly 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-      transform-origin: center center;
-    }
+        .fly-to-cart-element {
+          position: fixed;
+          object-fit: contain;
+          z-index: 99999;
+          pointer-events: none;
+          mix-blend-mode: multiply;
+          animation: absoluteStraightFly 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          transform-origin: center center;
+        }
 
-    .dark .fly-to-cart-element {
-      mix-blend-mode: screen;
-    }
+        .dark .fly-to-cart-element {
+          mix-blend-mode: normal;
+          filter: brightness(0.95);
+        }
 
-    /* CHỈ GIỮ 0% VÀ 100% - KHÔNG CHÈN MỐC TRUNG GIAN GÂY GÃY ĐƯỜNG BAY */
-    @keyframes absoluteStraightFly {
-      0% {
-        transform: translate(0, 0) scale(1);
-        opacity: 1;
-      }
-      100% {
-        /* Bay thẳng tắp một mạch đến đích không dừng lại giữa đường */
-        transform: translate(var(--fly-X), var(--fly-Y)) scale(0.12);
-        width: var(--target-width);
-        height: var(--target-height);
-        opacity: 0;
-      }
-    }
+        @keyframes absoluteStraightFly {
+          0% {
+            transform: translate(0, 0) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(var(--fly-X), var(--fly-Y)) scale(0.12);
+            width: var(--target-width);
+            height: var(--target-height);
+            opacity: 0;
+          }
+        }
 
-    /* NAVBAR ICON NHÚN NHẸ */
-    .cart-bounce-feedback {
-      animation: miniPop 0.3s ease-out both;
-    }
-    @keyframes miniPop {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.12); }
-      100% { transform: scale(1); }
-    }
+        .cart-bounce-feedback {
+          animation: miniPop 0.3s ease-out both;
+        }
+        @keyframes miniPop {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.12); }
+          100% { transform: scale(1); }
+        }
         
         @keyframes floatSlow {
           0%, 100% { transform: translateY(0px) rotate(-12deg); }

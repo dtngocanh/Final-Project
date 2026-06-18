@@ -7,6 +7,8 @@ import NewsletterSection from "../components/Home/NewsletterSection";
 import { useSelector, useDispatch } from "react-redux"; 
 import RecommendSlider from "../components/Home/RecommendSlider";
 import { fetchAllProducts } from "../store/slices/productSlice"; 
+import RecentlyViewed from "../components/Home/RecentlyViewed";
+import RecipeBento from "../components/Home/RecipeBento";
 const Index = () => {
   const dispatch = useDispatch(); 
 
@@ -27,6 +29,7 @@ const Index = () => {
         <CategoryGrid />
         
         <RecommendSlider />
+          <RecipeBento/>
         
         {/* Slider này giờ sẽ tự động sáng bừng khi newProducts có dữ liệu */}
         <ProductSlider 
@@ -34,6 +37,8 @@ const Index = () => {
           products={newProducts} 
           loading={loading} 
         />
+        <RecentlyViewed/>
+      
         
         <FeatureSection />
         <NewsletterSection />

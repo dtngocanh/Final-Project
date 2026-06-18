@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { useCartActions } from "../../hooks/useCartActions";
-import { trackClickThunk } from "../../store/slices/interactionSlice";
 import { useProductNavigation } from "../../hooks/useProductNavigation";
 import { addToCartThunk } from "../../store/slices/cartSlice";
+import { addToRecentlyViewed } from "../../store/slices/interactionSlice"; // IMPORT ACTION VỪA XEM GẦN ĐÂY
 import { toast } from "react-toastify";
 
 const ProductCard = ({ product }) => {
@@ -44,18 +44,14 @@ const ProductCard = ({ product }) => {
 
   // 🛒 LOGIC XỬ LÝ HIỆU ỨNG BAY VÀO GIỎ HÀNG (ĐÃ FIX TỌA ĐỘ)
   const runFlyToCartAnimation = (buttonElement) => {
-    // Tìm container .group gần nhất từ nút bấm
     const productCardElement = buttonElement.closest(".group");
     const productImg = productCardElement?.querySelector(".product-target-img");
-    
-    // Tìm giỏ hàng đích (Sử dụng đúng ID navbar-cart-icon đã đồng bộ với Navbar)
     const cartIcon = document.getElementById("navbar-cart-icon") || document.querySelector(".cart-icon-class");
 
     if (productImg && cartIcon) {
       const imgRect = productImg.getBoundingClientRect();
       const cartRect = cartIcon.getBoundingClientRect();
 
-      // Tính khoảng cách di chuyển chính xác tuyệt đối
       const flyX = cartRect.left - imgRect.left + (cartRect.width / 2) - (imgRect.width / 2);
       const flyY = cartRect.top - imgRect.top + (cartRect.height / 2) - (imgRect.height / 2);
 
@@ -63,7 +59,6 @@ const ProductCard = ({ product }) => {
       flyer.src = productImg.src;
       flyer.className = "fly-to-cart-element";
 
-      // Đặt vị trí xuất phát trùng khít với ảnh gốc sản phẩm
       flyer.style.left = `${imgRect.left}px`;
       flyer.style.top = `${imgRect.top}px`;
       flyer.style.width = `${imgRect.width}px`;
@@ -82,19 +77,32 @@ const ProductCard = ({ product }) => {
         setTimeout(() => cartIcon.classList.remove("cart-bounce-feedback"), 300);
       }, 800);
     } else {
-      console.warn("Fly to cart failed: Khong tìm thay ảnh sản phẩm hoặc '#navbar-cart-icon' trên Navbar!");
+      console.warn("Fly to cart failed: Không tìm thấy ảnh sản phẩm hoặc '#navbar-cart-icon' trên Navbar!");
+    }
+  };
+
+  // HÀM XỬ LÝ KHI CLICK VÀO CARD SẢN PHẨM KHỚP LOGIC LƯU TRẠNG THÁI VỪA XEM
+  const handleCardClick = (e) => {
+    // Kích hoạt đẩy thông tin vào Redux RAM "Vừa xem gần đây" ngay lập tức để sync UI
+    dispatch(addToRecentlyViewed(product));
+    
+    // Gọi hook điều hướng chung hoặc chuyển trang trực tiếp
+    if (handleProductClick) {
+      handleProductClick(product._id);
+    } else {
+      navigate(`/product/${product._id}`);
     }
   };
 
   return (
     <div
       className="group relative w-full h-full cursor-pointer"
-      onClick={() => handleProductClick(product._id)}
+      onClick={handleCardClick}
     >
       {/* CONTAINER CARD */}
       <div className="relative flex flex-col h-full bg-white dark:bg-gradient-to-b dark:from-neutral-900 dark:to-neutral-950/90 rounded-2xl sm:rounded-[2rem] overflow-hidden border border-neutral-100 dark:border-neutral-800/50 shadow-sm lg:hover:border-[#77cd3a]/40 lg:hover:shadow-[0_20px_40px_rgba(119,205,58,0.08)] dark:lg:hover:shadow-[0_20px_40px_rgba(119,205,58,0.04)] transition-all duration-300 transform-gpu">
         
-        {/* 1. BACKGROUND GRADIENT HOVER - ĐÃ FIX LOANG XANH NHẸ CHO CẢ CHẾ ĐỘ SÁNG */}
+        {/* 1. BACKGROUND GRADIENT HOVER */}
         <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-[#77cd3a]/2 via-transparent to-transparent lg:group-hover:from-[#77cd3a]/8 dark:lg:group-hover:from-[#77cd3a]/12 lg:group-hover:via-[#77cd3a]/3 transition-all duration-500 pointer-events-none z-0" />
 
         {/* 2. HỆ THỐNG ICON RAU CỦ TRÔI NỔI */}
@@ -121,7 +129,7 @@ const ProductCard = ({ product }) => {
               <img
                 src={product.images?.[0]?.url || "/placeholder.png"}
                 alt={product.name}
-                className="product-target-img w-[85%] h-[85%] object-contain lg:group-hover:scale-[1.04] transition-transform duration-500 ease-out mix-blend-multiply dark:mix-blend-screen"
+                className="product-target-img w-[85%] h-[85%] object-contain lg:group-hover:scale-[1.04] transition-transform duration-500 ease-out mix-blend-multiply dark:mix-blend-normal dark:brightness-95"
               />
             </div>
           </div>
@@ -160,12 +168,12 @@ const ProductCard = ({ product }) => {
           <button
             onClick={async (e) => {
               e.preventDefault();
-              e.stopPropagation();
+              e.stopPropagation(); // Ngăn hành vi nổi bọt kích hoạt click vào card (Lưu vào vừa xem)
 
-              // Kích hoạt hiệu ứng bay ngay lập tức (Không chờ đợi bất đồng bộ)
+              // Kích hoạt hiệu ứng bay ngay lập tức
               runFlyToCartAnimation(e.currentTarget);
 
-              // Đồng bộ Redux + Gửi log tracking AI (Tham số 'true' giúp Hook không bắn Toast)
+              // Đồng bộ Redux + Gửi log tracking AI (Hook không tự bắn Toast)
               await handleCartAction(product, "ADD", 1, true);
 
               // Lưu dữ liệu backend qua Thunk và hiển thị một Toast duy nhất tại đây

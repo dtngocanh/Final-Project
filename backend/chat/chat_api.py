@@ -64,21 +64,30 @@ chat_history: Dict[str, List[str]] = {}
 
 # Cấu hình địa chỉ Ngũ Hành Sơn & Biểu phí cân nặng chuẩn GHN
 STORE_INFO = """
-[STORE INFORMATION & GHN WEIGHT-BASED SHIPPING]
+[STORE INFORMATION & GHN NATIONWIDE SHIPPING POLICY]
 - Store Name: Veggies Mart (Veganic Mart project)
-- Address: 150 Ngu Hanh Son, My An, Ngu Hanh Son, Da Nang, Vietnam
+- Warehouse Address: 150 Ngu Hanh Son, My An, Ngu Hanh Son, Da Nang, Vietnam
 - Contact Phone / Zalo: 0901234567
 
-- Shipping Partner: Giao Hang Nhanh (GHN Express)
-- Shipping Services available: GHN Fast (1-2 days) and GHN Express (Same-day within 4 hours).
+- Shipping Partner: Giao Hang Nhanh (GHN Express) - Nationwide Delivery
+- Delivery Time:
+  * Intra-province (Da Nang): 1 - 2 days (GHN Fast) or within 4 hours (GHN Express Same-day).
+  * Domestic/Nationwide (Other provinces/cities): 2 - 4 days depending on the distance.
 
-- GHN Weight-Based Shipping Fees (Calculated by Total Order Weight):
-  * Package from 0kg to 2kg: Flat rate $1.2 (approx. 30,000 VND) for inner Da Nang.
-  * Package from 2kg to 5kg: Flat rate $2.0 (approx. 50,000 VND).
-  * Package over 5kg: Base fee $2.0 + $0.2 for each additional 1kg.
-  * Free Shipping Policy: Free shipping for all orders over $40 (and total weight under 10kg).
+- GHN Weight-Based Shipping Fees Matrix (Nationwide):
+  1. Intra-Province (Inside Da Nang):
+     * Under 2kg: Flat rate $1.2 (approx. 30,000 VND).
+     * From 2kg to 5kg: Flat rate $2.0 (approx. 50,000 VND).
+     * Over 5kg: $2.0 + $0.2 for each additional 1kg.
+  2. Intra-Region (Central Vietnam provinces near Da Nang):
+     * Under 2kg: Flat rate $1.8 (approx. 45,000 VND).
+     * Over 2kg: Extra $0.3 for each additional 1kg.
+  3. Inter-Region (Special Cities like Hanoi, Ho Chi Minh City, or Southern/Northern provinces):
+     * Under 2kg: Flat rate $2.5 (approx. 60,000 VND).
+     * Over 2kg: Extra $0.5 for each additional 1kg.
 
-- Cash on Delivery (COD): Supported via GHN with 0% extra fee.
+- Free Shipping Policy: Free standard shipping for ALL orders over $50 nationwide (Maximum support up to 5kg, over 5kg will charge extra weight fee according to GHN matrix).
+- Cash on Delivery (COD): Supported nationwide with 0% extra fee.
 """
 
 SMALL_TALKS = {
@@ -133,16 +142,46 @@ def query_groq_llm(prompt: str) -> str:
         return ""
 
 def advanced_regex_search(user_message: str) -> List[dict]:
-    clean_msg = re.sub(r'[^\w\s]', '', user_message.lower())
-    words = [w.strip() for w in clean_msg.split() if len(w.strip()) > 2]
+    """
+    Tìm kiếm thông minh: 
+    - Nếu khách gõ 1 từ duy nhất (ví dụ: 'apple'), hệ thống bắt ép tìm đúng từ độc lập (chứa quả táo), 
+      không cho trả về các cụm từ ghép như 'apple juice'.
+    - Nếu khách gõ cụm từ (ví dụ: 'apple juice'), hệ thống tìm kiếm chính xác cụm từ đó.
+    """
+    clean_msg = user_message.strip().lower()
+    clean_msg = re.sub(r'[^\w\s]', '', clean_msg) # Xóa ký tự đặc biệt
     
-    if not words:
+    if not clean_msg:
         return []
+        
+    words = clean_msg.split()
     
-    regex_conditions = [{"name": {"$regex": re.escape(word), "$options": "i"}} for word in words[:4]]
-    query = {"$or": regex_conditions}
-    
-    return list(collection.find(query).limit(12))
+    # TRƯỜNG HỢP 1: Khách chỉ gõ đúng 1 từ đơn (ví dụ: "apple" hoặc "táo")
+    if len(words) == 1:
+        target_word = words[0]
+        # Sử dụng \\b để ép MongoDB tìm từ đứng độc lập (Word Boundary)
+        query = {"name": {"$regex": f"\\b{re.escape(target_word)}\\b", "$options": "i"}}
+        results = list(collection.find(query).limit(12))
+        
+        # Nếu tìm khít từ mà không có hàng, ta mới xả kho cho tìm kiếm chuỗi con thoải mái
+        if not results:
+            query_fallback = {"name": {"$regex": re.escape(target_word), "$options": "i"}}
+            results = list(collection.find(query_fallback).limit(12))
+        return results
+
+    # TRƯỜNG HỢP 2: Khách gõ nguyên cụm từ dài (ví dụ: "apple juice" hoặc "nước ép táo")
+    else:
+        # Tìm kiếm khớp toàn bộ cụm từ mà khách gõ trước
+        query_phrase = {"name": {"$regex": re.escape(clean_msg), "$options": "i"}}
+        results = list(collection.find(query_phrase).limit(12))
+        
+        # Nếu không có cụm từ chính xác, tách từ tìm kiếm theo kiểu cũ để giữ độ linh hoạt
+        if not results:
+            regex_conditions = [{"name": {"$regex": re.escape(w), "$options": "i"}} for w in words if len(w) > 2]
+            if regex_conditions:
+                results = list(collection.find({"$or": regex_conditions}).limit(12))
+                
+        return results
 
 def vector_product_search(query_vector: List[float]) -> List[dict]:
     if not query_vector:
