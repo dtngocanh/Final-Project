@@ -218,8 +218,12 @@ export const getAllOrders = async (req, res, next) => {
       ].filter((condition) => Object.values(condition)[0] !== undefined);
     }
 
-    const [totalOrders, orders] = await Promise.all([
+    // Gộp 4 truy vấn vào Promise.all để chạy song song cho nhanh
+    const [totalOrders, orders, revenueAggregation, statusAggregation] = await Promise.all([
+      // 1. Đếm tổng số đơn thỏa mãn điều kiện filter
       Order.countDocuments(queryCondition),
+      
+      // 2. Lấy 8 đơn hàng cho trang hiện tại (Phân trang)
       Order.find(queryCondition)
         .populate("user", "name email")
         .populate({
@@ -230,10 +234,30 @@ export const getAllOrders = async (req, res, next) => {
         .skip(skip)
         .limit(limit)
         .lean(),
+        
+      // 3. Tính tổng doanh thu toàn hệ thống (Bỏ qua đơn Canceled)
+      Order.aggregate([
+        { $match: { orderStatus: { $ne: "Canceled" } } },
+        { $group: { _id: null, totalAmount: { $sum: "$totalPrice" } } }
+      ]),
+
+      // 4. Đếm số lượng đơn hàng theo TỪNG TRẠNG THÁI để vẽ biểu đồ
+      Order.aggregate([
+        { $group: { _id: "$orderStatus", count: { $sum: 1 } } }
+      ])
     ]);
 
     const totalPages = Math.ceil(totalOrders / limit);
+    const totalRevenue = revenueAggregation[0]?.totalAmount || 0;
 
+    // Chuyển mảng statusAggregation thành object cho Frontend dễ dùng
+    // Ví dụ: { Pending: 15, Delivered: 100, Canceled: 3 }
+    const ordersByStatus = statusAggregation.reduce((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+
+    // Xử lý các sản phẩm/người dùng đã bị xóa trên các đơn được trả về
     for (let i = 0; i < orders.length; i++) {
       if (!orders[i].user)
         orders[i].user = { name: "Người dùng đã bị xóa", email: "N/A" };
@@ -250,17 +274,16 @@ export const getAllOrders = async (req, res, next) => {
       }
     }
 
-    return res.status(200).json({
+    // Trả data về cho Frontend
+    res.status(200).json({
       success: true,
-      count: orders.length,
       totalOrders,
+      totalRevenue,
+      ordersByStatus, // <--- Data mới cho biểu đồ
       totalPages,
-      currentPage: page,
       orders,
-      message: "Fetched orders successfully!",
     });
   } catch (error) {
-    console.error("Lỗi phân trang tại getAllOrders:", error.message);
     next(error);
   }
 };
@@ -364,5 +387,95 @@ export const updateOrder = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+// [GET] /api/orders/my-analytics
+export const getUserSpendingAnalytics = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const stats = await Order.aggregate([
+      // 1. Lọc đơn Delivered của chính user này
+      { 
+        $match: { 
+          user: new mongoose.Types.ObjectId(userId),
+          orderStatus: "Delivered" 
+        } 
+      },
+      
+      // 2. Bóc mảng items ra để tính toán số lượng từng món
+      { $unwind: "$orderItems" },
+      
+      // 3. Gom nhóm tính tổng
+      {
+        $group: {
+          _id: null,
+          totalSpent: { $sum: "$totalPrice" },
+          // Tiết kiệm mặc định 10% (hoặc thay bằng trường discount nếu sau này ní làm mã giảm giá)
+          totalSaved: { $sum: { $multiply: ["$totalPrice", 0.1] } },
+          totalItemsCount: { $sum: "$orderItems.quantity" },
+          
+          allBoughtProducts: {
+            $push: {
+              productId: "$orderItems.product",
+              name: "$orderItems.name",
+              image: "$orderItems.image",
+              quantity: "$orderItems.quantity"
+            }
+          }
+        }
+      }
+    ]);
+
+    // Nếu chưa mua đơn nào thành công
+    if (stats.length === 0) {
+      return res.status(200).json({
+        success: true,
+        analytics: {
+          totalSpent: 0,
+          totalSaved: 0,
+          totalItemsCount: 0,
+          favoriteProduct: null
+        }
+      });
+    }
+
+    const data = stats[0];
+
+    // 4. Tìm món mua nhiều nhất (Veggie Soulmate)
+    const productMap = {};
+    data.allBoughtProducts.forEach(p => {
+      if (!productMap[p.productId]) {
+        productMap[p.productId] = { name: p.name, image: p.image, quantity: 0 };
+      }
+      productMap[p.productId].quantity += p.quantity;
+    });
+
+    let favoriteProduct = null;
+    let maxQty = 0;
+    Object.values(productMap).forEach(p => {
+      if (p.quantity > maxQty) {
+        maxQty = p.quantity;
+        favoriteProduct = p;
+      }
+    });
+
+    // Trả data gọn nhẹ về cho Frontend
+    res.status(200).json({
+      success: true,
+      analytics: {
+        totalSpent: data.totalSpent,
+        totalSaved: data.totalSaved,
+        totalItemsCount: data.totalItemsCount,
+        favoriteProduct
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };

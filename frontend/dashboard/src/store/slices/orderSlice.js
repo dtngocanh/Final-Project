@@ -45,7 +45,10 @@ const orderSlice = createSlice({
     error: null,
     success: false,
     totalPages: 1,
-    totalOrders: 0
+    totalOrders: 0,
+    // THÊM 2 TRẠNG THÁI MỚI ĐỂ HỨNG DATA TỪ BACKEND
+    totalRevenue: 0,
+    ordersByStatus: {},
   },
   reducers: {
     clearErrors: (state) => {
@@ -65,6 +68,10 @@ const orderSlice = createSlice({
         state.orders = action.payload.orders;
         state.totalPages = action.payload.totalPages;
         state.totalOrders = action.payload.totalOrders;
+        
+        // HỨNG DỮ LIỆU DOANH THU VÀ THỐNG KÊ BIỂU ĐỒ VÀO REDUX
+        state.totalRevenue = action.payload.totalRevenue;
+        state.ordersByStatus = action.payload.ordersByStatus;
       })
       .addCase(fetchAllOrders.rejected, (state, action) => {
         state.loading = false;

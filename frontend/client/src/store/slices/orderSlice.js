@@ -2,6 +2,21 @@ import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit"
 import { axiosInstance } from "../../lib/axios";
 import { toast } from "react-hot-toast";
 
+// Thunk lấy dữ liệu Bảng Vàng Chi Tiêu mới từ Backend
+export const fetchUserAnalytics = createAsyncThunk(
+  "order/fetchUserAnalytics",
+  async (_, thunkAPI) => {
+    try {
+      const res = await axiosInstance.get("/order/my-analytics");
+      return res.data.analytics; // Trả về object chứa { totalSpent, totalSaved, totalItemsCount, favoriteProduct }
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Cannot fetch analytics"
+      );
+    }
+  }
+);
+
 // Các AsyncThunk hiện có của bạn
 export const fetchMyOrders = createAsyncThunk(
   "order/fetchMyOrders",
@@ -77,6 +92,14 @@ const orderSlice = createSlice({
       : {},
     error: null,
     orderDetail: null,
+    // THÊM TRẠNG THÁI MỚI CHO ANALYTICS
+    userAnalytics: {
+      totalSpent: 0,
+      totalSaved: 0,
+      totalItemsCount: 0,
+      favoriteProduct: null
+    },
+    fetchingAnalytics: false,
   },
   reducers: {
     setOrderStep: (state, action) => {
@@ -96,6 +119,19 @@ const orderSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // XỬ LÝ EXTRA REDUCERS CHO ANALYTICS
+      .addCase(fetchUserAnalytics.pending, (state) => {
+        state.fetchingAnalytics = true;
+      })
+      .addCase(fetchUserAnalytics.fulfilled, (state, action) => {
+        state.fetchingAnalytics = false;
+        state.userAnalytics = action.payload;
+      })
+      .addCase(fetchUserAnalytics.rejected, (state, action) => {
+        state.fetchingAnalytics = false;
+        state.error = action.payload;
+      })
+      // Các cases cũ giữ nguyên
       .addCase(fetchMyOrders.pending, (state) => {
         state.fetchingOrders = true;
       })
@@ -129,22 +165,19 @@ const orderSlice = createSlice({
 });
 
 // --- SELECTOR CHO TỦ LẠNH ẢO ---
-// Hàm này giúp lấy danh sách thực phẩm từ lịch sử đơn hàng
 export const selectPantryItems = (state) => {
   const allOrders = state.order.myOrders;
   const pantryMap = new Map();
 
   allOrders.forEach((order) => {
-    // Chỉ lấy sản phẩm từ đơn hàng đã hoàn tất
     if (order.orderStatus === "Delivered") {
       order.orderItems.forEach((item) => {
         const id = item.product?._id;
         if (!id) return;
 
-        // Lưu sản phẩm và ngày mua gần nhất vào Map
         pantryMap.set(id, {
           ...item,
-          shelfLifeDays: item.product?.shelfLifeDays || 7, // Lấy HSD từ DB
+          shelfLifeDays: item.product?.shelfLifeDays || 7,
           addedAt: order.createdAt,
         });
       });

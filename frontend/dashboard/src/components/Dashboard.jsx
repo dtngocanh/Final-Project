@@ -28,30 +28,30 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
+import { Link } from "react-router-dom";
 
 // Import các thunks của bạn
 import { fetchAllOrders } from "../store/slices/orderSlice";
-import { fetchAllProducts } from "../store/slices/productsSlice";
+import { fetchAllProducts, restockProductLogs } from "../store/slices/productsSlice";
 import { fetchAllUsers } from "../store/slices/adminSlice";
 
 import FloatingVegetables from "./Fruit/FloatingVegetables";
-
 import MonthlyGoalsCard from "./dashboard-components/MonthlyGoalsCard";
 import RecentOrdersTable from "./dashboard-components/RecentOrdersTable";
 import RecentActivityList from "./dashboard-components/RecentActivityList";
-import { Link } from "react-router-dom";
 
 const Dashboard = () => {
   const dispatch = useDispatch();
 
-  const { orders } = useSelector((state) => state.order);
+  // 1. LẤY THÊM CÁC BIẾN MỚI TỪ REDUX STATE
+  const { orders, totalOrders, totalRevenue, ordersByStatus } = useSelector((state) => state.order);
   const { products } = useSelector((state) => state.product);
   const { users, totalUsers } = useSelector((state) => state.admin);
   const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(fetchAllOrders());
-    dispatch(fetchAllProducts());
+    dispatch(fetchAllProducts({ limit: 1000 }));
     dispatch(fetchAllUsers({ page: 1 }));
   }, [dispatch]);
 
@@ -62,7 +62,7 @@ const Dashboard = () => {
       return {
         text: "Good morning",
         icon: Sun,
-        sub: "“Hope your business goes smoothly today!",
+        sub: "Hope your business goes smoothly today!",
       };
     if (hour < 18)
       return {
@@ -81,11 +81,10 @@ const Dashboard = () => {
   // --- LOGIC XUẤT FILE ---
   const handleExportData = () => {
     toast.info("Creating file...");
-    // Giả lập tạo file CSV
     const headers = ["Order ID, Customer, Total, Status\n"];
     const rows = orders.map(
       (o) =>
-        `${o._id},${o.shippingInfo.fullName},${o.totalPrice},${o.orderStatus}\n`,
+        `${o._id},${o.shippingInfo?.fullName || "N/A"},${o.totalPrice},${o.orderStatus}\n`,
     );
     const blob = new Blob([headers, ...rows], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -93,45 +92,40 @@ const Dashboard = () => {
     a.href = url;
     a.download = `Veggies-Revenue-${new Date().toLocaleDateString()}.csv`;
     a.click();
-    toast.success("Export file succesfully!");
+    toast.success("Export file successfully!");
   };
 
-  // --- LOGIC THỐNG KÊ ---
+  // --- 2. CẬP NHẬT LOGIC THỐNG KÊ TỪ DỮ LIỆU TỔNG (BACKEND) ---
   const stats = useMemo(() => {
-    const revenue =
-      orders?.reduce(
-        (acc, o) =>
-          o.orderStatus !== "Canceled" ? acc + (o.totalPrice || 0) : acc,
-        0,
-      ) || 0;
+    const revenue = totalRevenue || 0;
+    
+    // ĐỒNG BỘ LOGIC LỌC SẢN PHẨM SẮP HẾT HÀNG (< 10) GIỐNG INVENTORY OVERVIEW
     const lowStockItems = products?.filter((p) => p.stock < 10) || [];
 
-    // Cập nhật đầy đủ các trạng thái theo yêu cầu của bạn
     const orderAnalysis = [
       {
         name: "Pending",
-        count: orders?.filter((o) => o.orderStatus === "Pending").length || 0,
+        count: ordersByStatus?.Pending || 0,
         color: "#ffb800",
       },
       {
         name: "Processing",
-        count:
-          orders?.filter((o) => o.orderStatus === "Processing").length || 0,
+        count: ordersByStatus?.Processing || 0,
         color: "#8b5cf6",
-      }, // Tím cho Processing
+      },
       {
         name: "Shipped",
-        count: orders?.filter((o) => o.orderStatus === "Shipped").length || 0,
+        count: ordersByStatus?.Shipped || 0,
         color: "#1890ff",
-      }, // Xanh cho Shipped
+      },
       {
         name: "Delivered",
-        count: orders?.filter((o) => o.orderStatus === "Delivered").length || 0,
+        count: ordersByStatus?.Delivered || 0,
         color: "#77cd3af2",
       },
       {
         name: "Canceled",
-        count: orders?.filter((o) => o.orderStatus === "Canceled").length || 0,
+        count: ordersByStatus?.Canceled || 0,
         color: "#ff4d4f",
       },
     ];
@@ -142,7 +136,7 @@ const Dashboard = () => {
       orderAnalysis,
       lowStockItems,
     };
-  }, [orders, products]);
+  }, [products, totalRevenue, ordersByStatus]);
 
   return (
     <div className="min-h-screen bg-[#f8fafb] font-['Fredoka'] relative overflow-hidden pb-20 text-gray-800">
@@ -179,9 +173,6 @@ const Dashboard = () => {
             >
               <Download size={16} className="text-[#77cd3af2]" /> Export Revenue
             </button>
-            <button className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-2xl text-xs font-bold shadow-lg hover:bg-black transition-all">
-              <Sparkles size={16} className="text-yellow-400" /> AI Insights
-            </button>
           </div>
         </div>
 
@@ -196,7 +187,7 @@ const Dashboard = () => {
           />
           <StatCard
             title="Total Orders"
-            value={orders?.length || 0}
+            value={totalOrders || 0}
             icon={ShoppingBasket}
             color="#ffb800"
             sub="All Statuses"
@@ -225,11 +216,10 @@ const Dashboard = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="lg:col-span-2 bg-white p-8 rounded-[40px] shadow-sm border border-gray-100"
+              className="bg-white p-8 rounded-[40px] shadow-sm border border-gray-100"
             >
               <h3 className="text-xl font-bold text-gray-800 mb-8 flex items-center gap-2">
-                <TrendingUp className="text-[#77cd3af2]" size={20} /> Logistics
-                Overview
+                <TrendingUp className="text-[#77cd3af2]" size={20} /> Logistics Overview
               </h3>
               <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -269,49 +259,80 @@ const Dashboard = () => {
             </motion.div>
             <RecentOrdersTable orders={orders} />
           </div>
+
           {/* RIGHT COLUMN */}
           <div className="space-y-8">
             <MonthlyGoalsCard
               revenue={stats.revenue}
-              totalOrders={orders?.length || 0}
+              totalOrders={totalOrders || 0}
             />
-            {/* NEW LIGHT-MODE STOCK ALERTS */}
+            
+            {/* ĐỒNG BỘ 100%: BLOCK STOCK ALERTS XỊN SÒ TỪ INVENTORY OVERVIEW */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className="bg-white rounded-[40px] p-8 shadow-sm border border-orange-100 relative overflow-hidden"
             >
-              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <AlertTriangle className="text-orange-500" size={20} />{" "}
-                Inventory Alert
-              </h3>
-              <p className="text-xs text-gray-400 mt-1">Low stock products</p>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <AlertTriangle className="text-orange-500" size={20} /> Inventory Alert
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1">Low stock products</p>
+                </div>
+                <span className="text-[10px] bg-amber-50 text-amber-600 font-bold px-2.5 py-1 rounded-xl border border-amber-100 shrink-0">
+                  Attention Needed
+                </span>
+              </div>
 
-              <div className="space-y-4 relative z-10">
+              {/* DANH SÁCH SẢN PHẨM CẢNH BÁO */}
+              <div className="space-y-4 relative z-10 mt-6 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                 {stats.lowStockItems.length > 0 ? (
-                  stats.lowStockItems.slice(0, 3).map((item) => (
-                    <div
-                      key={item._id}
-                      className="flex items-center gap-4 bg-orange-50/50 p-3 rounded-2xl border border-orange-100/50 hover:bg-orange-50 transition-all"
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-white p-1 shadow-sm">
-                        <img
-                          src={item.images?.[0]?.url}
-                          alt=""
-                          className="w-full h-full object-cover rounded-lg"
-                        />
+                  stats.lowStockItems.slice(0, 4).map((item) => {
+                    // Cơ chế bóc tách ảnh chống crash giao diện đa nền tảng
+                    const imgUrl = item.images?.[0]?.url || item.image || item.imageUrl;
+
+                    return (
+                      <div
+                        key={item._id}
+                        className="flex items-center gap-4 bg-orange-50/50 p-3 rounded-2xl border border-orange-100/50 hover:bg-orange-50 transition-all"
+                      >
+                        {/* Khung chứa ảnh an toàn */}
+                        <div className="w-12 h-12 rounded-xl bg-white p-1 shadow-sm flex items-center justify-center overflow-hidden shrink-0 border border-gray-100">
+                          {imgUrl ? (
+                            <img
+                              src={imgUrl}
+                              alt={item.name || "product"}
+                              className="w-full h-full object-cover rounded-lg"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "https://placehold.co/100x100?text=No+Image";
+                              }}
+                            />
+                          ) : (
+                            <Package className="w-5 h-5 text-orange-400" />
+                          )}
+                        </div>
+
+                        {/* Tên & Trạng thái số lượng */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-700 truncate">
+                            {item.name}
+                          </p>
+                          <p className="text-[10px] text-orange-600 font-bold uppercase tracking-widest mt-0.5">
+                            {item.stock === 0 ? "Out of Stock" : `Only ${item.stock} left`}
+                          </p>
+                        </div>
+
+                        {/* Đèn nháy báo động động */}
+                        <div 
+                          className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${
+                            item.stock === 0 ? "bg-rose-500" : "bg-orange-500"
+                          }`}
+                        ></div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-gray-700 truncate">
-                          {item.name}
-                        </p>
-                        <p className="text-[10px] text-orange-600 font-bold uppercase tracking-widest">
-                          Only {item.stock} in stock
-                        </p>
-                      </div>
-                      <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="py-20 text-center text-gray-400 italic text-sm">
                     All products are well stocked

@@ -19,7 +19,7 @@ const InventoryOverview = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchAllProducts());
+    dispatch(fetchAllProducts({ limit: 1000 }));
     dispatch(restockProductLogs());
   }, [dispatch]);
   // 3. Sử dụng useMemo để tính toán các chỉ số thực tế từ mảng sản phẩm

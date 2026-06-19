@@ -2,8 +2,6 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { toast } from "react-toastify";
 import { axiosInstance } from "../../lib/axios";
 
-// const API_URL = "http://localhost:4000/api/admin";
-
 // 1. Thunk: Lấy tất cả người dùng (Có phân trang)
 export const fetchAllUsers = createAsyncThunk(
   "admin/fetchAllUsers",
@@ -11,10 +9,10 @@ export const fetchAllUsers = createAsyncThunk(
     try {
       const response = await axiosInstance.get(
         `/admin/users?page=${page}&search=${search}&role=${role}`,
-      ); //?page=${page}
-      return response.data; // { success, message, count, data: [...] }
+      );
+      return response.data; // Trả về dạng: { success, message, count, users: [...] }
     } catch (error) {
-      return rejectWithValue(error.response.data.message);
+      return rejectWithValue(error.response?.data?.message || "Đã xảy ra lỗi");
     }
   },
 );
@@ -28,10 +26,10 @@ export const deleteUser = createAsyncThunk(
         withCredentials: true,
       });
       toast.success(res.data.message);
-      return res.data;
+      return res.data; // Trả về dạng: { success, message, id }
     } catch (error) {
-      toast.error(error.response.data.message);
-      return rejectWithValue(error.response.data.message);
+      toast.error(error.response?.data?.message || "Xóa thất bại");
+      return rejectWithValue(error.response?.data?.message);
     }
   },
 );
@@ -46,7 +44,7 @@ export const fetchAdminDashboard = createAsyncThunk(
       });
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data.message);
+      return rejectWithValue(error.response?.data?.message);
     }
   },
 );
@@ -72,9 +70,7 @@ export const adminSlice = createSlice({
     topSellingProducts: [],
     lowStockProducts: 0,
   },
-  reducers: {
-    // Ní có thể thêm các reducer đồng bộ ở đây nếu cần
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       // --- Xử lý Fetch Users ---
@@ -83,7 +79,8 @@ export const adminSlice = createSlice({
       })
       .addCase(fetchAllUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload.data;
+        // Đã sửa từ action.payload.data thành action.payload.users cho khớp Controller
+        state.users = action.payload.users; 
         state.totalUsers = action.payload.count;
       })
       .addCase(fetchAllUsers.rejected, (state) => {
@@ -92,6 +89,7 @@ export const adminSlice = createSlice({
 
       // --- Xử lý Delete User ---
       .addCase(deleteUser.fulfilled, (state, action) => {
+        // Nhận vào action.payload.id từ backend trả về để filter chính xác
         state.users = state.users.filter(
           (user) => user._id !== action.payload.id,
         );

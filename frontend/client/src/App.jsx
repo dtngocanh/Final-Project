@@ -38,6 +38,7 @@ import RecipeDetail from "./pages/RecipeDetail";
 import Recipes from "./pages/Recipes";
 import AllRecipes from "./pages/AllRecipes";
 import NotificationPage from "./pages/Notification";
+import UserAnalytics from "./pages/UserAnalytics";
 const App = () => {
   const { isTomatoMode } = useSelector((state) => state.ui);
   const dispatch = useDispatch();
@@ -89,6 +90,7 @@ const App = () => {
               <Route path="/meal-plans" element={<MealPlans />} />
               <Route path="/meal-plan/:category" element={<MealPlanDetail />} />
               <Route path="/pantry" element={<PantryPage />} />
+              <Route path="/my-analytics" element={<UserAnalytics />} />
             </Routes>
             <ChatBot />
             <Footer />

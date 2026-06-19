@@ -21,11 +21,11 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Khai báo state quản lý ảnh và số lượng (đã fix lỗi thiếu quantity)
+  // Khai báo state quản lý ảnh và số lượng
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
-  // Gộp chung Selector để tránh lỗi khai báo trùng lặp biến (đã fix lỗi Duplicate Identifier)
+  // Gộp chung Selector
   const { productDetails: product, loading, relatedProducts } = useSelector((state) => state.product);
   const { recipes } = useSelector((state) => state.recommend);
 
@@ -273,23 +273,23 @@ const ProductDetail = () => {
           </motion.div>
         </div>
 
-        {/* Lower Sections */}
-        <div className="mt-40 md:mt-48 flex flex-col gap-28 md:gap-36 relative z-10">
+        {/* 🛠️ CHỖ NÀY ĐÃ ĐƯỢC CHỈNH SỬA KHOẢNG CÁCH (LOWER SECTIONS) */}
+        <div className="mt-20 md:mt-24 flex flex-col gap-14 md:gap-16 relative z-10">
           <div className="opacity-95 hover:opacity-100 transition-opacity duration-500">
             <BundleSection mainProduct={product} />
           </div>
 
           {recipes && recipes.length > 0 && (
-            <div className="pt-12 border-t border-neutral-200/40 dark:border-neutral-900/40">
+            <div className="pt-8 border-t border-neutral-200/40 dark:border-neutral-900/40">
               <RecipeList recipes={recipes} navigate={navigate} />
             </div>
           )}
 
-          <div className="pt-12 border-t border-neutral-200/40 dark:border-neutral-900/40">
+          <div className="pt-8 border-t border-neutral-200/40 dark:border-neutral-900/40">
             <RelatedProducts products={relatedProducts} />
           </div>
 
-          <div className="pt-12 border-t border-neutral-200/40 dark:border-neutral-900/40">
+          <div className="pt-8 border-t border-neutral-200/40 dark:border-neutral-900/40">
             <ReviewsContainer id="reviews" />
           </div>
         </div>

@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteUser, fetchAllUsers } from "../store/slices/adminSlice";
-import { fetchAllOrders } from "../store/slices/orderSlice"; // Import thêm để lấy tiền
 import { Trash2, UserPlus, Eye, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import FloatingVegetables from "./Fruit/FloatingVegetables";
 import UserDetailsModal from "../modals/UserDetailsModal";
@@ -10,17 +9,13 @@ import FruitLoader from "./Fruit/FruitLoader";
 const Users = () => {
   const dispatch = useDispatch();
   const { loading, users, totalUsers } = useSelector((state) => state.admin);
-  const { orders } = useSelector((state) => state.order); // Lấy orders để tính tiền
 
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("All");
   const [selectedUser, setSelectedUser] = useState(null);
 
-  useEffect(() => {
-    dispatch(fetchAllOrders()); // Fetch orders một lần để tính toán
-  }, [dispatch]);
-
+  // Lắng nghe thay đổi của page, search, filter để gọi API (Đã có debounce 500ms)
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       dispatch(
@@ -34,22 +29,9 @@ const Users = () => {
     return () => clearTimeout(delayDebounce);
   }, [dispatch, page, searchTerm, filterRole]);
 
-  // --- LOGIC TÍNH TỔNG TIỀN ĐÓNG GÓP ---
-  const usersWithContribution = useMemo(() => {
-    if (!users) return [];
-    return users.map((user) => {
-      // Lọc orders của user này và cộng tổng tiền
-      const userTotal = orders
-        ?.filter((order) => (order.user?._id || order.user) === user._id)
-        .reduce((sum, order) => sum + order.totalPrice, 0);
-      
-      return { ...user, totalSpent: userTotal || 0 };
-    });
-  }, [users, orders]);
-
   const maxPage = Math.ceil(totalUsers / 10) || 1;
 
-  // --- LOGIC PHÂN TRANG RÚT GỌN (PAGINATION WINDOW) ---
+  // --- LOGIC PHÂN TRANG RÚT GỌN ---
   const renderPageNumbers = () => {
     const pages = [];
     if (maxPage <= 5) {
@@ -132,13 +114,13 @@ const Users = () => {
                 <tr>
                   <td colSpan="5" className="py-20"><FruitLoader /></td>
                 </tr>
-              ) : usersWithContribution.length > 0 ? (
-                usersWithContribution.map((user) => (
+              ) : users && users.length > 0 ? (
+                users.map((user) => (
                   <tr key={user._id} className="hover:bg-[#fcfdfd] group transition-all duration-300">
                     <td className="px-10 py-8">
                       <div className="flex items-center gap-5">
                         <div className="w-12 h-12 rounded-[20px] bg-[#77cd3a1a] flex items-center justify-center text-[#77cd3af2] font-black text-xl border border-[#77cd3a15]">
-                          {user.name.charAt(0)}
+                          {user.name ? user.name.charAt(0) : "U"}
                         </div>
                         <div>
                           <p className="font-bold text-gray-800 text-base">{user.name}</p>
@@ -147,12 +129,13 @@ const Users = () => {
                       </div>
                     </td>
                     <td className="px-6 py-8">
-                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border tracking-widest ${user.role === "Admin" ? "bg-purple-50 text-purple-500 border-purple-100" : "bg-blue-50 text-blue-500 border-blue-100"}`}>
+                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border tracking-widest ${user.role?.toLowerCase() === "admin" ? "bg-purple-50 text-purple-500 border-purple-100" : "bg-blue-50 text-blue-500 border-blue-100"}`}>
                         {user.role}
                       </span>
                     </td>
+                    {/* KHÚC NÀY: Bốc thẳng totalSpent từ Backend, không cần tính toán cồng kềnh */}
                     <td className="px-6 py-8 text-center font-black text-[#77cd3af2] text-base">
-                      ${user.totalSpent?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ${(user.totalSpent || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-6 py-8">
                       <div className="flex justify-center gap-3">
@@ -174,7 +157,7 @@ const Users = () => {
             </tbody>
           </table>
 
-          {/* PAGINATION UI - Căn phải chuẩn theo ý ní */}
+          {/* PAGINATION UI */}
           {maxPage > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between px-10 py-8 bg-gray-50/50 border-t border-gray-50 gap-4">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">

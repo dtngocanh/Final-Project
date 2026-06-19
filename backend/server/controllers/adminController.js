@@ -4,7 +4,6 @@ import { sendSellerToken } from "../utils/sendToken.js";
 import ErrorHandler from "../utils/errorHandler.js";
 
 // api/seller/login
-
 export const sellerLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -38,7 +37,6 @@ export const isSellerAuth = async (req, res, next) => {
 };
 
 // api/seller/logout
-
 export const sellerLogout = async (req, res, next) => {
   try {
     res.clearCookie("sellerToken", {
@@ -62,10 +60,10 @@ export const getAllUsers = async (req, res, next) => {
     const { page = 1, search = "", role = "" } = req.query;
 
     const limit = 10; // Number of users per page
-    const skip = (page - 1) * limit;
+    const skip = (parseInt(page) - 1) * limit;
 
     let query = {
-      role: { $ne: "admin" },
+      role: { $ne: "admin" }, // Ẩn admin khỏi danh sách
     };
 
     // Search by name or email (Case-insensitive)
@@ -80,21 +78,55 @@ export const getAllUsers = async (req, res, next) => {
       query.role = role.toLowerCase();
     }
 
-    // 3. Execute query with pagination and sorting
-    const users = await User.find(query)
-      .select("-password")
-      .sort({ createdAt: -1 }) // Show newest members first
-      .limit(limit)
-      .skip(skip);
+    // 2. Execute aggregation query để lấy Users kèm tổng tiền (totalSpent)
+    const users = await User.aggregate([
+      { $match: query },
+      { $sort: { createdAt: -1 } }, // Show newest members first
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "orders", // Đảm bảo collection lưu đơn hàng trong DB tên là "orders"
+          localField: "_id",
+          foreignField: "user",
+          as: "userOrders",
+        },
+      },
+      {
+        $addFields: {
+          totalSpent: {
+            $sum: {
+              $map: {
+                input: {
+                  $filter: {
+                    input: "$userOrders",
+                    as: "order",
+                    cond: { $ne: ["$$order.orderStatus", "Canceled"] }, // Bỏ qua đơn Canceled
+                  },
+                },
+                as: "validOrder",
+                in: "$$validOrder.totalPrice",
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          password: 0,   // Không trả về password
+          userOrders: 0, // Xóa mảng orders để data nhẹ gọn
+        },
+      },
+    ]);
 
-    // 4. Get total count for frontend pagination logic
+    // 3. Get total count for frontend pagination logic
     const totalMatchingUsers = await User.countDocuments(query);
 
     res.status(200).json({
       success: true,
       message: "Users fetched successfully",
-      count: totalMatchingUsers,
-      data: users,
+      count: totalMatchingUsers, // Đếm tổng để phân trang
+      users: users,              // Đổi thành "users" để khớp chuẩn với Redux slice của ní ở FE
     });
   } catch (error) {
     next(error);
@@ -119,5 +151,3 @@ export const deleteUser = async (req, res, next) => {
     next(error);
   }
 };
-
-//[GET]
