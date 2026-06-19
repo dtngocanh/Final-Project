@@ -43,6 +43,10 @@ const productSchema = new mongoose.Schema(
     },
     salesCount: { type: Number, default: 0 },
     viewCount: { type: Number, default: 0 },
+    shelfLifeDays: {
+      type: Number,
+      default: 7, 
+    },
     // try.....
     related_product_ids: [{ type: String }],
     frequentlyBoughtTogether: [

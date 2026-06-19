@@ -18,7 +18,8 @@ import {
   Citrus,
   Cherry,
   Salad,
-  Leaf
+  Leaf,
+  Refrigerator
 } from "lucide-react";
 import { closeSidebar } from "../../store/slices/popupSlice";
 import { logout } from "../../store/slices/authSlice";
@@ -30,6 +31,7 @@ const mainNav = [
   { icon: ShoppingCart, label: "My Cart", path: "/cart" },
   { icon: List, label: "Order", path: "/orders" },
   { icon: ChefHat, label: "Recipes", path: "/all-recipes" },
+   { icon: Refrigerator, label: "Pantry", path: "/pantry" },
 ];
 
 const secondaryNav = [

@@ -24,6 +24,7 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import MealPlans from "./pages/MealPlans";
 import MealPlanDetail from "./pages/MealPlanDetail";
+import PantryPage from "./pages/PantryPage";
 import { useEffect } from "react";
 
 import { getUser } from "./store/slices/authSlice";
@@ -87,6 +88,7 @@ const App = () => {
               <Route path="/notifications" element={<NotificationPage />} />
               <Route path="/meal-plans" element={<MealPlans />} />
               <Route path="/meal-plan/:category" element={<MealPlanDetail />} />
+              <Route path="/pantry" element={<PantryPage />} />
             </Routes>
             <ChatBot />
             <Footer />

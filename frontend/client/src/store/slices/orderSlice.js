@@ -1,20 +1,20 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
 import { axiosInstance } from "../../lib/axios";
 import { toast } from "react-hot-toast";
 
+// Các AsyncThunk hiện có của bạn
 export const fetchMyOrders = createAsyncThunk(
   "order/fetchMyOrders",
   async (_, thunkAPI) => {
     try {
       const res = await axiosInstance.get("/order/user");
-      // console.log(res.data.orders);
-      
       return res.data.orders;
     } catch (error) {
       return thunkAPI.rejectWithValue(error.response.data.message);
     }
   },
 );
+
 export const fetchOrderDetails = createAsyncThunk(
   "order/fetchOrderDetails",
   async (id, thunkAPI) => {
@@ -32,13 +32,10 @@ export const placeOrder = createAsyncThunk(
   async (orderData, thunkAPI) => {
     try {
       const isCOD = orderData.paymentMethod === "COD";
-
       const endpoint = isCOD ? "/order/new" : "/payment/create-session";
-
       const res = await axiosInstance.post(endpoint, orderData);
 
       if (!isCOD && res.data.url) {
-        // const sessionId = res.data.id;
         window.location.href = res.data.url;
       } else if (isCOD) {
         return res.data;
@@ -73,7 +70,7 @@ const orderSlice = createSlice({
   initialState: {
     myOrders: [],
     fetchingOrders: false,
-    placingOrder: false, // USE FOR BUTTON
+    placingOrder: false,
     activeStep: 0,
     shippingInfo: localStorage.getItem("shippingInfo")
       ? JSON.parse(localStorage.getItem("shippingInfo"))
@@ -109,11 +106,9 @@ const orderSlice = createSlice({
       .addCase(fetchMyOrders.rejected, (state) => {
         state.fetchingOrders = false;
       })
-
       .addCase(fetchOrderDetails.fulfilled, (state, action) => {
         state.orderDetail = action.payload;
       })
-
       .addCase(placeOrder.pending, (state) => {
         state.placingOrder = true;
       })
@@ -124,11 +119,8 @@ const orderSlice = createSlice({
         state.placingOrder = false;
         state.error = action.payload;
       })
-      // Handle successful order cancellation
       .addCase(cancelOrder.fulfilled, (state, action) => {
-        //Find the index of the cancelled order in the local state
         const i = state.myOrders.findIndex((o) => o._id === action.payload);
-        // If found, update its status locally to reflect changes immediately
         if (i !== -1) {
           state.myOrders[i].orderStatus = "Canceled";
         }
@@ -136,6 +128,31 @@ const orderSlice = createSlice({
   },
 });
 
-export const { setOrderStep, saveShippingInfo, clearErrors, resetOrder } =
-  orderSlice.actions;
+// --- SELECTOR CHO TỦ LẠNH ẢO ---
+// Hàm này giúp lấy danh sách thực phẩm từ lịch sử đơn hàng
+export const selectPantryItems = (state) => {
+  const allOrders = state.order.myOrders;
+  const pantryMap = new Map();
+
+  allOrders.forEach((order) => {
+    // Chỉ lấy sản phẩm từ đơn hàng đã hoàn tất
+    if (order.orderStatus === "Delivered") {
+      order.orderItems.forEach((item) => {
+        const id = item.product?._id;
+        if (!id) return;
+
+        // Lưu sản phẩm và ngày mua gần nhất vào Map
+        pantryMap.set(id, {
+          ...item,
+          shelfLifeDays: item.product?.shelfLifeDays || 7, // Lấy HSD từ DB
+          addedAt: order.createdAt,
+        });
+      });
+    }
+  });
+
+  return Array.from(pantryMap.values());
+};
+
+export const { setOrderStep, saveShippingInfo, clearErrors, resetOrder } = orderSlice.actions;
 export default orderSlice.reducer;

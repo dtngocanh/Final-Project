@@ -48,6 +48,25 @@ export const fetchRecipes = createAsyncThunk(
   },
 );
 
+export const fetchBestRecipe = createAsyncThunk(
+  "recommend/fetchBestRecipe",
+  async (ingredientQuery, thunkAPI) => {
+    try {
+      // Ở file giao diện Tủ Lạnh, ingredientQuery đã là dạng chuỗi: "thịt heo,trứng,cà chua"
+      const res = await axiosInstance.get(
+        `/recipes/best-match?ingredients=${ingredientQuery}&_t=${Date.now()}`
+      );
+
+      // Trả về toàn bộ data ({ success, matchStats, recipe })
+      return res.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to find the perfect recipe",
+      );
+    }
+  }
+);
+
 const recommendSlice = createSlice({
   name: "recommender",
   initialState: {
@@ -56,24 +75,26 @@ const recommendSlice = createSlice({
     isLoading: false,
     error: null,
     recipes: [],
+    bestRecipeMatch: null, // Lưu riêng data của món ngon nhất
   },
   reducers: {
     resetRecommender: (state) => {
       state.list = [];
       state.type = "trending";
       state.error = null;
+      state.bestRecipeMatch = null;
     },
   },
   extraReducers: (builder) => {
     builder
+      // Xử lý recommendations
       .addCase(fetchRecommendations.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
       .addCase(fetchRecommendations.fulfilled, (state, action) => {
         state.isLoading = false;
-        // Map the payload to your state keys
-        state.list = action.payload.list; // Using 'list' from the thunk return
+        state.list = action.payload.list;
         state.type = action.payload.type;
       })
       .addCase(fetchRecommendations.rejected, (state, action) => {
@@ -81,8 +102,16 @@ const recommendSlice = createSlice({
         state.error = action.payload;
         state.list = [];
       })
+      
+      // Xử lý fetchRecipes cũ
       .addCase(fetchRecipes.fulfilled, (state, action) => {
         state.recipes = action.payload;
+      })
+
+      // Xử lý fetchBestRecipe mới
+      .addCase(fetchBestRecipe.fulfilled, (state, action) => {
+        // Lưu data món ngon nhất vào state nếu muốn dùng ở component khác
+        state.bestRecipeMatch = action.payload.recipe; 
       });
   },
 });

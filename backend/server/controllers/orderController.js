@@ -63,6 +63,7 @@ export const placeOrderCOD = async (req, res, next) => {
         price: product.price,
         quantity: item.quantity,
         image: product.images?.[0]?.url || "",
+        shelfLifeDays: product.shelfLifeDays || 7,
       });
     }
     // 4. TÍNH PHÍ VẬN CHUYỂN
@@ -273,7 +274,7 @@ export const getOrderDetails = async (req, res, next) => {
     // Populate 'orderItems.product'
     const order = await Order.findById(req.params.id)
       .populate("user", "name email")
-      .populate("orderItems.product", "name images price stock");
+      .populate("orderItems.product", "name images price stock shelfLifeDays");
 
     if (!order) {
       return next(new ErrorHandler("No Order found with this ID", 404));
