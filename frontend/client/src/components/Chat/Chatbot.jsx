@@ -98,12 +98,40 @@ const ChatBot = () => {
                           <div className="h-28 bg-white p-2 flex items-center justify-center cursor-pointer" onClick={() => navigate(`/product/${p.id}`)}>
                             <img src={p.image} alt={p.name} className="h-full object-contain mix-blend-multiply" />
                           </div>
-                          <div className="p-3 bg-white">
-                            <h4 className="text-[9px] font-bold uppercase text-gray-400 truncate">{p.name}</h4>
-                            <p className="text-lg font-black text-[#025c37] mb-2">${p.price}</p>
-                            <button 
-                              onClick={() => dispatch(addToCartThunk({ productId: p._id, quantity: 1 })).unwrap().then(() => toast.success("Added!"))}
-                              className="w-full py-2 rounded-xl bg-[#e8f5e9] text-[#025c37] text-[10px] font-bold hover:bg-[#c8e6c9] transition-colors"
+                          <div className="p-4 bg-gray-50/50 border-t border-gray-50">
+                            <h4 className="text-[10px] font-bold uppercase truncate text-gray-400 mb-1">
+                              {p.name}
+                            </h4>
+                            <p className="text-xl font-black text-[#025c37] mb-3">
+                              ${p.price}
+                            </p>
+                            <button
+                              onClick={
+                                () =>
+                                  dispatch(
+                                    addToCartThunk({
+                                      productId: p._id,
+                                      quantity: 1,
+                                    }),
+                                  )
+                                    .unwrap()
+                                    .then((response) => {
+                                      toast.success(
+                                        `Added ${p.name} to cart!`,
+                                        {
+                                          toastId: `add-success-${p._id}`,
+                                        },
+                                      );
+                                    })
+                                    .catch((error) => {
+                                      toast.error(
+                                        error ||
+                                          "Failed to add product to cart!",
+                                      );
+                                    })
+                                // handleCartAction({ ...p, _id: p.id }, "ADD", 1)
+                              }
+                              className="w-full py-2.5 rounded-2xl bg-[#77cd3a] text-[#025c37] text-[10px] font-bold flex items-center justify-center gap-2 hover:bg-[#66b132] transition-all shadow-sm active:scale-95"
                             >
                               ADD TO CART
                             </button>
