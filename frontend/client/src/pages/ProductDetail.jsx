@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Star, Share2, ArrowLeft, ShoppingBag, Minus, Plus } from "lucide-react";
+import {
+  Star,
+  Share2,
+  ArrowLeft,
+  ShoppingBag,
+  Minus,
+  Plus,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { toast, ToastContainer } from "react-toastify";
@@ -9,7 +16,10 @@ import "react-toastify/dist/ReactToastify.css";
 import ProductGallery from "../components/ProductDetail/ProductGallery";
 import ReviewsContainer from "../components/Products/ReviewsContainer";
 import FloatingDecor from "../components/Fruit/FloatingDecor";
-import { fetchProductDetails, fetchRelatedProducts } from "../store/slices/productSlice";
+import {
+  fetchProductDetails,
+  fetchRelatedProducts,
+} from "../store/slices/productSlice";
 import BundleSection from "../components/ProductDetail/BundleSelection";
 import RelatedProducts from "../components/ProductDetail/RelatedProducts";
 import { fetchRecipes } from "../store/slices/recommendSlice";
@@ -20,13 +30,18 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Khai báo state quản lý ảnh và số lượng
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
   // Gộp chung Selector
-  const { productDetails: product, loading, relatedProducts } = useSelector((state) => state.product);
+  const {
+    productDetails: product,
+    loading,
+    relatedProducts,
+  } = useSelector((state) => state.product);
   const { recipes } = useSelector((state) => state.recommend);
 
   // Reset số lượng về 1 khi người dùng chuyển sang trang chi tiết sản phẩm khác
@@ -44,7 +59,12 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (product && relatedProducts?.length > 0) {
-      dispatch(fetchRecipes([product.name, ...relatedProducts.slice(0, 2).map((p) => p.name)]));
+      dispatch(
+        fetchRecipes([
+          product.name,
+          ...relatedProducts.slice(0, 2).map((p) => p.name),
+        ]),
+      );
     }
   }, [product, relatedProducts, dispatch]);
 
@@ -55,7 +75,9 @@ const ProductDetail = () => {
     const productImage = document.querySelector(".product-gallery-active-img");
     const cartIcon = document.getElementById("navbar-cart-icon");
 
-    dispatch(addToCartThunk({ productId: targetProduct._id, quantity })).unwrap();
+    dispatch(
+      addToCartThunk({ productId: targetProduct._id, quantity }),
+    ).unwrap();
     toast.success(`Added ${targetProduct.name} to Bag`);
 
     if (productImage && cartIcon) {
@@ -65,26 +87,35 @@ const ProductDetail = () => {
       const flyImg = document.createElement("img");
       flyImg.src = productImage.src;
       flyImg.className = "fly-to-cart-element";
-      
-      const size = 60; 
+
+      const size = 60;
       flyImg.style.width = `${size}px`;
       flyImg.style.height = `${size}px`;
-      
+
       flyImg.style.left = `${imgRect.left + imgRect.width / 2 - size / 2}px`;
       flyImg.style.top = `${imgRect.top + imgRect.height / 2 - size / 2}px`;
 
       const targetLeft = cartRect.left + cartRect.width / 2 - 12;
       const targetTop = cartRect.top + cartRect.height / 2 - 12;
 
-      flyImg.style.setProperty("--fly-X", `${targetLeft - (imgRect.left + imgRect.width / 2 - size / 2)}px`);
-      flyImg.style.setProperty("--fly-Y", `${targetTop - (imgRect.top + imgRect.height / 2 - size / 2)}px`);
+      flyImg.style.setProperty(
+        "--fly-X",
+        `${targetLeft - (imgRect.left + imgRect.width / 2 - size / 2)}px`,
+      );
+      flyImg.style.setProperty(
+        "--fly-Y",
+        `${targetTop - (imgRect.top + imgRect.height / 2 - size / 2)}px`,
+      );
 
       document.body.appendChild(flyImg);
 
       setTimeout(() => {
         flyImg.remove();
         cartIcon.classList.add("cart-bounce-feedback");
-        setTimeout(() => cartIcon.classList.remove("cart-bounce-feedback"), 300);
+        setTimeout(
+          () => cartIcon.classList.remove("cart-bounce-feedback"),
+          300,
+        );
       }, 800);
     }
   };
@@ -93,7 +124,9 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen flex items-center justify-center text-neutral-400 bg-[#f6f6f9] dark:bg-[#08080a]">
         <div className="flex flex-col items-center gap-3">
-          <span className="text-xs uppercase tracking-[0.3em] animate-pulse">Loading Masterpiece...</span>
+          <span className="text-xs uppercase tracking-[0.3em] animate-pulse">
+            Loading Masterpiece...
+          </span>
         </div>
       </div>
     );
@@ -148,7 +181,9 @@ const ProductDetail = () => {
             <span>Close</span>
           </button>
           <span className="text-neutral-300 dark:text-neutral-700">/</span>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-900 dark:text-neutral-200 font-medium truncate">{product.name}</span>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-900 dark:text-neutral-200 font-medium truncate">
+            {product.name}
+          </span>
         </nav>
 
         {/* Layout Grid */}
@@ -158,7 +193,7 @@ const ProductDetail = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.19, 1, 0.22, 1] }}
-            className="lg:col-span-7 w-full relative"
+            className="lg:col-span-5 w-full relative"
           >
             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent dark:from-white/2 blur-2xl -z-10 rounded-3xl" />
             <ProductGallery
@@ -174,11 +209,11 @@ const ProductDetail = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.19, 1, 0.22, 1], delay: 0.1 }}
-            className="lg:col-span-5 flex flex-col lg:sticky lg:top-36"
+            className="lg:col-span-7 flex flex-col lg:sticky lg:top-36"
           >
-            <h1 className="text-4xl sm:text-5xl font-light tracking-tight text-neutral-900 dark:text-neutral-100 mb-4 leading-[1.12]">
+            <h2 className="text-4xl sm:text-5xl font-light tracking-tight text-neutral-900 dark:text-neutral-100 mb-4 leading-[1.12]">
               {product.name}
-            </h1>
+            </h2>
 
             {/* Ratings Summary */}
             <div className="flex items-center gap-3 mb-8 text-xs font-light text-neutral-400 dark:text-neutral-500">
@@ -190,7 +225,11 @@ const ProductDetail = () => {
                       key={i}
                       size={11}
                       fill={i < Math.floor(ratingValue) ? "#77cd3a" : "none"}
-                      className={i < Math.floor(ratingValue) ? "text-[#77cd3a]" : "text-neutral-300 dark:text-neutral-800"}
+                      className={
+                        i < Math.floor(ratingValue)
+                          ? "text-[#77cd3a]"
+                          : "text-neutral-300 dark:text-neutral-800"
+                      }
                       strokeWidth={i < Math.floor(ratingValue) ? 0 : 1.5}
                     />
                   );
@@ -205,48 +244,61 @@ const ProductDetail = () => {
               </span>
             </div>
 
-            <p className="text-sm md:text-[14px] text-neutral-500 leading-relaxed mb-8">{product.description}</p>
+            <p className="text-sm md:text-[14px] text-neutral-500 leading-relaxed text-justify">
+              {isExpanded || product.description?.length <= 500
+                ? product.description
+                : `${product.description?.slice(0, 500)}...`}
+            </p>
+
+            {product.description?.length > 200 && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-2 mb-8 text-sm text-neutral-500 hover:text-neutral-700"
+              >
+                {isExpanded ? "Read less" : "Read more"}
+              </button>
+            )}
 
             {/* Purchase Bar */}
             <div className="flex flex-col gap-6 pt-6 border-t border-neutral-200/50 dark:border-neutral-800/60">
               <div className="flex items-baseline justify-between">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500 font-medium">
-                  Value
+                  Price
                 </span>
                 <div className="flex items-baseline text-neutral-900 dark:text-neutral-50">
-                  <span className="text-lg font-light text-neutral-400 mr-0.5">$</span>
+                  <span className="text-lg font-light text-neutral-400 mr-0.5">
+                    $
+                  </span>
                   <span className="text-4xl font-extralight tracking-tight">
                     {product?.price ? product.price.toFixed(2) : "0.00"}
                   </span>
                 </div>
               </div>
 
-              {/* Quantity Controls + Add To Bag */}
               <div className="flex items-center gap-3 w-full mt-2">
-                <div className="flex items-center bg-neutral-200/50 dark:bg-neutral-900/60 p-1 rounded-2xl border border-neutral-300/10 h-14">
+                <div className="flex items-center bg-neutral-100/80 dark:bg-neutral-900/60 p-1 rounded-xl border border-neutral-200/20 dark:border-neutral-800/30 h-12 backdrop-blur-sm">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 active:scale-95 transition-all"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-white dark:hover:bg-neutral-800/50 shadow-none hover:shadow-sm active:scale-95 transition-all duration-200"
                   >
-                    <Minus size={12} />
+                    <Minus size={14} />
                   </button>
-                  <span className="text-xs font-semibold px-2 text-neutral-800 dark:text-neutral-200 min-w-[28px] text-center">
+                  <span className="text-sm font-medium px-2 text-neutral-800 dark:text-neutral-200 min-w-[32px] text-center tabular-nums">
                     {quantity}
                   </span>
                   <button
                     onClick={() => setQuantity((q) => q + 1)}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 active:scale-95 transition-all"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-white dark:hover:bg-neutral-800/50 shadow-none hover:shadow-sm active:scale-95 transition-all duration-200"
                   >
-                    <Plus size={12} />
+                    <Plus size={14} />
                   </button>
                 </div>
-
                 <motion.button
                   whileHover={{ scale: product.stock === 0 ? 1 : 1.01, y: -1 }}
                   whileTap={{ scale: product.stock === 0 ? 1 : 0.99 }}
                   onClick={(e) => handleFlyToCart(e, product)}
                   disabled={product.stock === 0}
-                  className="flex-1 h-14 bg-[#77cd3a] text-white font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-[#66b330] transition-colors disabled:opacity-50"
+                  className="flex-1 h-12 bg-transparent text-[#77cd3a] text-sm font-semibold rounded-xl flex items-center justify-center gap-2 border border-[#77cd3a]/40 hover:border-[#77cd3a] active:scale-[0.98] transition-all duration-300 disabled:opacity-30"
                 >
                   <ShoppingBag size={13} />
                   <span>
@@ -259,14 +311,23 @@ const ProductDetail = () => {
             {/* Meta Footer */}
             <div className="mt-8 flex justify-between items-center text-[9px] tracking-[0.15em] uppercase text-neutral-400 dark:text-neutral-600 font-medium px-1">
               <button className="flex items-center gap-1.5 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors group">
-                <Share2 size={10} className="group-hover:scale-110 transition-transform duration-300" />
+                <Share2
+                  size={10}
+                  className="group-hover:scale-110 transition-transform duration-300"
+                />
                 <span>Share</span>
               </button>
-              <div className="flex items-center gap-3 font-light normal-case">
+              <div className="flex items-center gap-3 normal-case">
                 <span>ID: {product._id?.slice(-6)}</span>
                 <span className="w-1 h-1 rounded-full bg-neutral-300 dark:bg-neutral-800" />
-                <span className={product.stock > 10 ? "text-neutral-400" : "text-amber-600 font-normal"}>
-                  {product.stock} pieces available
+                <span
+                  className={
+                    product.stock > 10
+                      ? "text-neutral-400"
+                      : "text-amber-600 font-normal"
+                  }
+                >
+                  {product.stock} pcs
                 </span>
               </div>
             </div>

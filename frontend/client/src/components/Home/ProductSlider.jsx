@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllProducts } from "../../store/slices/productSlice";
-import { addToRecentlyViewed } from "../../store/slices/interactionSlice"; 
+import { addToRecentlyViewed } from "../../store/slices/interactionSlice";
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,7 +12,7 @@ import {
   Citrus,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
 import FloatingDecor from "../Fruit/FloatingDecor";
 import FruitLoader from "../Fruit/FruitLoader";
 import { addToCartThunk } from "../../store/slices/cartSlice";
@@ -24,7 +24,7 @@ const ProductSlider = ({
 }) => {
   const scrollRef = useRef(null);
   const dispatch = useDispatch();
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
   const { products: storeProducts, loading: storeLoading } = useSelector(
     (state) => state.product,
@@ -40,7 +40,7 @@ const ProductSlider = ({
 
   useEffect(() => {
     if (incomingProducts === undefined) {
-      dispatch(fetchAllProducts());
+      dispatch(fetchAllProducts({ limit: 30, page: 1 }));
     }
   }, [dispatch, incomingProducts]);
 
@@ -67,14 +67,17 @@ const ProductSlider = ({
 
         // NẾU Ý ĐỊNH CỦA USER LÀ CUỘN DỌC (Hoặc lướt xéo thiên về hướng dọc) -> Trả quyền cho trình duyệt ngay lập tức
         if (absY > absX || (absY > 0 && absX === 0)) {
-          return; 
+          return;
         }
 
         // Chỉ chặn hành vi mặc định và xử lý cuộn ngang khi user chủ định lướt ngang rõ ràng
         if (e.deltaX !== 0) {
-          e.preventDefault(); 
+          e.preventDefault();
           scrollVelocity.current += e.deltaX * 0.15;
-          scrollVelocity.current = Math.max(Math.min(scrollVelocity.current, 50), -50);
+          scrollVelocity.current = Math.max(
+            Math.min(scrollVelocity.current, 50),
+            -50,
+          );
 
           if (!isAnimationLoopRunning.current) {
             isAnimationLoopRunning.current = true;

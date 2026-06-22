@@ -92,10 +92,14 @@ const RelatedProducts = ({ products }) => {
                       )
                         .unwrap()
                         .then(() =>
-                          toast.success(`Added ${item.name} to cart!`),
+                          toast.success(`Added ${item.name} to cart!`, {
+                            position: "bottom-right",
+                          }),
                         )
                         .catch((error) =>
-                          toast.error(error || "Failed to add!"),
+                          toast.error(error || "Failed to add!", {
+                            position: "bottom-right",
+                          }),
                         );
                     }}
                     className="absolute bottom-2 right-2 w-10 h-10 bg-neutral-950 dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center 

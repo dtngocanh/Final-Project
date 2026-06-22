@@ -36,15 +36,20 @@ const Navbar = () => {
         <div className="flex items-center gap-1 sm:gap-3">
           <button
             onClick={() => dispatch(toggleSidebar())}
-            className="p-1.5 sm:p-2 -ml-1 sm:ml-0 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-            aria-label="Toggle Menu"
+            className="
+                group flex items-center gap-2
+                px-3 py-2 rounded-full
+                bg-gray-100 dark:bg-white/5
+                border border-gray-200 dark:border-white/10
+                hover:bg-[#77cd3a]/10
+                hover:border-[#77cd3a]/40
+                hover:shadow-lg hover:shadow-[#77cd3a]/20
+                transition-all duration-300
+                hover:scale-105
+              "
+            aria-label="Open Menu"
           >
-            <Menu
-              size={22}
-              sm:size={24}
-              strokeWidth={1.5}
-              style={{ color: activeColor }}
-            />
+            <Menu size={22} strokeWidth={1.8} style={{ color: activeColor }} />
           </button>
 
           <a href="/" className="flex items-center gap-0.5 sm:gap-1 group">
@@ -68,14 +73,24 @@ const Navbar = () => {
           {/* Search */}
           <button
             onClick={() => dispatch(toggleSearchBar())}
-            className="p-1.5 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-all hover:scale-105"
-            aria-label="Search"
+            className="
+            flex items-center gap-2
+            px-3 py-2 rounded-full
+            bg-gray-100 dark:bg-white/5
+            hover:bg-[#77cd3a]/10
+            transition-all duration-300
+          "
+            aria-label="Search products"
           >
             <Search
-              className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]"
+              className="w-5 h-5"
               strokeWidth={2}
               style={{ color: activeColor }}
             />
+
+            <span className="hidden lg:block text-sm text-gray-500 dark:text-gray-400">
+              Search product...
+            </span>
           </button>
 
           {/* Theme Toggle */}
@@ -151,10 +166,26 @@ const Navbar = () => {
           ) : (
             <button
               onClick={() => dispatch(openAuthPopup())}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#77cd3a] text-black hover:scale-105 transition-all"
+              className="
+                group flex items-center gap-2
+                px-4 py-2 rounded-full
+                bg-gray-100 dark:bg-white/5
+                border border-gray-200 dark:border-white/10
+                hover:bg-[#77cd3a]/10
+              "
             >
-              <User size={18} />
-              Login
+              <User
+                size={18}
+                style={{ color: activeColor }}
+                className="transition-transform duration-300 group-hover:scale-110"
+              />
+
+              <span
+                className="font-medium group-hover:text-[#77cd3a]"
+                style={{ color: activeColor }}
+              >
+                Login
+              </span>
             </button>
           )}
         </div>
