@@ -20,6 +20,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { cancelOrder, fetchMyOrders } from "../store/slices/orderSlice";
+import { bulkAddCartThunk } from "../store/slices/cartSlice";
+import { toast } from "react-toastify";
 const MontionLink = motion.create(Link);
 
 const Orders = () => {
@@ -173,11 +175,40 @@ const Orders = () => {
                         </div>
 
                         <div className="col-span-2 flex flex-wrap gap-3 items-end">
-                          {/* {order.orderStatus === "Delivered" && (
-                            <button className="px-4 py-2 glass-card hover:glow-on-hover animate-smooth text-[10px] uppercase font-bold flex items-center gap-2 dark:text-white border border-white/10 rounded-xl bg-white/5">
-                              <RefreshCw size={14} /> Reorder
+                          {["Delivered", "Canceled"].includes(order.orderStatus)  && (
+                            <button
+                              onClick={() => {
+                                const items = order.orderItems.map((item) => ({
+                                  productId: item.product._id,
+                                  quantity: item.quantity,
+                                }));
+
+                                dispatch(bulkAddCartThunk(items)).unwrap();
+
+                                toast.success("Products readded to cart!");
+                              }}
+                              className="
+                              group
+                              px-5 py-2.5 rounded-2xl
+                              bg-white/10 dark:bg-white/5 backdrop-blur-xl
+                              border border-[#77cd3a]/30
+                              text-[#77cd3a]
+                              font-bold text-[9px] uppercase tracking-[0.2em]
+                              flex items-center gap-2
+                              transition-all duration-300
+                              hover:bg-[#77cd3a] hover:text-black
+                              hover:border-[#77cd3a]
+                              hover:shadow-lg hover:shadow-[#77cd3a]/30
+                              active:scale-95
+                            "
+                            >
+                              <RefreshCw
+                                size={14}
+                                className="transition-transform duration-500 group-hover:rotate-180"
+                              />{" "}
+                              Reorder
                             </button>
-                          )} */}
+                          )}
 
                           {order.orderStatus === "Processing" && (
                             <button
