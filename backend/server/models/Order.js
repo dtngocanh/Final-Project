@@ -37,8 +37,8 @@ const shippingInfoSchema = new mongoose.Schema({
   provinceName: { type: String },
   districtName: { type: String },
   wardName: { type: String },
-  
-  city: { type: String},
+
+  city: { type: String },
   country: { type: String, required: true },
 });
 
@@ -101,5 +101,7 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+orderSchema.index({ "paymentInfo.id": 1 }, { unique: true });
 const Order = mongoose.models.order || mongoose.model("order", orderSchema);
 export default Order;

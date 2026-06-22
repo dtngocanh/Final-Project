@@ -115,7 +115,7 @@ export const processStripeOrder = async (session) => {
       totalPrice,
       orderStatus: "Processing",
     });
-    
+
     // CLEAR USER CART
     if (userId && userId !== "GUEST_USER") {
       await User.findByIdAndUpdate(userId, {
@@ -128,6 +128,16 @@ export const processStripeOrder = async (session) => {
     return order;
   } catch (error) {
     console.error("[PROCESS STRIPE ORDER ERROR]:", error);
+
+    // duplicate order
+    if (error.code === 11000) {
+      console.log("Duplicate order ignored");
+
+      return await Order.findOne({
+        "paymentInfo.id": paymentIntentId,
+      });
+    }
+
     throw error;
   }
 };
