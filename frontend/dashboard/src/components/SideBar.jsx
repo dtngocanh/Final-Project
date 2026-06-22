@@ -8,6 +8,7 @@ import {
   LogOut,
   X,
   Tags,
+  Boxes,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { NavLink, useNavigate } from "react-router-dom"; // QUAN TRỌNG: Dùng NavLink
@@ -23,6 +24,7 @@ const SideBar = () => {
   // Định nghĩa route tương ứng với từng item
   const menuItems = [
     { to: "/", icon: <LayoutDashboard size={20} />, label: "Dashboard" },
+    { to: "/inventory", icon: <Boxes size={20} />, label: "Inventory" },
     { to: "/users", icon: <Users size={20} />, label: "Users" },
     { to: "/orders", icon: <ListOrdered size={20} />, label: "Orders" },
     { to: "/products", icon: <Package size={20} />, label: "Products" },

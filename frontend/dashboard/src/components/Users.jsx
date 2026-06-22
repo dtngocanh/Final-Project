@@ -77,7 +77,7 @@ const Users = () => {
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-8">
           <div className="relative flex-1 min-w-[300px] group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-[#77cd3af2] transition-colors" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300  transition-colors" size={18} />
             <input
               type="text"
               placeholder="Search by name or email..."

@@ -57,11 +57,10 @@ const Products = () => {
     const filterParams = {
       page: currentPage,
       limit: itemsPerPage,
-      ...(filters.search.trim() !== "" && { search: filters.search }),
-      ...(selectedCategory !== "All" && { categoryId: selectedCategory }),
+      categoryId: selectedCategory !== "All" ? selectedCategory : undefined,
     };
     dispatch(fetchAllProducts(filterParams));
-  }, [dispatch, filters.search, selectedCategory, currentPage]);
+  }, [dispatch, selectedCategory, currentPage]);
 
   useEffect(() => {
     dispatch(fetchCategories());
@@ -154,6 +153,18 @@ const Products = () => {
             <Search
               className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300"
               size={20}
+              onClick={() => {
+                dispatch(
+                  fetchAllProducts({
+                    page: 1,
+                    limit: itemsPerPage,
+                    search: filters.search,
+                    categoryId:
+                      selectedCategory !== "All" ? selectedCategory : undefined,
+                  }),
+                );
+                setCurrentPage(1);
+              }}
             />
             <input
               type="text"
@@ -163,6 +174,22 @@ const Products = () => {
               onChange={(e) =>
                 setFilters({ ...filters, search: e.target.value })
               }
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  dispatch(
+                    fetchAllProducts({
+                      page: 1,
+                      limit: itemsPerPage,
+                      search: filters.search,
+                      categoryId:
+                        selectedCategory !== "All"
+                          ? selectedCategory
+                          : undefined,
+                    }),
+                  );
+                  setCurrentPage(1);
+                }
+              }}
             />
           </div>
 
