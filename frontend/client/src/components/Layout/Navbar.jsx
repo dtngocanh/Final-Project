@@ -2,6 +2,7 @@ import { Menu, ShoppingBag, Sun, Moon, Search, User, Bell } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  openAuthPopup,
   toggleAuthPopup,
   toggleCart,
   toggleSearchBar,
@@ -15,6 +16,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const { cart } = useSelector((state) => state.cart);
+  const { authUser } = useSelector((state) => state.auth);
 
   // TỐI ƯU UX: Cộng dồn tổng số lượng thực tế của tất cả sản phẩm trong giỏ hàng
   // const cartItemsCount = cart
@@ -132,17 +134,29 @@ const Navbar = () => {
           </button>
 
           {/* User Profile */}
-          <button
-            onClick={() => dispatch(toggleAuthPopup())}
-            className="flex p-1.5 sm:p-2 rounded-full transition-all hover:bg-gray-100 dark:hover:bg-white/5"
-            style={{ color: activeColor }}
-            aria-label="User Account"
-          >
-            <User
-              className="w-[19px] h-[19px] sm:w-[20px] sm:h-[20px]"
-              strokeWidth={2}
-            />
-          </button>
+
+          {authUser ? (
+            <button
+              onClick={() => dispatch(toggleAuthPopup())}
+              className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#77cd3a] flex items-center justify-center text-black font-bold">
+                {authUser.name?.charAt(0).toUpperCase()}
+              </div>
+
+              <span className="hidden md:block dark:text-white">
+                {authUser.name?.split(" ")[0]}
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={() => dispatch(openAuthPopup())}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#77cd3a] text-black hover:scale-105 transition-all"
+            >
+              <User size={18} />
+              Login
+            </button>
+          )}
         </div>
       </div>
     </nav>

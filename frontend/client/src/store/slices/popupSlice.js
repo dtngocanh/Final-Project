@@ -13,6 +13,12 @@ const popupSlice = createSlice({
     toggleAuthPopup(state) {
       state.isAuthPopupOpen = !state.isAuthPopupOpen;
     },
+    openAuthPopup(state) {
+      state.isAuthPopupOpen = true;
+    },
+    closeAuthPopup(state) {
+      state.isAuthPopupOpen = false;
+    },
     toggleSidebar(state) {
       state.isSidebarOpen = !state.isSidebarOpen;
     },
@@ -27,14 +33,16 @@ const popupSlice = createSlice({
     },
     toggleAIModal(state) {
       state.isAIPopupOpen = !state.isAIPopupOpen;
-    }
+    },
   },
 });
 
 export const {
   toggleAuthPopup,
+  openAuthPopup,
+  closeAuthPopup,
   toggleSidebar,
-  closeSidebar, 
+  closeSidebar,
   toggleSearchBar,
   toggleCart,
   toggleAIModal,

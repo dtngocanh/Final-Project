@@ -21,7 +21,7 @@ import {
   Leaf,
   Refrigerator
 } from "lucide-react";
-import { closeSidebar } from "../../store/slices/popupSlice";
+import { closeSidebar, openAuthPopup } from "../../store/slices/popupSlice";
 import { logout } from "../../store/slices/authSlice";
 import { toggleTomatoMode } from "../../store/slices/uiSlice";
 
@@ -97,9 +97,10 @@ const Sidebar = () => {
 
   const handleClose = () => dispatch(closeSidebar());
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async() => {
+    await dispatch(logout()).unwrap();
     dispatch(closeSidebar());
+    dispatch(openAuthPopup());
   };
 
   const renderLinks = (items) => {

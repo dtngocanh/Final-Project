@@ -15,7 +15,7 @@ import {
 } from "lucide-react"; // Thêm icon Award vào đây nè ní
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom"; // Import useNavigate để chuyển trang
-import { toggleAuthPopup } from "../../store/slices/popupSlice";
+import { openAuthPopup, toggleAuthPopup } from "../../store/slices/popupSlice";
 import {
   logout,
   updatePassword,
@@ -336,10 +336,11 @@ const ProfilePanel = () => {
             onClick={() => {
               dispatch(logout());
               handleClose();
+              dispatch(openAuthPopup());
             }}
             className="w-full flex items-center gap-3 text-red-500 text-[11px] uppercase font-bold tracking-[0.2em] hover:text-red-600 transition-colors"
           >
-            <LogOut size={18} /> Sign Out Account
+            <LogOut size={18} /> Log Out
           </button>
 
           <div className="mt-6 flex items-center gap-2 opacity-30 text-[9px] dark:text-gray-400 tracking-wider">
