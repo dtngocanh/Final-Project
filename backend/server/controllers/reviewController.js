@@ -20,9 +20,9 @@ const updateProductRating = async (productId) => {
 
 export const postReview = async (req, res, next) => {
   try {
-    const { rating, comment, productId } = req.body;
+    const { rating, comment, productId, orderId } = req.body;
 
-    // 1. Kiểm tra đơn hàng đã giao chưa
+
     const hasPurchased = await Order.findOne({
       user: req.user._id,
       "orderItems.product": productId,
@@ -37,10 +37,11 @@ export const postReview = async (req, res, next) => {
         ),
       );
     }
-    // 2. Kiểm tra xem đã review chưa (Dựa trên Review model)
+
     const existingReview = await Review.findOne({
       user: req.user._id,
       product: productId,
+      order:orderId
     });
 
     if (existingReview) {
@@ -56,6 +57,7 @@ export const postReview = async (req, res, next) => {
       rating: Number(rating),
       comment,
       isVerifiedPurchase: true, // Vì đã check Order ở trên
+      order: orderId
     });
 
     // 4. Cập nhật lại stats bên Product model
@@ -98,7 +100,7 @@ export const updateReview = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: "Review updated successfully.",
+      // message: "Review updated successfully.",
     });
   } catch (error) {
     next(error);

@@ -312,16 +312,7 @@ const OrderDetail = () => {
                           </button>
                         )}
 
-                        {orderDetail.orderStatus === "Delivered" && (
-                          <Link
-                            to={`/product/${item.product?._id || ""}#reviews`}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-[#77cd3a] text-black rounded-xl text-[9px] font-black uppercase tracking-tighter hover:bg-[#86e041] transition-all shadow-lg shadow-[#77cd3a]/20 active:scale-95 group/btn overflow-hidden relative inline-flex"
-                          >
-                            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite]" />
-                            <Star size={12} fill="currentColor" />
-                            <span>Review Item</span>
-                          </Link>
-                        )}
+
                       </div>
                     </div>
                   </motion.div>

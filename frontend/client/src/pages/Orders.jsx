@@ -175,7 +175,9 @@ const Orders = () => {
                         </div>
 
                         <div className="col-span-2 flex flex-wrap gap-3 items-end">
-                          {["Delivered", "Canceled"].includes(order.orderStatus)  && (
+                          {["Delivered", "Canceled"].includes(
+                            order.orderStatus,
+                          ) && (
                             <button
                               onClick={() => {
                                 const items = order.orderItems.map((item) => ({
@@ -207,6 +209,22 @@ const Orders = () => {
                                 className="transition-transform duration-500 group-hover:rotate-180"
                               />{" "}
                               Reorder
+                            </button>
+                          )}
+
+                          {order.orderStatus === "Delivered" && (
+                            <button
+                              onClick={() => {
+                                navigate(`/review-order/${order._id}`);
+                              }}
+                              className="group px-5 py-2.5 rounded-2xl bg-[#77cd3a] text-black border border-[#77cd3a] font-bold text-[9px] uppercase tracking-[0.2em] flex items-center gap-2 transition-all duration-300 hover:bg-[#86e041] hover:shadow-lg hover:shadow-[#77cd3a]/40 active:scale-95"
+                            >
+                              <Star
+                                size={14}
+                                fill="currentColor"
+                                className="transition-transform duration-300 group-hover:scale-110"
+                              />{" "}
+                              Review Order
                             </button>
                           )}
 
