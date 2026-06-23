@@ -42,12 +42,18 @@ function App() {
     }
   }, [dispatch, isAuthenticated]);
 
-  // if (isCheckingAuth)
-  //   return (
-  //     <div className="h-screen flex items-center justify-center">
-  //       Loading...
-  //     </div>
-  //   );
+  if (isCheckingAuth) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#f8faf9] dark:bg-[#050505]">
+        {/* Animated Spinner */}
+        <div className="w-12 h-12 border-4 border-[#3a5a40] border-t-transparent rounded-full animate-spin"></div>
+
+        <p className="mt-4 text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">
+          Authenticating access...
+        </p>
+      </div>
+    );
+  }
 
   // Component Layout dùng chung cho toàn bộ trang Admin
   const AdminLayout = () => (
