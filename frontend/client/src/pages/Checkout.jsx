@@ -31,7 +31,14 @@ import {
 } from "lucide-react";
 
 /* ===================== TÁCH RIÊNG COMPONENT INPUT ĐỂ TRÁNH RE-RENDER ===================== */
-const FormInput = ({ name, placeholder, icon: Icon, value, onChange, error }) => {
+const FormInput = ({
+  name,
+  placeholder,
+  icon: Icon,
+  value,
+  onChange,
+  error,
+}) => {
   return (
     <div className="relative">
       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -88,28 +95,28 @@ const ShippingStep = ({
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        <FormInput 
-          name="fullName" 
-          placeholder="Full Name" 
-          icon={User} 
-          value={shippingDetails.fullName} 
-          onChange={handleChange} 
+        <FormInput
+          name="fullName"
+          placeholder="Full Name"
+          icon={User}
+          value={shippingDetails.fullName}
+          onChange={handleChange}
           error={errors.fullName}
         />
-        <FormInput 
-          name="email" 
-          placeholder="Email Address" 
-          icon={Mail} 
-          value={shippingDetails.email} 
-          onChange={handleChange} 
+        <FormInput
+          name="email"
+          placeholder="Email Address"
+          icon={Mail}
+          value={shippingDetails.email}
+          onChange={handleChange}
           error={errors.email}
         />
-        <FormInput 
-          name="phone" 
-          placeholder="Phone Number" 
-          icon={Phone} 
-          value={shippingDetails.phone} 
-          onChange={handleChange} 
+        <FormInput
+          name="phone"
+          placeholder="Phone Number"
+          icon={Phone}
+          value={shippingDetails.phone}
+          onChange={handleChange}
           error={errors.phone}
         />
         <div className="md:col-span-2">
@@ -207,7 +214,7 @@ const PaymentStep = ({ paymentMethod, setPaymentMethod }) => {
 };
 
 /* ===================== STEP 3: CONFIRM ===================== */
-const ConfirmStep = ({ shippingDetails, cart, paymentMethod }) => {
+const ConfirmStep = ({ shippingDetails, orderItems, paymentMethod }) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
@@ -261,8 +268,11 @@ const ConfirmStep = ({ shippingDetails, cart, paymentMethod }) => {
         Items in Your Order
       </p>
       <div className="space-y-3 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
-        {cart.map((item) => {
-          const imageUrl = item.image || item.product?.images?.[0]?.url || "https://via.placeholder.com/150";
+        {orderItems.map((item) => {
+          const imageUrl =
+            item.image ||
+            item.product?.images?.[0]?.url ||
+            "https://via.placeholder.com/150";
           const productName = item.name || item.product?.name || "Product";
           const productPrice = item.price || item.product?.price || 0;
           const productId = item.product?._id || item.product;
@@ -329,7 +339,7 @@ const Checkout = () => {
 
   const { authUser } = useSelector((state) => state.auth);
   const { cart, totalCart } = useSelector((state) => state.cart);
-  
+
   const { shippingFee, loadingAddress } = useSelector((state) => state.address);
   const { activeStep, loading, shippingInfo, placingOrder } = useSelector(
     (state) => state.order,
@@ -353,10 +363,41 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState("Stripe");
   const [errors, setErrors] = useState({});
 
-  const subtotal = totalCart > 0 
-    ? totalCart 
-    : (location.state?.subtotal || cart?.reduce((acc, item) => acc + (item.price || item.product?.price || 0) * item.quantity, 0) || 0);
-    
+  const buyNowItem = location.state?.buyNowItem || null;
+
+  const orderItems = buyNowItem
+    ? [
+        {
+          product: buyNowItem.product?._id || buyNowItem.product,
+          name: buyNowItem.product?.name,
+          price:
+            buyNowItem.product?.discountPrice > 0
+              ? buyNowItem.product.discountPrice
+              : buyNowItem.product?.price || 0,
+          image:
+            buyNowItem.product?.images?.[0]?.url ||
+            buyNowItem.product?.image?.[0],
+          quantity: buyNowItem.quantity,
+        },
+      ]
+    : cart.map((item) => ({
+        product: item.product?._id || item.product,
+        name: item.name || item.product?.name,
+        price: item.price || item.product?.price || 0,
+        image: item.image || item.product?.images?.[0]?.url,
+        quantity: item.quantity,
+      }));
+
+  const subtotal = buyNowItem
+    ? orderItems[0].price * orderItems[0].quantity
+    : totalCart > 0
+      ? totalCart
+      : cart?.reduce(
+          (acc, item) =>
+            acc + (item.price || item.product?.price || 0) * item.quantity,
+          0,
+        ) || 0;
+
   const totalAmount = Number((subtotal + shippingFee).toFixed(2));
 
   useEffect(() => {
@@ -365,13 +406,13 @@ const Checkout = () => {
       districtId &&
       Number(districtId) > 0 &&
       wardCode &&
-      cart.length > 0 &&
+      orderItems.length > 0 &&
       !loadingAddress
     ) {
       const timeoutId = setTimeout(() => {
         dispatch(
           calcFee({
-            cartItems: cart,
+            cartItems: orderItems,
             to_district_id: districtId,
             to_ward_code: wardCode,
           }),
@@ -379,7 +420,13 @@ const Checkout = () => {
       }, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [shippingDetails.districtId, shippingDetails.wardCode, loadingAddress, cart, dispatch]);
+  }, [
+    shippingDetails.districtId,
+    shippingDetails.wardCode,
+    loadingAddress,
+    orderItems,
+    dispatch,
+  ]);
 
   const validateShipping = () => {
     const newErrors = {};
@@ -392,17 +439,11 @@ const Checkout = () => {
 
   const handlePlaceOrder = async () => {
     if (placingOrder) return;
-    
+
     const orderData = {
       shippingInfo: shippingDetails,
       paymentMethod: paymentMethod,
-      orderItems: cart.map((item) => ({
-        product: item.product?._id || item.product, 
-        name: item.name || item.product?.name,
-        price: item.price || item.product?.price,
-        image: item.image || item.product?.images?.[0]?.url,
-        quantity: item.quantity,
-      })),
+      orderItems: orderItems,
       totalPrice: totalAmount,
       shippingPrice: shippingFee,
       itemsPrice: subtotal,
@@ -410,26 +451,36 @@ const Checkout = () => {
 
     try {
       const response = await dispatch(placeOrder(orderData)).unwrap();
-
-      cart.forEach((item) => {
-        const pId = item.product?._id || item.product;
-        if (pId && typeof pId === 'string') {
-          dispatch(
-            trackClickThunk({ productId: pId, action: "order" }),
-          );
+      // Chỉ tracking và xóa giỏ hàng nếu đây KHÔNG PHẢI là đơn hàng Mua Ngay
+      if (!buyNowItem) {
+        cart.forEach((item) => {
+          const pId = item.product?._id || item.product;
+          if (pId && typeof pId === "string") {
+            dispatch(trackClickThunk({ productId: pId, action: "order" }));
+          }
+        });
+      } else {
+        // Nếu là mua ngay lẻ, chỉ cần track đúng sản phẩm đó
+        const pId = orderItems[0]?.product;
+        if (pId && typeof pId === "string") {
+          dispatch(trackClickThunk({ productId: pId, action: "order" }));
         }
-      });
+      }
 
       if (orderData.paymentMethod === "Stripe") {
         if (response?.url) {
           window.location.href = response.url;
         } else if (response?.clientSecret) {
-          navigate("/stripe-payment", { state: { clientSecret: response.clientSecret } });
+          navigate("/stripe-payment", {
+            state: { clientSecret: response.clientSecret },
+          });
         } else {
-          toast.error("Không tìm thấy đường dẫn thanh toán từ hệ thống Stripe!");
+          toast.error(
+            "Không tìm thấy đường dẫn thanh toán từ hệ thống Stripe!",
+          );
         }
       } else {
-        dispatch(clearCart());
+        if (!buyNowItem) dispatch(clearCart());
         dispatch(resetAddressState());
         dispatch(resetOrder());
         setShippingDetails({
@@ -520,7 +571,7 @@ const Checkout = () => {
               {activeStep === 2 && (
                 <ConfirmStep
                   shippingDetails={shippingDetails}
-                  cart={cart}
+                  orderItems={orderItems}
                   totalAmount={totalAmount}
                   paymentMethod={paymentMethod}
                 />

@@ -132,21 +132,23 @@ const ProductDetail = () => {
     );
   }
 
-const renderProductTag = () => {
-  const price = Number(product.price || 0);
-  const discountPrice = Number(product.discountPrice || 0);
+  const renderProductTag = () => {
+    const price = Number(product.price || 0);
+    const discountPrice = Number(product.discountPrice || 0);
 
-  if (discountPrice > 0 && price > 0 && discountPrice < price) {
-    const calculatedDiscount = Math.round(((price - discountPrice) / price) * 100);
-    
-    return (
-      <div className="absolute top-5 right-5 z-10 px-2.5 py-1 text-[11px] md:text-xs font-extrabold text-white bg-rose-500 rounded-full shadow-sm tracking-wide flex items-center justify-center min-w-[42px]">
-        -{calculatedDiscount}%
-      </div>
-    );
-  }
-  return null;
-};
+    if (discountPrice > 0 && price > 0 && discountPrice < price) {
+      const calculatedDiscount = Math.round(
+        ((price - discountPrice) / price) * 100,
+      );
+
+      return (
+        <div className="absolute top-5 right-5 z-10 px-2.5 py-1 text-[11px] md:text-xs font-extrabold text-white bg-rose-500 rounded-full shadow-sm tracking-wide flex items-center justify-center min-w-[42px]">
+          -{calculatedDiscount}%
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <main className="min-h-screen pt-28 md:pt-36 pb-24 bg-[#f6f6f9] dark:bg-[#08080a] relative overflow-hidden transition-colors duration-1000 select-none antialiased">
@@ -231,7 +233,6 @@ const renderProductTag = () => {
             <h2 className="text-4xl sm:text-5xl font-light tracking-tight text-neutral-900 dark:text-neutral-100 mb-4 leading-[1.12]">
               {product.name}
             </h2>
-            
 
             {/* Ratings Summary */}
             <div className="flex items-center gap-3 mb-8 text-xs font-light text-neutral-400 dark:text-neutral-500">
@@ -350,6 +351,22 @@ const renderProductTag = () => {
                   <ShoppingBag size={13} />
                   <span>
                     {product.stock === 0 ? "Out of Stock" : "Add to Bag"}
+                  </span>
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: product.stock === 0 ? 1 : 1.01, y: -1 }}
+                  whileTap={{ scale: product.stock === 0 ? 1 : 0.99 }}
+                  onClick={(e) => {
+                    navigate("/checkout", {
+                      state: { buyNowItem: { product: product, quantity: quantity } },
+                    });
+                  }}
+                  disabled={product.stock === 0}
+                  className="flex-1 h-12 bg-transparent text-[#77cd3a] text-sm font-semibold rounded-xl flex items-center justify-center gap-2 border border-[#77cd3a]/40 hover:border-[#77cd3a] active:scale-[0.98] transition-all duration-300 disabled:opacity-30"
+                >
+                  <ShoppingBag size={13} />
+                  <span>
+                    {product.stock === 0 ? "Out of Stock" : "Buy Now"}
                   </span>
                 </motion.button>
               </div>
