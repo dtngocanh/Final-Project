@@ -10,6 +10,7 @@ export const getRecommendations = async (req, res) => {
     // =========================
     const shuffleArray = (array) => [...array].sort(() => Math.random() - 0.5);
 
+    // FIX: Đảm bảo formatProduct lấy đúng discountPrice realtime từ product
     const formatProduct = (product, extra = {}) => ({
       _id: product._id,
       name: product.name,
@@ -18,18 +19,19 @@ export const getRecommendations = async (req, res) => {
       image: product.images?.[0]?.url || null,
       stock: product.stock,
       ratings: product.ratings || 0,
+      discountPrice: product.discountPrice ?? 0, // Lấy giá giảm realtime
       ...extra,
     });
 
     // =========================
     // FUNCTION: GET RANDOM/TRENDING
     // =========================
-    // Dùng chung cho cả Guest và User mới chưa có lịch sử
     const getFallbackProducts = async () => {
+      // FIX 1: Thêm "discountPrice" vào chuỗi select
       const trending = await Product.find({})
-        .select("name price images stock ratings salesCount viewCount")
+        .select("name price discountPrice images stock ratings salesCount viewCount")
         .sort({ salesCount: -1, viewCount: -1 })
-        .limit(40); // Lấy pool rộng một chút để random
+        .limit(40);
 
       const randomList = shuffleArray(trending).slice(0, 12);
       
@@ -57,10 +59,11 @@ export const getRecommendations = async (req, res) => {
     // =====================================
     // CASE 2: USER ĐÃ ĐĂNG NHẬP -> TÌM SVD
     // =====================================
+    // FIX 2: Thêm "discountPrice" vào populate select để đồng bộ từ bảng Product gốc
     const data = await Recommendation.findOne({ userId }).populate({
       path: "recommendations.productId",
       model: "product",
-      select: "name price images stock ratings salesCount viewCount",
+      select: "name price discountPrice images stock ratings salesCount viewCount",
     });
 
     // Nếu có dữ liệu SVD và có mảng recommendations
@@ -85,7 +88,6 @@ export const getRecommendations = async (req, res) => {
     // =====================================
     // CASE 3: USER ĐÃ ĐĂNG NHẬP NHƯNG CHƯA CÓ SVD
     // =====================================
-    // (Do mới tạo acc hoặc chưa đủ tương tác để chạy máy học)
     const fallbackList = await getFallbackProducts();
     return res.status(200).json({
       success: true,

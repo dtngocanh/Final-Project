@@ -51,84 +51,111 @@ const RelatedProducts = ({ products }) => {
 
         {/* Product Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-          {displayedProducts.map((item, index) => (
-            <motion.div
-              key={item._id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              onClick={() => {
-                navigate(`/product/${item._id}`);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="group relative cursor-pointer"
-            >
-              <div className="relative bg-[#fafafa] dark:bg-white/[0.02] rounded-[2rem] md:rounded-[2.5rem] p-3 md:p-6 border border-transparent dark:border-white/[0.03] hover:bg-white dark:hover:bg-neutral-900 transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)]">
-                {/* Image Container */}
-                <div className="relative aspect-square mb-4 md:mb-6 flex items-center justify-center overflow-hidden">
-                  <div className="w-[85%] h-[85%] flex items-center justify-center bg-white dark:bg-neutral-800 rounded-3xl shadow-inner border border-neutral-100 dark:border-white/5">
-                    <img
-                      src={item.images?.[0]?.url || "/placeholder.png"}
-                      alt={item.name}
-                      className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
-                    />
-                  </div>
+          {displayedProducts.map((item, index) => {
+            const price = Number(item.price || 0);
+            const discountPrice = Number(item.discountPrice || 0);
+            const isDiscounted = discountPrice > 0 && price > 0 && discountPrice < price;
+            const calculatedDiscount = isDiscounted ? Math.round(((price - discountPrice) / price) * 100) : 0;
 
-                  {/* Rating Badge */}
-                  <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/80 dark:bg-black/50 backdrop-blur-md px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Star size={10} fill="#77cd3a" className="text-[#77cd3a]" />
-                    <span className="text-[9px] font-bold dark:text-white">
-                      {item.ratings?.toFixed(1) || 0}
-                    </span>
-                  </div>
+            return (
+              <motion.div
+                key={item._id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                onClick={() => {
+                  navigate(`/product/${item._id}`);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="group relative cursor-pointer"
+              >
+                <div className="relative bg-[#fafafa] dark:bg-white/[0.02] rounded-[2rem] md:rounded-[2.5rem] p-3 md:p-6 border border-transparent dark:border-white/[0.03] hover:bg-white dark:hover:bg-neutral-900 transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)]">
+                  {/* Image Container */}
+                  <div className="relative aspect-square mb-4 md:mb-6 flex items-center justify-center overflow-hidden">
+                    <div className="w-[85%] h-[85%] flex items-center justify-center bg-white dark:bg-neutral-800 rounded-3xl shadow-inner border border-neutral-100 dark:border-white/5">
+                      <img
+                        src={item.images?.[0]?.url || "/placeholder.png"}
+                        alt={item.name}
+                        className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
+                      />
+                    </div>
 
-                  {/* Add To Cart Button - Responsive */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      dispatch(
-                        addToCartThunk({ productId: item._id, quantity: 1 }),
-                      )
-                        .unwrap()
-                        .then(() =>
-                          toast.success(`Added ${item.name} to cart!`, {
-                            position: "bottom-right",
-                          }),
+                    {/* Tag Giảm Giá Động (Hiển thị góc phải trên) */}
+                    {isDiscounted && (
+                      <span className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full text-[8px] md:text-[9px] font-bold text-white bg-rose-500 animate-pulse shadow-sm tracking-wide uppercase select-none">
+                        -{calculatedDiscount}%
+                      </span>
+                    )}
+
+                    {/* Rating Badge */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/80 dark:bg-black/50 backdrop-blur-md px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Star size={10} fill="#77cd3a" className="text-[#77cd3a]" />
+                      <span className="text-[9px] font-bold dark:text-white">
+                        {item.ratings?.toFixed(1) || 0}
+                      </span>
+                    </div>
+
+                    {/* Add To Cart Button - Responsive */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch(
+                          addToCartThunk({ productId: item._id, quantity: 1 }),
                         )
-                        .catch((error) =>
-                          toast.error(error || "Failed to add!", {
-                            position: "bottom-right",
-                          }),
-                        );
-                    }}
-                    className="absolute bottom-2 right-2 w-10 h-10 bg-neutral-950 dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center 
-                               opacity-100 translate-y-0 md:opacity-0 md:translate-y-4 
-                               group-hover:opacity-100 group-hover:translate-y-0 
-                               transition-all duration-500 hover:bg-[#77cd3a] dark:hover:bg-[#77cd3a] 
-                               dark:hover:text-white z-20 shadow-xl active:scale-90"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
+                          .unwrap()
+                          .then(() =>
+                            toast.success(`Added ${item.name} to cart!`, {
+                              position: "bottom-right",
+                            }),
+                          )
+                          .catch((error) =>
+                            toast.error(error || "Failed to add!", {
+                              position: "bottom-right",
+                            }),
+                          );
+                      }}
+                      className="absolute bottom-2 right-2 w-10 h-10 bg-neutral-950 dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center 
+                                 opacity-100 translate-y-0 md:opacity-0 md:translate-y-4 
+                                 group-hover:opacity-100 group-hover:translate-y-0 
+                                 transition-all duration-500 hover:bg-[#77cd3a] dark:hover:bg-[#77cd3a] 
+                                 dark:hover:text-white z-20 shadow-xl active:scale-90"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
 
-                {/* Info */}
-                <div className="space-y-1 px-1 md:px-2">
-                  <h4 className="text-xs md:text-base font-medium text-gray-900 dark:text-white truncate group-hover:text-[#77cd3a] transition-colors">
-                    {item.name}
-                  </h4>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm md:text-base font-light dark:text-white">
-                      ${item.price?.toFixed(2)}
-                    </span>
-                    <span className="text-[8px] text-neutral-400 font-bold uppercase tracking-tighter pt-1">
-                      / unit
-                    </span>
+                  {/* Info */}
+                  <div className="space-y-1 px-1 md:px-2">
+                    <h4 className="text-xs md:text-base font-medium text-gray-900 dark:text-white truncate group-hover:text-[#77cd3a] transition-colors">
+                      {item.name}
+                    </h4>
+                    
+                    {/* Hiển thị giá Realtime linh hoạt */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {isDiscounted ? (
+                        <>
+                          <span className="text-sm md:text-base font-bold text-[#77cd3a] dark:text-green-400">
+                            ${discountPrice.toFixed(2)}
+                          </span>
+                          <span className="text-[10px] md:text-xs text-neutral-400 line-through font-normal">
+                            ${price.toFixed(2)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm md:text-base font-light dark:text-white">
+                          ${price.toFixed(2)}
+                        </span>
+                      )}
+                      <span className="text-[8px] text-neutral-400 font-bold uppercase tracking-tighter pt-1">
+                        / unit
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* Mobile View All Button */}
