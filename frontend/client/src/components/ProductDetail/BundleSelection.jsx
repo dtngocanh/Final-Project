@@ -39,19 +39,34 @@ const BundleSelection = ({ mainProduct }) => {
     selectedItems.includes(item.productId),
   );
 
+  const getEffectivePrice = (item) => {
+    if (!item) return 0;
+    const price = Number(item.price || 0);
+    const discountPrice = Number(item.discountPrice || 0);
+
+    if (discountPrice > 0 && discountPrice < price) {
+      const actualDiscountPercent = ((price - discountPrice) / price) * 100;
+      return actualDiscountPercent < 10 ? price * 0.9 : discountPrice;
+    }
+    return price * 0.9;
+  };
+
+  // 1. Tính tổng giá gốc (Price) ban đầu của cả cụm được chọn
   const originalTotalPrice =
     (mainProduct?.price || 0) +
     activeBundleItems.reduce((sum, item) => sum + (item.price || 0), 0);
 
-  const isEligibleForDiscount =
-    selectedItems.length === limitedFreqProducts.length &&
-    limitedFreqProducts.length > 0;
-  const discountPercentage = 10;
+  // 2. Tính tổng giá bán thực tế sau khi đã xử lý chiết khấu từng item
+  const finalTotalPrice = useMemo(() => {
+    const mainPrice = getEffectivePrice(mainProduct);
+    const subProductsPrice = activeBundleItems.reduce(
+      (sum, item) => sum + getEffectivePrice(item),
+      0,
+    );
+    return mainPrice + subProductsPrice;
+  }, [mainProduct, activeBundleItems]);
 
-  const finalTotalPrice = isEligibleForDiscount
-    ? originalTotalPrice * (1 - discountPercentage / 100)
-    : originalTotalPrice;
-
+  // 3. Tính số tiền tiết kiệm được
   const savedAmount = originalTotalPrice - finalTotalPrice;
 
   const handleAddBundleToCart = async () => {
@@ -129,19 +144,21 @@ const BundleSelection = ({ mainProduct }) => {
               <div className="space-y-3 pt-2">
                 <SummaryRow
                   name={mainProduct?.name}
-                  price={mainProduct?.price}
+                  originalPrice={mainProduct?.price}
+                  price={getEffectivePrice(mainProduct)}
                 />
                 {activeBundleItems.map((item) => (
                   <SummaryRow
                     key={item.productId}
                     name={item.name}
-                    price={item.price}
+                    originalPrice={item.price}
+                    price={getEffectivePrice(item)}
                   />
                 ))}
               </div>
 
               <div className="pt-4 border-t border-dashed border-neutral-200 dark:border-white/10">
-                {isEligibleForDiscount && (
+                {savedAmount > 0 && (
                   <div className="flex justify-between text-xs text-red-500 font-medium mb-2">
                     <span>Combo Discount (10% Off)</span>
                     <span>-${savedAmount.toFixed(2)}</span>
@@ -152,7 +169,7 @@ const BundleSelection = ({ mainProduct }) => {
                     Total Amount
                   </span>
                   <div className="text-right">
-                    {isEligibleForDiscount && (
+                    {savedAmount > 0 && (
                       <span className="text-sm text-neutral-400 line-through mr-2">
                         ${originalTotalPrice.toFixed(2)}
                       </span>
@@ -173,7 +190,7 @@ const BundleSelection = ({ mainProduct }) => {
             >
               <ShoppingBag size={16} />
               <span className="tracking-[0.15em] text-[12px] font-bold">
-                {isEligibleForDiscount ? "Add Combo to Bag" : "Add to Bag"}
+                {savedAmount > 0 ? "Add Combo to Bag" : "Add to Bag"}
               </span>
             </motion.button>
           </div>
@@ -184,12 +201,28 @@ const BundleSelection = ({ mainProduct }) => {
 };
 
 // Sub-components
-const SummaryRow = ({ name, price }) => (
-  <div className="flex justify-between text-[13px] dark:text-white">
-    <span className="truncate opacity-60 w-3/4 italic">1x {name}</span>
-    <span className="font-semibold">${(price || 0).toFixed(2)}</span>
-  </div>
-);
+const SummaryRow = ({ name, originalPrice, price }) => {
+  const isDiscounted = originalPrice > price;
+  return (
+    <div className="flex justify-between items-center text-[13px] dark:text-white">
+      <span className="truncate opacity-60 w-1/2 italic">1x {name}</span>
+      <div className="flex items-center gap-2 text-right">
+        {isDiscounted && (
+          <span className="text-xs text-neutral-400 dark:text-neutral-500 line-through font-normal">
+            ${(originalPrice || 0).toFixed(2)}
+          </span>
+        )}
+        <span
+          className={
+            isDiscounted ? "text-[#77cd3a] font-bold" : "font-semibold"
+          }
+        >
+          ${(price || 0).toFixed(2)}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 const BundleItem = ({
   image,

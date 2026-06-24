@@ -82,9 +82,10 @@ export const updateCart = async (req, res, next) => {
       );
 
       // TỰ ĐỘNG CHECK GIÁ FLASH SALE THỜI GIAN THỰC CHO SẢN PHẨM THƯỜNG
-      const currentLivePrice = (product.discountPrice && product.discountPrice > 0)
-        ? product.discountPrice
-        : product.price;
+      const currentLivePrice =
+        product.discountPrice && product.discountPrice > 0
+          ? product.discountPrice
+          : product.price;
 
       let settledPrice = currentLivePrice;
 
@@ -199,7 +200,31 @@ export const addCombo = async (req, res, next) => {
     const uniqueComboId = `combo_${crypto.randomBytes(4).toString("hex")}`;
 
     for (const product of products) {
-      const discountedPrice = Number((product.price * 0.9).toFixed(2));
+      const price = Number(product.price || 0);
+      const inputDiscountPrice = Number(product.discountPrice || 0);
+
+      let finalPrice = price;
+
+      // 1. Nếu có nhập giá giảm và giá giảm đó hợp lệ (nhỏ hơn giá gốc)
+      if (inputDiscountPrice > 0 && inputDiscountPrice < price) {
+        // Tính tỷ lệ phần trăm giảm giá thực tế của sản phẩm nhập vào
+        const actualDiscountPercent =
+          ((price - inputDiscountPrice) / price) * 100;
+
+        if (actualDiscountPercent < 10) {
+          // NẾU GIẢM ÍT HƠN 10%: Tự động ép về mức giảm 10% theo combo
+          finalPrice = price * 0.9;
+        } else {
+          // Nếu giảm từ 10% trở lên thì giữ nguyên giá giảm của sản phẩm
+          finalPrice = inputDiscountPrice;
+        }
+      } else {
+        // 2. Trường hợp không có giá giảm, tự động tính giảm 10% theo combo (hoặc giữ nguyên giá gốc tùy bạn)
+        // Nếu không giảm, bạn đổi thành finalPrice = price;
+        finalPrice = price * 0.9;
+      }
+
+      const discountedPrice = Number(finalPrice.toFixed(2));
 
       currentCartItems.push({
         product: product._id,
@@ -256,9 +281,10 @@ export const bulkAddCart = async (req, res, next) => {
       );
 
       // TỰ ĐỘNG CHECK GIÁ FLASH SALE KHI THÊM HÀNG LOẠT
-      const currentPrice = (product.discountPrice && product.discountPrice > 0)
-        ? product.discountPrice
-        : product.price;
+      const currentPrice =
+        product.discountPrice && product.discountPrice > 0
+          ? product.discountPrice
+          : product.price;
 
       const qty = Math.min(item.quantity, product.stock);
 
@@ -310,9 +336,10 @@ export const addToCart = async (req, res, next) => {
     const qty = Math.min(quantity, product.stock);
 
     // TỰ ĐỘNG KIỂM TRA XEM CÓ GIÁ FLASH SALE NGẦM KHÔNG
-    const currentPrice = (product.discountPrice && product.discountPrice > 0)
-      ? product.discountPrice
-      : product.price;
+    const currentPrice =
+      product.discountPrice && product.discountPrice > 0
+        ? product.discountPrice
+        : product.price;
 
     if (existing) {
       existing.quantity = Math.min(existing.quantity + quantity, product.stock);
