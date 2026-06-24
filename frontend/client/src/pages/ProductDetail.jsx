@@ -132,6 +132,22 @@ const ProductDetail = () => {
     );
   }
 
+const renderProductTag = () => {
+  const price = Number(product.price || 0);
+  const discountPrice = Number(product.discountPrice || 0);
+
+  if (discountPrice > 0 && price > 0 && discountPrice < price) {
+    const calculatedDiscount = Math.round(((price - discountPrice) / price) * 100);
+    
+    return (
+      <div className="absolute top-5 right-5 z-10 px-2.5 py-1 text-[11px] md:text-xs font-extrabold text-white bg-rose-500 rounded-full shadow-sm tracking-wide flex items-center justify-center min-w-[42px]">
+        -{calculatedDiscount}%
+      </div>
+    );
+  }
+  return null;
+};
+
   return (
     <main className="min-h-screen pt-28 md:pt-36 pb-24 bg-[#f6f6f9] dark:bg-[#08080a] relative overflow-hidden transition-colors duration-1000 select-none antialiased">
       <ToastContainer
@@ -202,6 +218,7 @@ const ProductDetail = () => {
               setSelectedIndex={setSelectedImageIndex}
               isOutOfStock={product.stock === 0}
             />
+            {renderProductTag()}
           </motion.div>
 
           {/* CỘT PHẢI: PRODUCT DETAILS */}
@@ -214,6 +231,7 @@ const ProductDetail = () => {
             <h2 className="text-4xl sm:text-5xl font-light tracking-tight text-neutral-900 dark:text-neutral-100 mb-4 leading-[1.12]">
               {product.name}
             </h2>
+            
 
             {/* Ratings Summary */}
             <div className="flex items-center gap-3 mb-8 text-xs font-light text-neutral-400 dark:text-neutral-500">
@@ -260,21 +278,49 @@ const ProductDetail = () => {
             )}
 
             {/* Purchase Bar */}
+
             <div className="flex flex-col gap-6 pt-6 border-t border-neutral-200/50 dark:border-neutral-800/60">
-              <div className="flex items-baseline justify-between">
+              <div className="flex items-baseline justify-between flex-wrap gap-2">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500 font-medium">
                   Price
                 </span>
-                <div className="flex items-baseline text-neutral-900 dark:text-neutral-50">
-                  <span className="text-lg font-light text-neutral-400 mr-0.5">
-                    $
-                  </span>
-                  <span className="text-4xl font-extralight tracking-tight">
-                    {product?.price ? product.price.toFixed(2) : "0.00"}
+
+                <div className="flex items-baseline gap-2">
+                  {product?.discountPrice > 0 ? (
+                    <>
+                      <div className="flex items-baseline text-[#77cd3a]">
+                        <span className="text-lg font-light mr-0.5">$</span>
+                        <span className="text-2xl font-normal tracking-tight">
+                          {product.discountPrice.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-baseline text-neutral-400 dark:text-neutral-500 line-through font-normal text-sm">
+                        <span>$</span>
+                        <span>
+                          {product.price ? product.price.toFixed(2) : "0.00"}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    /* Nếu không giảm giá, hiển thị giá thường mặc định */
+                    <div className="flex items-baseline text-neutral-900 dark:text-neutral-50">
+                      <span className="text-lg font-light text-neutral-400 mr-0.5">
+                        $
+                      </span>
+                      <span className="text-4xl font-extralight tracking-tight">
+                        {product?.price ? product.price.toFixed(2) : "0.00"}
+                      </span>
+                    </div>
+                  )}
+
+                  <span className="text-[10px] sm:text-xs text-neutral-400 font-medium lowercase tracking-tight ml-1">
+                    / per unit
                   </span>
                 </div>
               </div>
 
+              {/* PHẦN ĐIỀU CHỈNH SỐ LƯỢNG & NÚT ADD TO BAG */}
               <div className="flex items-center gap-3 w-full mt-2">
                 <div className="flex items-center bg-neutral-100/80 dark:bg-neutral-900/60 p-1 rounded-xl border border-neutral-200/20 dark:border-neutral-800/30 h-12 backdrop-blur-sm">
                   <button
@@ -293,6 +339,7 @@ const ProductDetail = () => {
                     <Plus size={14} />
                   </button>
                 </div>
+
                 <motion.button
                   whileHover={{ scale: product.stock === 0 ? 1 : 1.01, y: -1 }}
                   whileTap={{ scale: product.stock === 0 ? 1 : 0.99 }}

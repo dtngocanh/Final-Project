@@ -151,6 +151,7 @@ export const replenishProductStock = createAsyncThunk(
     }
   },
 );
+
 export const restockProductLogs = createAsyncThunk(
   "product/restockLogs",
   async (_, { rejectWithValue }) => {
@@ -203,9 +204,25 @@ const productsSlice = createSlice({
       })
       .addCase(fetchAllProducts.fulfilled, (state, action) => {
         state.loading = false;
-        state.products = action.payload.products || [];
+
+        // 🔥 ĐOẠN BỔ SUNG: Kiểm tra cấu trúc linh hoạt để tránh mảng rỗng []
+        if (Array.isArray(action.payload)) {
+          // Nếu Backend trả về mảng trực tiếp [...]
+          state.products = action.payload;
+        } else if (action.payload?.products && Array.isArray(action.payload.products)) {
+          // Nếu Backend trả về dạng { products: [...] }
+          state.products = action.payload.products;
+        } else if (action.payload?.data && Array.isArray(action.payload.data)) {
+          // Nếu Backend trả về dạng { data: [...] }
+          state.products = action.payload.data;
+        } else {
+          // Fallback an toàn
+          state.products = [];
+        }
+
+        // Giữ nguyên logic tính total ban đầu của ní nhưng bọc an toàn tránh crash
         state.totalProducts =
-          action.payload.totalProducts || action.payload.products?.length || 0;
+          action.payload?.totalProducts || action.payload?.products?.length || state.products.length || 0;
       })
       .addCase(fetchAllProducts.rejected, (state, action) => {
         state.loading = false;

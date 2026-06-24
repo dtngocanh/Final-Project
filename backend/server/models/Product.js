@@ -11,6 +11,7 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    discountPrice: { type: Number, default: 0 },
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "category",
@@ -45,7 +46,7 @@ const productSchema = new mongoose.Schema(
     viewCount: { type: Number, default: 0 },
     shelfLifeDays: {
       type: Number,
-      default: 7, 
+      default: 7,
     },
     // try.....
     related_product_ids: [{ type: String }],

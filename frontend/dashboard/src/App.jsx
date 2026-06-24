@@ -24,6 +24,7 @@ import InventoryOverview from "./components/dashboard-components/InventoryOvervi
 
 import { fetchProfile, getUser } from "./store/slices/authSlice";
 import Categories from "./components/Categories";
+import CampaignManager from "./components/CampaignManager";
 
 function App() {
   const dispatch = useDispatch();
@@ -94,6 +95,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="inventory" element={<InventoryOverview />} />
           <Route path="categories" element={<Categories />} />
+          <Route path="campaigns" element={<CampaignManager/>} />
         </Route>
       </Routes>
       <ToastContainer theme="dark" position="bottom-right" />

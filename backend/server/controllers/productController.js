@@ -65,7 +65,7 @@ export const productList = async (req, res, next) => {
     const [totalProducts, products] = await Promise.all([
       Product.countDocuments(query),
       Product.find(query)
-        .select("name description price images category stock ratings")
+        .select("name description price images category stock ratings discountPrice")
         .populate("category", "name parent level")
         .sort({ createdAt: -1 })
         .skip(skip) 
@@ -166,7 +166,7 @@ export const productById = async (req, res, next) => {
 
     // 1. Fetch the primary product details from MongoDB
     const product = await Product.findById(id)
-      .select("name price images category ratings stock description numOfReviews")
+      .select("name price images category ratings stock description numOfReviews discountPrice")
       .lean();
 
     if (!product) {

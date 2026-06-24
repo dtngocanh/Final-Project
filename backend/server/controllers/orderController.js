@@ -4,12 +4,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import Campaign from "../models/Campaign.js"; 
 
 import ErrorHandler from "../utils/errorHandler.js";
 import { calculateShippingFee } from "../services/ghnService.js";
 import { createOrderNotification } from "../helpers/notificationHelper.js";
 import mongoose from "mongoose";
 
+// =========================================================================
+// 1. PLACE ORDER COD (Hàm mua hàng trực tiếp)
+// =========================================================================
 export const placeOrderCOD = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -29,6 +33,7 @@ export const placeOrderCOD = async (req, res, next) => {
           new ErrorHandler(`${item.name} is invalid`, 400),
         );
       }
+      
       const product = await Product.findOneAndUpdate(
         {
           _id: item.product,
@@ -54,19 +59,73 @@ export const placeOrderCOD = async (req, res, next) => {
         );
       }
 
-      const itemTotal = product.price * item.quantity;
+      // =====================================================================
+      // LOGIC KIỂM TRA CAMPAIGN & CHẶN SỐ LƯỢNG MỚI
+      // =====================================================================
+      const activeCampaign = await Campaign.findOne({
+        isActive: true,
+        $or: [
+          { products: product._id },
+          { category: product.category, targetType: "category" }
+        ]
+      });
+
+      let actualPrice = product.price; // Mặc định luôn lấy giá gốc trước
+
+      if (activeCampaign) {
+        // 1. KIỂM TRA GIỚI HẠN (CHẶN FRONTEND TẠI ĐÂY)
+        if (activeCampaign.saleLimit > 0) {
+          const remainingSale = activeCampaign.saleLimit - (activeCampaign.saleSold || 0);
+
+          // Vượt ngưỡng -> Quăng lỗi luôn, không cho chạy tiếp
+          if (item.quantity > remainingSale) {
+            // Rollback lại stock vừa trừ ở trên để tránh lỗi hụt kho oan
+            await Product.findByIdAndUpdate(product._id, {
+              $inc: { stock: item.quantity, salesCount: -item.quantity }
+            });
+            return next(
+              new ErrorHandler( `Sorry! Only ${remainingSale} sale-priced units of ${product.name} are remaining. Please reduce the quantity.`, 400)
+            );
+          }
+        }
+
+        // 2. TÍNH GIÁ SALE (Đã an toàn qua vòng kiểm tra)
+        actualPrice = (product.discountPrice && product.discountPrice > 0)
+          ? product.discountPrice
+          : product.price;
+
+        // 3. TĂNG SỐ LƯỢNG ĐÃ BÁN
+        activeCampaign.saleSold = (activeCampaign.saleSold || 0) + item.quantity;
+        
+        // 4. KIỂM TRA TẮT CAMPAIGN & RESET DISCOUNT VỀ 0
+        if (activeCampaign.saleLimit > 0 && activeCampaign.saleSold >= activeCampaign.saleLimit) {
+          activeCampaign.isActive = false;
+          
+          await Product.findByIdAndUpdate(product._id, {
+            $set: { discountPrice: 0 } // Xóa giá giảm ngay lập tức
+          });
+        }
+        await activeCampaign.save();
+      } else {
+        // Cẩn tắc vô áy náy: Nếu không có campaign, lấy thẳng giá gốc
+        actualPrice = product.price;
+      }
+      // =====================================================================
+
+      const itemTotal = actualPrice * item.quantity;
       calculatedItemsPrice += itemTotal;
 
       validatedOrderItems.push({
         product: product._id,
         name: product.name,
-        price: product.price,
+        price: Number(actualPrice.toFixed(2)),
         quantity: item.quantity,
         image: product.images?.[0]?.url || "",
         shelfLifeDays: product.shelfLifeDays || 7,
       });
     }
-    // 4. TÍNH PHÍ VẬN CHUYỂN
+
+    // TÍNH PHÍ VẬN CHUYỂN
     const shippingRs = await calculateShippingFee({
       cartItems: validatedOrderItems,
       to_district_id: shippingInfo.districtId,
@@ -76,7 +135,7 @@ export const placeOrderCOD = async (req, res, next) => {
     const shippingPrice = shippingRs.feeUSD;
     const totalPrice = calculatedItemsPrice + shippingPrice;
 
-    // 5. TẠO ĐƠN HÀNG MỚI
+    // TẠO ĐƠN HÀNG MỚI
     const order = await Order.create({
       user: userId,
       orderItems: validatedOrderItems,
@@ -85,13 +144,13 @@ export const placeOrderCOD = async (req, res, next) => {
         method: "COD",
         status: "Pending",
       },
-      itemsPrice: calculatedItemsPrice,
+      itemsPrice: Number(calculatedItemsPrice.toFixed(2)),
       shippingPrice,
-      totalPrice,
+      totalPrice: Number(totalPrice.toFixed(2)),
       orderStatus: "Processing",
     });
 
-    // 6. XÓA GIỎ HÀNG NẾU LÀ USER ĐĂNG NHẬP
+    // XÓA GIỎ HÀNG NẾU LÀ USER ĐĂNG NHẬP
     if (userId && userId !== "GUEST_USER") {
       await User.findByIdAndUpdate(userId, { $set: { cartItems: [] } });
     }
@@ -106,11 +165,12 @@ export const placeOrderCOD = async (req, res, next) => {
   }
 };
 
-// get orders for user
+// =========================================================================
+// 2. GET USER ORDERS
+// =========================================================================
 export const getUserOrders = async (req, res) => {
   try {
-    const userId = req.user._id; // Middleware truyền vào
-    // console.log(userId);
+    const userId = req.user._id;
 
     const orders = await Order.find({ user: userId })
       .sort({ createdAt: -1 })
@@ -130,6 +190,9 @@ export const getUserOrders = async (req, res) => {
   }
 };
 
+// =========================================================================
+// 3. CANCEL ORDER (Khách hủy đơn - Hoàn trả suất sale)
+// =========================================================================
 export const cancelOrder = async (req, res, next) => {
   try {
     const { orderId } = req.body;
@@ -183,6 +246,34 @@ export const cancelOrder = async (req, res, next) => {
 
     await Product.bulkWrite(updateProductOps);
 
+    // HOÀN SUẤT SALE LẠI CHO CAMPAIGN KHI KHÁCH TỰ HỦY ĐƠN
+    for (const item of order.orderItems) {
+      const product = await Product.findById(item.product);
+      if (product) {
+        const campaign = await Campaign.findOne({
+          $or: [
+            { products: product._id },
+            { category: product.category, targetType: "category" }
+          ]
+        });
+
+        if (campaign) {
+          campaign.saleSold = Math.max(0, (campaign.saleSold || 0) - item.quantity);
+          
+          // NẾU MỞ LẠI CHIẾN DỊCH VÌ ĐÃ CÓ SUẤT TRỐNG
+          if (campaign.saleLimit > 0 && campaign.saleSold < campaign.saleLimit) {
+            campaign.isActive = true;
+            
+            // LƯU Ý: Nếu Campaign của bạn có lưu thông tin giảm giá (ví dụ campaign.discountPercentage)
+            // Bạn nên khôi phục discountPrice ở đây để Frontend hiển thị lại giá giảm:
+            // const restoredDiscount = product.price - (product.price * campaign.discountPercentage / 100);
+            // await Product.findByIdAndUpdate(product._id, { $set: { discountPrice: restoredDiscount } });
+          }
+          await campaign.save();
+        }
+      }
+    }
+
     order.orderStatus = "Canceled";
     await order.save();
     res.status(200).json({ success: true, message: "Order canceled" });
@@ -191,7 +282,9 @@ export const cancelOrder = async (req, res, next) => {
   }
 };
 
-// [GET] api/orders
+// =========================================================================
+// 4. GET ALL ORDERS (Dành cho Admin quản lý)
+// =========================================================================
 export const getAllOrders = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -218,12 +311,9 @@ export const getAllOrders = async (req, res, next) => {
       ].filter((condition) => Object.values(condition)[0] !== undefined);
     }
 
-    // Gộp 4 truy vấn vào Promise.all để chạy song song cho nhanh
     const [totalOrders, orders, revenueAggregation, statusAggregation] = await Promise.all([
-      // 1. Đếm tổng số đơn thỏa mãn điều kiện filter
       Order.countDocuments(queryCondition),
       
-      // 2. Lấy 8 đơn hàng cho trang hiện tại (Phân trang)
       Order.find(queryCondition)
         .populate("user", "name email")
         .populate({
@@ -235,13 +325,11 @@ export const getAllOrders = async (req, res, next) => {
         .limit(limit)
         .lean(),
         
-      // 3. Tính tổng doanh thu toàn hệ thống (Bỏ qua đơn Canceled)
       Order.aggregate([
         { $match: { orderStatus: { $ne: "Canceled" } } },
         { $group: { _id: null, totalAmount: { $sum: "$totalPrice" } } }
       ]),
 
-      // 4. Đếm số lượng đơn hàng theo TỪNG TRẠNG THÁI để vẽ biểu đồ
       Order.aggregate([
         { $group: { _id: "$orderStatus", count: { $sum: 1 } } }
       ])
@@ -250,14 +338,11 @@ export const getAllOrders = async (req, res, next) => {
     const totalPages = Math.ceil(totalOrders / limit);
     const totalRevenue = revenueAggregation[0]?.totalAmount || 0;
 
-    // Chuyển mảng statusAggregation thành object cho Frontend dễ dùng
-    // Ví dụ: { Pending: 15, Delivered: 100, Canceled: 3 }
     const ordersByStatus = statusAggregation.reduce((acc, curr) => {
       acc[curr._id] = curr.count;
       return acc;
     }, {});
 
-    // Xử lý các sản phẩm/người dùng đã bị xóa trên các đơn được trả về
     for (let i = 0; i < orders.length; i++) {
       if (!orders[i].user)
         orders[i].user = { name: "Người dùng đã bị xóa", email: "N/A" };
@@ -274,12 +359,11 @@ export const getAllOrders = async (req, res, next) => {
       }
     }
 
-    // Trả data về cho Frontend
     res.status(200).json({
       success: true,
       totalOrders,
       totalRevenue,
-      ordersByStatus, // <--- Data mới cho biểu đồ
+      ordersByStatus,
       totalPages,
       orders,
     });
@@ -287,14 +371,12 @@ export const getAllOrders = async (req, res, next) => {
     next(error);
   }
 };
-/**
- * @route [GET] api/order/:id
- * @description Get single order details
- */
+
+// =========================================================================
+// 5. GET ORDER DETAILS
+// =========================================================================
 export const getOrderDetails = async (req, res, next) => {
   try {
-    // Populate 'user'
-    // Populate 'orderItems.product'
     const order = await Order.findById(req.params.id)
       .populate("user", "name email")
       .populate("orderItems.product", "name images price stock shelfLifeDays");
@@ -302,13 +384,6 @@ export const getOrderDetails = async (req, res, next) => {
     if (!order) {
       return next(new ErrorHandler("No Order found with this ID", 404));
     }
-
-    const userId = req.user._id;
-    // const userRole = req.user.role;
-
-    // if (userRole !== "admin" && order.user._id.toString() !== userId.toString()) {
-    //   return next(new ErrorHandler("You are not authorized to view this order", 401));
-    // }
 
     res.status(200).json({
       success: true,
@@ -319,6 +394,9 @@ export const getOrderDetails = async (req, res, next) => {
   }
 };
 
+// =========================================================================
+// 6. UPDATE ORDER STATUS (Admin duyệt đơn/Hủy đơn admin)
+// =========================================================================
 export const updateOrder = async (req, res, next) => {
   try {
     const newStatus = req.body.status;
@@ -328,22 +406,18 @@ export const updateOrder = async (req, res, next) => {
       return next(new ErrorHandler("No Order found with this ID", 404));
     }
 
-    // 1. Nếu đơn hàng ĐÃ GIAO thì KHÔNG ĐƯỢC THAY ĐỔI TRẠNG THÁI NỮA
     if (order.orderStatus === "Delivered") {
       return next(
         new ErrorHandler("You have already delivered this order", 400),
       );
     }
 
-    // 2. CHẶN SPAM: Nếu đơn hàng vốn dĩ ĐÃ HỦY RỒI thì không cho cập nhật gì nữa hết
     if (order.orderStatus === "Canceled") {
       return next(
         new ErrorHandler("This order has already been canceled", 400),
       );
     }
 
-    // 3. LOGIC HOÀN KHO: Chỉ hoàn kho khi trạng thái MỚI là Canceled
-    // VÀ trạng thái CŨ chưa từng là Canceled (Đoạn check ở trên đã đảm bảo điều này)
     if (newStatus === "Canceled") {
       const updateProductOps = order.orderItems.map((item) => ({
         updateOne: {
@@ -354,13 +428,34 @@ export const updateOrder = async (req, res, next) => {
         },
       }));
       await Product.bulkWrite(updateProductOps);
+
+      for (const item of order.orderItems) {
+        const product = await Product.findById(item.product);
+        if (product) {
+          const campaign = await Campaign.findOne({
+            $or: [
+              { products: product._id },
+              { category: product.category, targetType: "category" }
+            ]
+          });
+
+          if (campaign) {
+            campaign.saleSold = Math.max(0, (campaign.saleSold || 0) - item.quantity);
+            
+            // NẾU MỞ LẠI CHIẾN DỊCH VÌ ĐÃ CÓ SUẤT TRỐNG
+            if (campaign.saleLimit > 0 && campaign.saleSold < campaign.saleLimit) {
+              campaign.isActive = true;
+
+              // LƯU Ý TƯƠNG TỰ: Khôi phục lại discountPrice nếu có thể
+              // const restoredDiscount = product.price - (product.price * campaign.discountPercentage / 100);
+              // await Product.findByIdAndUpdate(product._id, { $set: { discountPrice: restoredDiscount } });
+            }
+            await campaign.save();
+          }
+        }
+      }
     }
 
-    // 4. LOGIC TRỪ KHO NGƯỢC LẠI (Nếu cần):
-    // Nếu đơn hàng đang từ "Canceled" mà chuyển về trạng thái khác thì phải trừ kho.
-    // Tuy nhiên ở bước 2 mình đã chặn không cho chuyển từ Canceled đi đâu rồi nên không lo nữa.
-
-    // Cập nhật các thay đổi vào object 'order'
     order.orderStatus = newStatus;
 
     if (newStatus === "Shipped") {
@@ -375,7 +470,6 @@ export const updateOrder = async (req, res, next) => {
       }
     }
 
-    // Chốt hạ lưu vào DB
     await order.save({ validateBeforeSave: false });
 
     await createOrderNotification(order, newStatus);
@@ -390,29 +484,25 @@ export const updateOrder = async (req, res, next) => {
   }
 };
 
-// [GET] /api/orders/my-analytics
+// =========================================================================
+// 7. GET USER SPENDING ANALYTICS
+// =========================================================================
 export const getUserSpendingAnalytics = async (req, res) => {
   try {
     const userId = req.user._id;
 
     const stats = await Order.aggregate([
-      // 1. Lọc đơn Delivered của chính user này
       { 
         $match: { 
           user: new mongoose.Types.ObjectId(userId),
           orderStatus: "Delivered" 
         } 
       },
-      
-      // 2. Bóc mảng items ra để tính toán số lượng từng món
       { $unwind: "$orderItems" },
-      
-      // 3. Gom nhóm tính tổng
       {
         $group: {
           _id: null,
           totalSpent: { $sum: "$totalPrice" },
-          // Tiết kiệm mặc định 10% (hoặc thay bằng trường discount nếu sau này ní làm mã giảm giá)
           totalSaved: { $sum: { $multiply: ["$totalPrice", 0.1] } },
           totalItemsCount: { $sum: "$orderItems.quantity" },
           
@@ -428,7 +518,6 @@ export const getUserSpendingAnalytics = async (req, res) => {
       }
     ]);
 
-    // Nếu chưa mua đơn nào thành công
     if (stats.length === 0) {
       return res.status(200).json({
         success: true,
@@ -443,7 +532,6 @@ export const getUserSpendingAnalytics = async (req, res) => {
 
     const data = stats[0];
 
-    // 4. Tìm món mua nhiều nhất (Veggie Soulmate)
     const productMap = {};
     data.allBoughtProducts.forEach(p => {
       if (!productMap[p.productId]) {
@@ -461,7 +549,6 @@ export const getUserSpendingAnalytics = async (req, res) => {
       }
     });
 
-    // Trả data gọn nhẹ về cho Frontend
     res.status(200).json({
       success: true,
       analytics: {

@@ -1,7 +1,11 @@
 import React, { useRef, useEffect } from "react";
+
 import { useDispatch, useSelector } from "react-redux";
+
 import { fetchAllProducts } from "../../store/slices/productSlice";
+
 import { addToRecentlyViewed } from "../../store/slices/interactionSlice";
+
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,19 +15,28 @@ import {
   Carrot,
   Citrus,
 } from "lucide-react";
+
 import { motion } from "framer-motion";
+
 import { useNavigate } from "react-router-dom";
+
 import FloatingDecor from "../Fruit/FloatingDecor";
+
 import FruitLoader from "../Fruit/FruitLoader";
+
 import { addToCartThunk } from "../../store/slices/cartSlice";
 
 const ProductSlider = ({
   title = "Seasonal Picks",
+
   products: incomingProducts,
+
   loading: incomingLoading,
 }) => {
   const scrollRef = useRef(null);
+
   const dispatch = useDispatch();
+
   const navigate = useNavigate();
 
   const { products: storeProducts, loading: storeLoading } = useSelector(
@@ -32,10 +45,12 @@ const ProductSlider = ({
 
   const products =
     incomingProducts !== undefined ? incomingProducts : storeProducts;
+
   const isLoading =
     incomingLoading !== undefined ? incomingLoading : storeLoading;
 
   const scrollVelocity = useRef(0);
+
   const isAnimationLoopRunning = useRef(false);
 
   useEffect(() => {
@@ -44,43 +59,53 @@ const ProductSlider = ({
     }
   }, [dispatch, incomingProducts]);
 
-  // ĐÃ GỘP VÀ TỐI ƯU DUY NHẤT 1 EFFECT QUẢN LÝ WHEEL SCROLL KHÔNG BỊ KHỰNG
+  // QUẢN LÝ WHEEL SCROLL KHÔNG BỊ KHỰNG
+
   useEffect(() => {
     const slider = scrollRef.current;
+
     if (!slider) return;
 
     const smoothScrollLoop = () => {
       if (Math.abs(scrollVelocity.current) < 0.2) {
         scrollVelocity.current = 0;
+
         isAnimationLoopRunning.current = false;
+
         return;
       }
+
       slider.scrollLeft += scrollVelocity.current;
+
       scrollVelocity.current *= 0.88;
+
       requestAnimationFrame(smoothScrollLoop);
     };
 
     const handleWheelScroll = (e) => {
       if (window.innerWidth >= 1024) {
         const absX = Math.abs(e.deltaX);
+
         const absY = Math.abs(e.deltaY);
 
-        // NẾU Ý ĐỊNH CỦA USER LÀ CUỘN DỌC (Hoặc lướt xéo thiên về hướng dọc) -> Trả quyền cho trình duyệt ngay lập tức
         if (absY > absX || (absY > 0 && absX === 0)) {
           return;
         }
 
-        // Chỉ chặn hành vi mặc định và xử lý cuộn ngang khi user chủ định lướt ngang rõ ràng
         if (e.deltaX !== 0) {
           e.preventDefault();
+
           scrollVelocity.current += e.deltaX * 0.15;
+
           scrollVelocity.current = Math.max(
             Math.min(scrollVelocity.current, 50),
+
             -50,
           );
 
           if (!isAnimationLoopRunning.current) {
             isAnimationLoopRunning.current = true;
+
             requestAnimationFrame(smoothScrollLoop);
           }
         }
@@ -88,60 +113,84 @@ const ProductSlider = ({
     };
 
     slider.addEventListener("wheel", handleWheelScroll, { passive: false });
+
     return () => slider.removeEventListener("wheel", handleWheelScroll);
   }, []);
 
   // HÀM XỬ LÝ KHI USER BẤM VÀO XEM CHI TIẾT SẢN PHẨM
+
   const handleProductDetailClick = (e, product) => {
     e.preventDefault();
+
     dispatch(addToRecentlyViewed(product));
+
     navigate(`/product/${product._id}`);
   };
 
   // HÀM XỬ LÝ HIỆU ỨNG ẢNH BAY
+
   const handleFlyToCart = (e, product) => {
     e.preventDefault();
+
     e.stopPropagation();
 
     const cardContainer = e.currentTarget.closest(".group");
+
     const productImage = cardContainer?.querySelector(".product-img-target");
+
     const cartIcon = document.getElementById("navbar-cart-icon");
 
     dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
 
     if (productImage && cartIcon) {
       const imgRect = productImage.getBoundingClientRect();
+
       const cartRect = cartIcon.getBoundingClientRect();
 
       const flyImg = document.createElement("img");
+
       flyImg.src = productImage.src;
+
       flyImg.className = "fly-to-cart-element";
 
       const initialWidth = imgRect.width;
+
       const initialHeight = imgRect.height;
 
       flyImg.style.width = `${initialWidth}px`;
+
       flyImg.style.height = `${initialHeight}px`;
+
       flyImg.style.left = `${imgRect.left}px`;
+
       flyImg.style.top = `${imgRect.top}px`;
 
       const targetWidth = 24;
+
       const targetHeight = 24;
+
       const targetLeft = cartRect.left + cartRect.width / 2 - targetWidth / 2;
+
       const targetTop = cartRect.top + cartRect.height / 2 - targetHeight / 2;
 
       flyImg.style.setProperty("--fly-X", `${targetLeft - imgRect.left}px`);
+
       flyImg.style.setProperty("--fly-Y", `${targetTop - imgRect.top}px`);
+
       flyImg.style.setProperty("--target-width", `${targetWidth}px`);
+
       flyImg.style.setProperty("--target-height", `${targetHeight}px`);
 
       document.body.appendChild(flyImg);
 
       setTimeout(() => {
         flyImg.remove();
+
         cartIcon.classList.add("cart-bounce-feedback");
+
         setTimeout(
           () => cartIcon.classList.remove("cart-bounce-feedback"),
+
           300,
         );
       }, 800);
@@ -151,29 +200,47 @@ const ProductSlider = ({
   const scroll = (direction) => {
     if (scrollRef.current) {
       const cardWidth = window.innerWidth < 768 ? 190 : 284;
+
       scrollRef.current.scrollBy({
         left: direction === "left" ? -cardWidth : cardWidth,
+
         behavior: "smooth",
       });
     }
   };
 
+  // CẬP NHẬT: Tự động tính toán tag % giảm giá theo discountPrice thực tế từ database
+
   const renderProductTag = (product) => {
     let tagText = product.tag;
+
     let tagClass =
       "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
 
     if (!tagText) {
-      if (product.discount > 0) {
+      if (product.discountPrice > 0 && product.price > 0) {
+        // Tính % giảm giá thực tế làm tròn số
+
+        const calculatedDiscount = Math.round(
+          ((product.price - product.discountPrice) / product.price) * 100,
+        );
+
+        tagText = `-${calculatedDiscount}%`;
+
+        tagClass = "bg-rose-500 text-white font-medium";
+      } else if (product.discount > 0) {
         tagText = `-${product.discount}%`;
+
         tagClass = "bg-rose-500 text-white font-medium";
       } else if (product.ratings >= 4.8) {
         tagText = (
           <>
             <span className="inline sm:hidden">Best</span>
+
             <span className="hidden sm:inline">Best Seller</span>
           </>
         );
+
         tagClass = "bg-[#77cd3a] text-white font-medium";
       } else {
         return null;
@@ -191,10 +258,13 @@ const ProductSlider = ({
 
   const chunkedProducts = React.useMemo(() => {
     if (!products || !Array.isArray(products)) return [];
+
     const chunks = [];
+
     for (let i = 0; i < products.length; i += 2) {
       chunks.push(products.slice(i, i + 2));
     }
+
     return chunks;
   }, [products]);
 
@@ -220,6 +290,7 @@ const ProductSlider = ({
               series
             </span>
           </h2>
+
           <div className="hidden sm:flex gap-2">
             <button
               onClick={() => scroll("left")}
@@ -231,6 +302,7 @@ const ProductSlider = ({
                 className="text-neutral-500"
               />
             </button>
+
             <button
               onClick={() => scroll("right")}
               className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-full transition-colors cursor-pointer"
@@ -260,6 +332,7 @@ const ProductSlider = ({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
                     delay: Math.min((pairIdx * 2 + idx) * 0.02, 0.3),
+
                     duration: 0.3,
                   }}
                   className="group relative w-full"
@@ -271,12 +344,15 @@ const ProductSlider = ({
                       <div className="absolute bottom-16 -left-1 w-5 h-5 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 -rotate-12 transform lg:group-hover:animate-float-slow">
                         <Carrot size={18} />
                       </div>
+
                       <div className="absolute top-1/2 -right-2 w-5 h-5 text-[#77cd3a]/20 dark:text-[#77cd3a]/10 rotate-45 transform lg:group-hover:animate-float-fast">
                         <Citrus size={16} />
                       </div>
+
                       <div className="absolute top-16 left-2 w-4 h-4 text-[#77cd3a]/25 dark:text-[#77cd3a]/15 rotate-12 transform lg:group-hover:animate-float-medium">
                         <Leaf size={14} fill="currentColor" />
                       </div>
+
                       <div className="absolute bottom-20 right-3 w-1.5 h-1.5 rounded-full bg-[#77cd3a]/30 lg:group-hover:animate-pulse" />
                     </div>
 
@@ -300,23 +376,47 @@ const ProductSlider = ({
                           fill="#77cd3a"
                           className="text-[#77cd3a]"
                         />
+
                         <span className="text-[9px] font-bold text-neutral-600 dark:text-neutral-400">
                           {product.ratings?.toFixed(1) || "0.0"}
                         </span>
                       </div>
+
                       {renderProductTag(product)}
                     </div>
 
                     <div className="mx-4 sm:mx-8 h-[1px] bg-neutral-100 dark:bg-neutral-800/40 relative z-10" />
 
+                    {/* CẬP NHẬT: Logic hiển thị giá gốc gạch ngang và giá giảm cực mượt */}
+
                     <div className="px-3 py-4 sm:px-6 sm:py-6 text-center relative z-20 bg-transparent">
                       <h3 className="text-xs sm:text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1 sm:mb-1.5 truncate lg:group-hover:text-neutral-950 dark:lg:group-hover:text-white transition-colors duration-200 leading-tight">
                         {product.name}
                       </h3>
-                      <div className="flex flex-col xs:flex-row items-center justify-center gap-0.5 xs:gap-1">
-                        <span className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-neutral-100">
-                          ${product.price?.toFixed(2)}
-                        </span>
+
+                      <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
+                        {product.discountPrice > 0 ? (
+                          <>
+                            {/* Giá đã giảm màu xanh lá bắt mắt */}
+
+                            <span className="text-xs sm:text-sm font-bold text-[#77cd3a]">
+                              ${product.discountPrice?.toFixed(2)}
+                            </span>
+
+                            {/* Giá gốc cũ bị gạch ngang nhỏ hơn ở bên cạnh */}
+
+                            <span className="text-[10px] sm:text-xs text-neutral-400 dark:text-neutral-500 line-through font-normal">
+                              ${product.price?.toFixed(2)}
+                            </span>
+                          </>
+                        ) : (
+                          /* Nếu không giảm giá, hiển thị giá thường mặc định */
+
+                          <span className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                            ${product.price?.toFixed(2)}
+                          </span>
+                        )}
+
                         <span className="text-[8px] sm:text-[9px] text-neutral-400 font-medium uppercase tracking-tight">
                           / per kg
                         </span>
@@ -339,37 +439,69 @@ const ProductSlider = ({
       </div>
 
       <style>{`
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
+
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         .will-change-scroll { will-change: scroll-left; }
-        
+
+       
+
         .fly-to-cart-element {
+
           position: fixed;
+
           object-fit: contain;
+
           z-index: 99999;
+
           pointer-events: none;
+
           mix-blend-mode: multiply;
+
           animation: absoluteStraightFly 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+
           transform-origin: center center;
+
         }
-        
-        .dark .fly-to-cart-element { 
-          mix-blend-mode: normal; 
-          filter: brightness(0.95); 
+
+       
+
+        .dark .fly-to-cart-element {
+
+          mix-blend-mode: normal;
+
+          filter: brightness(0.95);
+
         }
-        
+
+       
+
         @keyframes absoluteStraightFly {
+
           0% { transform: translate(0, 0) scale(1); opacity: 1; }
+
           100% { transform: translate(var(--fly-X), var(--fly-Y)) scale(0.12); width: var(--target-width); height: var(--target-height); opacity: 0; }
+
         }
+
         .cart-bounce-feedback { animation: miniPop 0.3s ease-out both; }
+
         @keyframes miniPop { 0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
         @keyframes floatSlow { 0%, 100% { transform: translateY(0px) rotate(-12deg); } 50% { transform: translateY(-5px) rotate(-16deg); } }
+
         @keyframes floatMedium { 0%, 100% { transform: translateY(0px) translateX(0px) rotate(12deg); } 50% { transform: translateY(-4px) translateX(3px) rotate(9deg); } }
+
         @keyframes floatFast { 0%, 100% { transform: translateY(0px) rotate(45deg); } 50% { transform: translateY(-6px) rotate(38deg); } }
+
         .animate-float-slow { animation: floatSlow 5s ease-in-out infinite; }
+
         .animate-float-medium { animation: floatMedium 4s ease-in-out infinite; }
+
         .animate-float-fast { animation: floatFast 3.2s ease-in-out infinite; }
+
       `}</style>
     </section>
   );
