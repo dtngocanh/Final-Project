@@ -433,6 +433,19 @@ const Checkout = () => {
     ["fullName", "email", "phone", "address"].forEach((key) => {
       if (!shippingDetails[key]) newErrors[key] = "This field is required";
     });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (shippingDetails.email && !emailRegex.test(shippingDetails.email)) {
+      newErrors.email = "Invalid email format";
+    }
+    const phoneRegex = /^0[35789][0-9]{8}$/;
+
+    if (shippingDetails.phone) {
+      if (!/^\d+$/.test(shippingDetails.phone)) {
+        newErrors.phone = "Phone number must contain only digits";
+      } else if (!phoneRegex.test(shippingDetails.phone)) {
+        newErrors.phone = "Invalid Vietnamese phone number";
+      }
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
