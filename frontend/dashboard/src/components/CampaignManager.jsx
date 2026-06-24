@@ -242,8 +242,9 @@ const CampaignManager = () => {
                   <th className="px-6 py-5 font-bold">
                     <div className="flex items-center gap-1.5"><Clock size={12} /> Duration</div>
                   </th>
-                  <th className="px-6 py-5 font-bold text-center">Manual Override</th>
+                  {/* --- ĐỔI CHỖ THẺ TH Ở ĐÂY --- */}
                   <th className="px-8 py-5 font-bold text-center">Actions</th>
+                  <th className="px-6 py-5 font-bold text-center">Manual Override</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-sm font-medium text-slate-600">
@@ -319,6 +320,28 @@ const CampaignManager = () => {
                         <td className="px-6 py-6 font-semibold text-slate-500 text-xs">
                           {cp.startTime} - {cp.endTime}
                         </td>
+
+                        {/* --- ĐỔI CHỖ THẺ TD: ĐƯA ACTIONS LÊN TRƯỚC --- */}
+                        <td className="px-8 py-6">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEditClick(cp)}
+                              className="p-2.5 bg-amber-50 text-amber-500 rounded-xl hover:bg-amber-500 hover:text-white transition-all active:scale-90"
+                            >
+                              <Edit3 size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCampaign(cp._id)}
+                              className="p-2.5 bg-rose-50 text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all active:scale-90"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* --- ĐỔI CHỖ THẺ TD: ĐƯA MANUAL OVERRIDE RA SAU --- */}
                         <td className="px-6 py-6">
                           <div className="flex items-center justify-center gap-2">
                             <button
@@ -346,24 +369,6 @@ const CampaignManager = () => {
                               title="Force Stop Campaign"
                             >
                               <ZapOff size={14} />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6">
-                          <div className="flex justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleEditClick(cp)}
-                              className="p-2.5 bg-amber-50 text-amber-500 rounded-xl hover:bg-amber-500 hover:text-white transition-all active:scale-90"
-                            >
-                              <Edit3 size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteCampaign(cp._id)}
-                              className="p-2.5 bg-rose-50 text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all active:scale-90"
-                            >
-                              <Trash2 size={15} />
                             </button>
                           </div>
                         </td>

@@ -1,5 +1,6 @@
-import React from "react";
-import { Sparkles, X, Tag, ShoppingBag } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, X, Tag, ShoppingBag, Search, ChevronDown } from "lucide-react";
 
 const CampaignFormModal = ({
   isOpen,
@@ -12,14 +13,24 @@ const CampaignFormModal = ({
   onInputChange,
   onSubmit,
 }) => {
-  if (!isOpen) return null;
+  // =========================================================================
+  // KHAI BÁO TẤT CẢ CÁC HOOK Ở TRÊN ĐẦU (KHÔNG ĐƯỢC RETURN SỚM Ở ĐÂY)
+  // =========================================================================
+  
+  // --- State tìm kiếm nội bộ ---
+  const [categorySearch, setCategorySearch] = useState("");
+  const [productSearch, setProductSearch] = useState("");
 
-  // =========================================================================
-  // ĐỒNG BỘ DỮ LIỆU KHI EDIT:
-  // Thẻ <select> chỉ hiểu ID dạng chuỗi (String), trong khi Mongoose trả về mảng products là các Object.
-  // Đoạn logic dưới đây tự động trích xuất chuỗi ID sạch để gán cho thuộc tính `value` của select.
-  // =========================================================================
-  const selectedProductId = React.useMemo(() => {
+  // --- State đóng mở Dropdown tùy chỉnh ---
+  const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false);
+  const [isProdDropdownOpen, setIsProdDropdownOpen] = useState(false);
+
+  // --- Refs để xử lý click-outside ---
+  const catRef = useRef(null);
+  const prodRef = useRef(null);
+
+  // --- Đồng bộ dữ liệu khi Edit ---
+  const selectedProductId = useMemo(() => {
     if (formData.product) {
       return typeof formData.product === "object" ? formData.product._id : formData.product;
     }
@@ -29,6 +40,68 @@ const CampaignFormModal = ({
     return "";
   }, [formData.product, formData.products]);
 
+  const selectedCategoryId = useMemo(() => {
+    return formData.category?._id || formData.category || "";
+  }, [formData.category]);
+
+  // Tìm kiếm Object tương ứng để hiển thị nhãn (Label)
+  const selectedCategoryLabel = useMemo(() => {
+    const found = categories.find((c) => c._id === selectedCategoryId);
+    return found ? found.name : "-- Choose a category --";
+  }, [categories, selectedCategoryId]);
+
+  const selectedProductLabel = useMemo(() => {
+    const found = products.find((p) => p._id === selectedProductId);
+    if (!found) return "-- Choose a single product --";
+    return `${found.name} ${found.stock !== undefined ? `(${found.stock > 0 ? `${found.stock} items` : "Out of stock"})` : ""}`;
+  }, [products, selectedProductId]);
+
+  // --- Lọc danh sách thời gian thực ---
+  const filteredCategories = useMemo(() => {
+    return categories.filter((cat) =>
+      cat.name?.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categories, categorySearch]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((prod) =>
+      prod.name?.toLowerCase().includes(productSearch.toLowerCase())
+    );
+  }, [products, productSearch]);
+
+  // --- Xử lý click ra ngoài đóng menu ---
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (catRef.current && !catRef.current.contains(event.target)) {
+        setIsCatDropdownOpen(false);
+      }
+      if (prodRef.current && !prodRef.current.contains(event.target)) {
+        setIsProdDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // --- Reset từ khóa tìm kiếm khi đổi trạng thái đóng mở ---
+  useEffect(() => {
+    if (!isCatDropdownOpen) setCategorySearch("");
+  }, [isCatDropdownOpen]);
+
+  useEffect(() => {
+    if (!isProdDropdownOpen) setProductSearch("");
+  }, [isProdDropdownOpen]);
+
+
+  // =========================================================================
+  // ĐẶT ĐIỀU KIỆN RETURN SỚM TẠI ĐÂY (SAU KHI ĐÃ KHỞI TẠO XONG HOOK)
+  // =========================================================================
+  if (!isOpen) return null;
+
+
+  // =========================================================================
+  // RENDER JSX NỘI DUNG CHÍNH
+  // =========================================================================
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -42,7 +115,7 @@ const CampaignFormModal = ({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:bg-slate-50 transition-all"
+          className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:bg-slate-50 transition-all cursor-pointer"
         >
           <X size={20} />
         </button>
@@ -109,7 +182,6 @@ const CampaignFormModal = ({
               </label>
               <select
                 name="targetType"
-                // Dự phòng trường hợp DB lưu chuỗi số nhiều "products", giao diện vẫn nhận diện đúng tab hiển thị là "product"
                 value={(formData.targetType === "products" || formData.targetType === "product") ? "product" : "category"}
                 onChange={onInputChange}
                 className="p-3.5 rounded-2xl border border-slate-100 bg-white focus:outline-none focus:ring-4 focus:ring-[#77cd3a15] focus:border-[#77cd3af2] transition-all text-sm font-medium cursor-pointer shadow-sm text-slate-600"
@@ -120,52 +192,148 @@ const CampaignFormModal = ({
             </div>
           </div>
 
-          {/* Conditional Scope Selection: Category */}
+          {/* Smart Search Scope Selection: Category */}
           {((formData.targetType || "").toLowerCase() === "category") && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 relative" ref={catRef}>
               <label className="font-semibold text-slate-600 text-xs sm:text-sm">
                 Select Target Category
               </label>
-              <select
-                name="category"
-                value={formData.category?._id || formData.category || ""}
-                onChange={onInputChange}
-                className="p-3.5 rounded-2xl border border-slate-100 bg-white focus:outline-none focus:ring-4 focus:ring-[#77cd3a15] focus:border-[#77cd3af2] transition-all text-sm font-medium cursor-pointer shadow-sm text-slate-600"
+              
+              <button
+                type="button"
+                onClick={() => setIsCatDropdownOpen(!isCatDropdownOpen)}
+                className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 bg-white text-sm font-medium cursor-pointer shadow-sm text-slate-600 text-left focus:outline-none focus:ring-4 focus:ring-[#77cd3a15] focus:border-[#77cd3af2] transition-all"
               >
-                <option value="">-- Choose a category --</option>
-                {categories?.map((cat) => (
-                  <option key={cat._id} value={cat._id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+                <div className="flex items-center gap-2 truncate">
+                  <Tag size={16} className="text-blue-400 shrink-0" />
+                  <span className="truncate">{selectedCategoryLabel}</span>
+                </div>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform ${isCatDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              <AnimatePresence>
+                {isCatDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="absolute z-30 left-0 right-0 top-[102%] bg-white border border-slate-100 shadow-xl rounded-2xl p-2 flex flex-col gap-2 max-h-60"
+                  >
+                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                      <Search size={14} className="text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search category..."
+                        value={categorySearch}
+                        onChange={(e) => setCategorySearch(e.target.value)}
+                        className="w-full bg-transparent text-xs font-medium focus:outline-none"
+                      />
+                    </div>
+                    <div className="overflow-y-auto flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onInputChange({ target: { name: "category", value: "" } });
+                          setIsCatDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors cursor-pointer ${!selectedCategoryId ? "text-[#77cd3af2] bg-green-50/50 font-semibold" : "text-slate-500"}`}
+                      >
+                        -- Choose a category --
+                      </button>
+                      {filteredCategories.map((cat) => (
+                        <button
+                          key={cat._id}
+                          type="button"
+                          onClick={() => {
+                            onInputChange({ target: { name: "category", value: cat._id } });
+                            setIsCatDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors cursor-pointer ${selectedCategoryId === cat._id ? "text-[#77cd3af2] bg-green-50/50 font-semibold" : "text-slate-600"}`}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                      {filteredCategories.length === 0 && (
+                        <span className="text-center py-4 text-xs italic text-gray-400">No categories found</span>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
-          {/* Conditional Scope Selection: Product */}
+          {/* Smart Search Scope Selection: Product */}
           {((formData.targetType || "").toLowerCase() === "product" || formData.targetType === "products") && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 relative" ref={prodRef}>
               <label className="font-semibold text-slate-600 text-xs sm:text-sm">
                 Select Target Product
               </label>
-              <select
-                name="product"
-                value={selectedProductId} // Sử dụng ID chuỗi đã bóc tách thông minh ở trên để khớp với select option
-                onChange={(e) => {
-                  // Giả lập cấu trúc sự kiện chuẩn để hàm onInputChange ở file cha cập nhật đúng state formData.product
-                  onInputChange({
-                    target: { name: "product", value: e.target.value }
-                  });
-                }}
-                className="p-3.5 rounded-2xl border border-slate-100 bg-white focus:outline-none focus:ring-4 focus:ring-[#77cd3a15] focus:border-[#77cd3af2] transition-all text-sm font-medium cursor-pointer shadow-sm text-slate-600"
+
+              <button
+                type="button"
+                onClick={() => setIsProdDropdownOpen(!isProdDropdownOpen)}
+                className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 bg-white text-sm font-medium cursor-pointer shadow-sm text-slate-600 text-left focus:outline-none focus:ring-4 focus:ring-[#77cd3a15] focus:border-[#77cd3af2] transition-all"
               >
-                <option value="">-- Choose a single product --</option>
-                {products?.map((prod) => (
-                  <option key={prod._id} value={prod._id}>
-                    {prod.name} {prod.stock !== undefined ? `(${prod.stock > 0 ? `${prod.stock} items left` : "Out of stock"})` : ""}
-                  </option>
-                ))}
-              </select>
+                <div className="flex items-center gap-2 truncate">
+                  <ShoppingBag size={16} className="text-purple-400 shrink-0" />
+                  <span className="truncate">{selectedProductLabel}</span>
+                </div>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform ${isProdDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              <AnimatePresence>
+                {isProdDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="absolute z-30 left-0 right-0 top-[102%] bg-white border border-slate-100 shadow-xl rounded-2xl p-2 flex flex-col gap-2 max-h-60"
+                  >
+                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                      <Search size={14} className="text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search products by name..."
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        className="w-full bg-transparent text-xs font-medium focus:outline-none"
+                      />
+                    </div>
+                    <div className="overflow-y-auto flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onInputChange({ target: { name: "product", value: "" } });
+                          setIsProdDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors cursor-pointer ${!selectedProductId ? "text-[#77cd3af2] bg-green-50/50 font-semibold" : "text-slate-500"}`}
+                      >
+                        -- Choose a single product --
+                      </button>
+                      {filteredProducts.map((prod) => (
+                        <button
+                          key={prod._id}
+                          type="button"
+                          onClick={() => {
+                            onInputChange({ target: { name: "product", value: prod._id } });
+                            setIsProdDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors cursor-pointer flex justify-between items-center ${selectedProductId === prod._id ? "text-[#77cd3af2] bg-green-50/50 font-semibold" : "text-slate-600"}`}
+                        >
+                          <span className="truncate mr-2">{prod.name}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-md shrink-0 ${prod.stock > 0 ? "bg-slate-100 text-slate-500" : "bg-rose-50 text-rose-400"}`}>
+                            {prod.stock !== undefined ? (prod.stock > 0 ? `${prod.stock} left` : "Out of stock") : ""}
+                          </span>
+                        </button>
+                      ))}
+                      {filteredProducts.length === 0 && (
+                        <span className="text-center py-4 text-xs italic text-gray-400">No products found</span>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
@@ -203,14 +371,14 @@ const CampaignFormModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-full sm:flex-1 text-slate-500 bg-slate-100 hover:bg-slate-200 p-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95"
+              className="w-full sm:flex-1 text-slate-500 bg-slate-100 hover:bg-slate-200 p-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isGlobalLoading}
-              className={`w-full text-white p-3.5 rounded-2xl font-semibold text-sm transition-all text-center shadow-sm active:scale-95 ${
+              className={`w-full text-white p-3.5 rounded-2xl font-semibold text-sm transition-all text-center shadow-sm active:scale-95 cursor-pointer ${
                 isGlobalLoading
                   ? "bg-slate-300 cursor-not-allowed"
                   : isEditing
