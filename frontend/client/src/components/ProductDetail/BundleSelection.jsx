@@ -183,10 +183,11 @@ const BundleSelection = ({ mainProduct }) => {
             </div>
 
             <motion.button
-              whileHover={{ y: -1, scale: 1.01 }}
-              whileTap={{ scale: 0.98, y: 0 }}
+              whileHover={mainProduct?.stock > 0 ? { y: -1, scale: 1.01 } : {}}
+              whileTap={mainProduct?.stock > 0 ? { scale: 0.98, y: 0 } : {}}
               onClick={handleAddBundleToCart}
-              className="w-full mt-6 h-12 bg-transparent text-[#77cd3a] text-sm font-semibold rounded-xl flex items-center justify-center gap-2.5 border border-[#77cd3a]/30 hover:border-[#77cd3a] hover:bg-[#77cd3a]/5 transition-all duration-300"
+              disabled={mainProduct?.stock <= 0}
+              className="w-full mt-6 h-12 bg-transparent text-[#77cd3a] text-sm font-semibold rounded-xl flex items-center justify-center gap-2.5 border border-[#77cd3a]/30 hover:border-[#77cd3a] hover:bg-[#77cd3a]/5 transition-all duration-300 disabled:cursor-not-allowed"
             >
               <ShoppingBag size={16} />
               <span className="tracking-[0.15em] text-[12px] font-bold">

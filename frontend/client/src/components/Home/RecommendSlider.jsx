@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchRecommendations } from "../../store/slices/recommendSlice.js";
 import { addToCartThunk } from "../../store/slices/cartSlice.js";
 import { addToRecentlyViewed } from "../../store/slices/interactionSlice.js";
+import { toast } from "react-toastify";
 
 const RecommendSlider = () => {
   const scrollRef = useRef(null);
@@ -23,7 +24,11 @@ const RecommendSlider = () => {
   const navigate = useNavigate();
 
   // Đồng bộ đúng state từ slice "recommend"
-  const { list = [], type = "trending", isLoading } = useSelector((state) => state.recommend);
+  const {
+    list = [],
+    type = "trending",
+    isLoading,
+  } = useSelector((state) => state.recommend);
 
   useEffect(() => {
     dispatch(fetchRecommendations());
@@ -49,7 +54,16 @@ const RecommendSlider = () => {
     const productImage = cardContainer?.querySelector(".product-img-target");
     const cartIcon = document.getElementById("navbar-cart-icon");
 
-    dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
+    try {
+      dispatch(
+        addToCartThunk({ productId: product._id, quantity: 1 }),
+      ).unwrap();
+      toast.success("Added to cart successfully", {
+        position: "bottom-right",
+      });
+    } catch (error) {
+      toast.error(error);
+    }
 
     if (productImage && cartIcon) {
       const imgRect = productImage.getBoundingClientRect();
@@ -97,7 +111,8 @@ const RecommendSlider = () => {
   const scroll = (direction) => {
     if (scrollRef.current) {
       const clientWidth = scrollRef.current.clientWidth;
-      const amount = direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
+      const amount =
+        direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
 
       scrollRef.current.scrollBy({
         left: amount,
@@ -110,15 +125,21 @@ const RecommendSlider = () => {
   // Chỉ tính toán trực tiếp dựa vào giá trị thực tế của price và discountPrice.
   const renderProductTag = (product) => {
     let tagText = product.tag;
-    let tagClass = "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
+    let tagClass =
+      "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
 
     if (!tagText) {
-      if (product.discountPrice > 0 && product.price > 0 && product.discountPrice < product.price) {
+      if (
+        product.discountPrice > 0 &&
+        product.price > 0 &&
+        product.discountPrice < product.price
+      ) {
         const calculatedDiscount = Math.round(
-          ((product.price - product.discountPrice) / product.price) * 100
+          ((product.price - product.discountPrice) / product.price) * 100,
         );
         tagText = `-${calculatedDiscount}%`;
-        tagClass = "bg-rose-500 text-white font-semibold animate-pulse shadow-md";
+        tagClass =
+          "bg-rose-500 text-white font-semibold animate-pulse shadow-md";
       } else if (product.ratings >= 4.8) {
         tagText = (
           <>
@@ -157,7 +178,8 @@ const RecommendSlider = () => {
                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                 className="absolute inset-0 rounded-full bg-gradient-to-r from-[#77cd3a]/30 via-transparent to-transparent p-[1px]"
                 style={{
-                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMask:
+                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                   WebkitMaskComposite: "xor",
                   maskComposite: "exclude",
                 }}
@@ -183,7 +205,7 @@ const RecommendSlider = () => {
             </h3>
 
             <p className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 max-w-md mx-auto font-normal leading-relaxed tracking-wide">
-              {type === "personalized" 
+              {type === "personalized"
                 ? "Handpicked organic products tailored to your healthy lifestyle."
                 : "The most popular organic choices loved by our community."}
             </p>
@@ -254,7 +276,11 @@ const RecommendSlider = () => {
                       className="w-full h-full flex items-center justify-center p-2 relative z-10 cursor-pointer"
                     >
                       <img
-                        src={product.images?.[0]?.url || product.image || "/placeholder.png"}
+                        src={
+                          product.images?.[0]?.url ||
+                          product.image ||
+                          "/placeholder.png"
+                        }
                         alt={product.name}
                         className="product-img-target max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-normal dark:brightness-95"
                         loading="lazy"
@@ -290,7 +316,8 @@ const RecommendSlider = () => {
                     {/* HIỂN THỊ GIÁ CẢ KHỚP DB: Chỉ check discountPrice so với price */}
                     <div className="pt-2 mt-auto border-t border-neutral-100 dark:border-neutral-800/40 flex items-center justify-between">
                       <div className="flex items-center gap-x-1.5 flex-wrap">
-                        {product.discountPrice > 0 && product.discountPrice < product.price ? (
+                        {product.discountPrice > 0 &&
+                        product.discountPrice < product.price ? (
                           <>
                             <span className="text-xs md:text-sm font-bold text-[#77cd3a]">
                               ${Number(product.discountPrice).toFixed(2)}

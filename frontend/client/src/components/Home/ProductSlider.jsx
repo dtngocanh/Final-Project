@@ -25,6 +25,7 @@ import FloatingDecor from "../Fruit/FloatingDecor";
 import FruitLoader from "../Fruit/FruitLoader";
 
 import { addToCartThunk } from "../../store/slices/cartSlice";
+import { toast } from "react-toastify";
 
 const ProductSlider = ({
   title = "Seasonal Picks",
@@ -129,7 +130,7 @@ const ProductSlider = ({
 
   // HÀM XỬ LÝ HIỆU ỨNG ẢNH BAY
 
-  const handleFlyToCart = (e, product) => {
+  const handleFlyToCart = async (e, product) => {
     e.preventDefault();
 
     e.stopPropagation();
@@ -140,7 +141,22 @@ const ProductSlider = ({
 
     const cartIcon = document.getElementById("navbar-cart-icon");
 
-    dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
+    if (product.stock <= 0) {
+      toast.error("Not enough stock available", {
+        position: "bottom-right",
+      });
+      return;
+    }
+    try {
+      await dispatch(
+        addToCartThunk({ productId: product._id, quantity: 1 }),
+      ).unwrap();
+      toast.success("Added to cart successfully", {
+        position: "bottom-right",
+      });
+    } catch (error) {
+      toast.error(error);
+    }
 
     if (productImage && cartIcon) {
       const imgRect = productImage.getBoundingClientRect();

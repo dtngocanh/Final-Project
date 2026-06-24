@@ -75,11 +75,14 @@ const ProductDetail = () => {
     const productImage = document.querySelector(".product-gallery-active-img");
     const cartIcon = document.getElementById("navbar-cart-icon");
 
-    dispatch(
-      addToCartThunk({ productId: targetProduct._id, quantity }),
-    ).unwrap();
-    toast.success(`Added ${targetProduct.name} to Bag`);
-
+    try {
+      dispatch(
+        addToCartThunk({ productId: targetProduct._id, quantity }),
+      ).unwrap();
+      toast.success(`Added ${targetProduct.name} to Bag`);
+    } catch (error) {
+      toast.error(error);
+    }
     if (productImage && cartIcon) {
       const imgRect = productImage.getBoundingClientRect();
       const cartRect = cartIcon.getBoundingClientRect();
@@ -358,7 +361,9 @@ const ProductDetail = () => {
                   whileTap={{ scale: product.stock === 0 ? 1 : 0.99 }}
                   onClick={(e) => {
                     navigate("/checkout", {
-                      state: { buyNowItem: { product: product, quantity: quantity } },
+                      state: {
+                        buyNowItem: { product: product, quantity: quantity },
+                      },
                     });
                   }}
                   disabled={product.stock === 0}
