@@ -9,6 +9,7 @@ import {
 } from "../../store/slices/productsSlice";
 import PurchaseOrderModal from "./PurchaseOrderModal";
 import { useState } from "react";
+import ExpiryAlerts from "./ExpiryAlerts";
 
 const InventoryOverview = () => {
   const dispatch = useDispatch();
@@ -303,7 +304,10 @@ const InventoryOverview = () => {
 
           <PurchaseOrderModal
             isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
+            onClose={() => {
+              setIsModalOpen(false);
+              dispatch(restockProductLogs());
+            }}
             products={products}
           />
         </div>
@@ -354,11 +358,10 @@ const InventoryOverview = () => {
               </div>
             )}
           </div>
-
-          {/* <button className="w-full py-4 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-2xl hover:bg-black shadow-md transition-all active:scale-[0.98]">
-            Export Inventory Report
-          </button> */}
         </div>
+      </div>
+      <div className="w-full my-8">
+        <ExpiryAlerts />
       </div>
     </div>
   );
