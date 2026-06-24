@@ -9,6 +9,16 @@ import {
   resetAddressState,
 } from "../../store/slices/addressSlice";
 
+// Hàm chuyển đổi tiếng Việt có dấu thành không dấu
+const removeAccents = (str) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
+
 const AddressSelection = ({
   shippingDetails,
   setShippingDetails,
@@ -31,7 +41,7 @@ const AddressSelection = ({
     setShippingDetails({
       ...shippingDetails,
       provinceId,
-      city: provinceName,
+      city: provinceName, // Lưu tên không dấu (hoặc có dấu tuỳ vào text option bạn đã chuyển)
       districtId: "",
       district: "",
       wardCode: "",
@@ -39,7 +49,6 @@ const AddressSelection = ({
     });
 
     dispatch(resetDistricts());
-    // console.log(provinceId);
 
     if (provinceId) dispatch(fetchDistricts(provinceId));
     if (errors.city) setErrors({ ...errors, city: null });
@@ -84,11 +93,10 @@ const AddressSelection = ({
             <option value="">Select Province</option>
             {provinces.map((p) => (
               <option key={p.provinceId} value={p.provinceId}>
-                {p.provinceName}
+                {removeAccents(p.provinceName)}
               </option>
             ))}
           </select>
-          {/* Icon mũi tên xuống cho đẹp vì dùng appearance-none */}
           <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -133,7 +141,7 @@ const AddressSelection = ({
             <option value="">Select District</option>
             {districts.map((d) => (
               <option key={d.DistrictID} value={d.DistrictID}>
-                {d.DistrictName}
+                {removeAccents(d.DistrictName)}
               </option>
             ))}
           </select>
@@ -185,7 +193,7 @@ const AddressSelection = ({
             <option value="">Select Ward</option>
             {wards.map((w) => (
               <option key={w.WardCode} value={w.WardCode}>
-                {w.WardName}
+                {removeAccents(w.WardName)}
               </option>
             ))}
           </select>
