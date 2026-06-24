@@ -59,7 +59,9 @@ export const placeOrderCOD = async (req, res, next) => {
         );
       }
 
-      // Tìm Campaign Flash Sale đang hoạt động liên quan đến sản phẩm này
+      // =====================================================================
+      // LOGIC KIỂM TRA CAMPAIGN & CHẶN SỐ LƯỢNG MỚI
+      // =====================================================================
       const activeCampaign = await Campaign.findOne({
         isActive: true,
         $or: [
@@ -68,21 +70,47 @@ export const placeOrderCOD = async (req, res, next) => {
         ]
       });
 
-      // FIX CHỖ NÀY: Bất kể có giới hạn saleLimit hay không, cứ mua là phải tăng số lượng đã bán (saleSold)
+      let actualPrice = product.price; // Mặc định luôn lấy giá gốc trước
+
       if (activeCampaign) {
+        // 1. KIỂM TRA GIỚI HẠN (CHẶN FRONTEND TẠI ĐÂY)
+        if (activeCampaign.saleLimit > 0) {
+          const remainingSale = activeCampaign.saleLimit - (activeCampaign.saleSold || 0);
+
+          // Vượt ngưỡng -> Quăng lỗi luôn, không cho chạy tiếp
+          if (item.quantity > remainingSale) {
+            // Rollback lại stock vừa trừ ở trên để tránh lỗi hụt kho oan
+            await Product.findByIdAndUpdate(product._id, {
+              $inc: { stock: item.quantity, salesCount: -item.quantity }
+            });
+            return next(
+              new ErrorHandler( `Sorry! Only ${remainingSale} sale-priced units of ${product.name} are remaining. Please reduce the quantity.`, 400)
+            );
+          }
+        }
+
+        // 2. TÍNH GIÁ SALE (Đã an toàn qua vòng kiểm tra)
+        actualPrice = (product.discountPrice && product.discountPrice > 0)
+          ? product.discountPrice
+          : product.price;
+
+        // 3. TĂNG SỐ LƯỢNG ĐÃ BÁN
         activeCampaign.saleSold = (activeCampaign.saleSold || 0) + item.quantity;
         
-        // Nếu chiến dịch có đặt giới hạn và số lượng bán đã vượt ngưỡng -> Tự động đóng chiến dịch
+        // 4. KIỂM TRA TẮT CAMPAIGN & RESET DISCOUNT VỀ 0
         if (activeCampaign.saleLimit > 0 && activeCampaign.saleSold >= activeCampaign.saleLimit) {
           activeCampaign.isActive = false;
+          
+          await Product.findByIdAndUpdate(product._id, {
+            $set: { discountPrice: 0 } // Xóa giá giảm ngay lập tức
+          });
         }
         await activeCampaign.save();
+      } else {
+        // Cẩn tắc vô áy náy: Nếu không có campaign, lấy thẳng giá gốc
+        actualPrice = product.price;
       }
-
-      // FIX CHỖ NÀY: Lấy giá bán thực tế thời gian thực (Ưu tiên giá sale nếu sản phẩm đang trong đợt giảm giá)
-      const actualPrice = (product.discountPrice && product.discountPrice > 0)
-        ? product.discountPrice
-        : product.price;
+      // =====================================================================
 
       const itemTotal = actualPrice * item.quantity;
       calculatedItemsPrice += itemTotal;
@@ -90,7 +118,7 @@ export const placeOrderCOD = async (req, res, next) => {
       validatedOrderItems.push({
         product: product._id,
         name: product.name,
-        price: Number(actualPrice.toFixed(2)), // Lưu đúng giá đã giảm vào đơn hàng
+        price: Number(actualPrice.toFixed(2)),
         quantity: item.quantity,
         image: product.images?.[0]?.url || "",
         shelfLifeDays: product.shelfLifeDays || 7,
@@ -231,9 +259,15 @@ export const cancelOrder = async (req, res, next) => {
 
         if (campaign) {
           campaign.saleSold = Math.max(0, (campaign.saleSold || 0) - item.quantity);
-          // Nếu có cấu hình saleLimit và lượng bán tụt xuống lại thấp hơn giới hạn -> Mở lại chiến dịch
+          
+          // NẾU MỞ LẠI CHIẾN DỊCH VÌ ĐÃ CÓ SUẤT TRỐNG
           if (campaign.saleLimit > 0 && campaign.saleSold < campaign.saleLimit) {
             campaign.isActive = true;
+            
+            // LƯU Ý: Nếu Campaign của bạn có lưu thông tin giảm giá (ví dụ campaign.discountPercentage)
+            // Bạn nên khôi phục discountPrice ở đây để Frontend hiển thị lại giá giảm:
+            // const restoredDiscount = product.price - (product.price * campaign.discountPercentage / 100);
+            // await Product.findByIdAndUpdate(product._id, { $set: { discountPrice: restoredDiscount } });
           }
           await campaign.save();
         }
@@ -407,8 +441,14 @@ export const updateOrder = async (req, res, next) => {
 
           if (campaign) {
             campaign.saleSold = Math.max(0, (campaign.saleSold || 0) - item.quantity);
+            
+            // NẾU MỞ LẠI CHIẾN DỊCH VÌ ĐÃ CÓ SUẤT TRỐNG
             if (campaign.saleLimit > 0 && campaign.saleSold < campaign.saleLimit) {
               campaign.isActive = true;
+
+              // LƯU Ý TƯƠNG TỰ: Khôi phục lại discountPrice nếu có thể
+              // const restoredDiscount = product.price - (product.price * campaign.discountPercentage / 100);
+              // await Product.findByIdAndUpdate(product._id, { $set: { discountPrice: restoredDiscount } });
             }
             await campaign.save();
           }

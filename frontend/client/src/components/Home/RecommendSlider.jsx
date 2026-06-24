@@ -114,13 +114,20 @@ const RecommendSlider = () => {
     }
   };
 
+  // 🔥 CẬP NHẬT: Tính toán tag % giảm giá tự động màu đỏ nhấp nháy siêu đẹp
   const renderProductTag = (product) => {
     let tagText = product.tag;
     let tagClass =
       "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
 
     if (!tagText) {
-      if (product.discount > 0) {
+      if (product.discountPrice > 0 && product.price > 0 && product.discountPrice < product.price) {
+        const calculatedDiscount = Math.round(
+          ((product.price - product.discountPrice) / product.price) * 100
+        );
+        tagText = `-${calculatedDiscount}%`;
+        tagClass = "bg-rose-500 text-white font-semibold animate-pulse shadow-md";
+      } else if (product.discount > 0) {
         tagText = `-${product.discount}%`;
         tagClass = "bg-rose-500 text-white font-medium";
       } else if (product.ratings >= 4.8) {
@@ -138,7 +145,7 @@ const RecommendSlider = () => {
 
     return (
       <span
-        className={`absolute top-2 right-2 sm:top-3 sm:right-3 z-10 px-1.5 py-0.5 sm:px-2.5 rounded-full text-[8px] sm:text-[9px] font-bold tracking-wider sm:tracking-wide uppercase select-none shadow-xs backdrop-blur-md max-w-[70px] sm:max-w-none truncate text-center ${tagClass}`}
+        className={`absolute top-2 right-2 sm:top-3 sm:right-3 z-10 px-1.5 py-0.5 sm:px-2.5 rounded-full text-[8px] sm:text-[9px] font-bold tracking-wider sm:tracking-wide uppercase select-none backdrop-blur-md max-w-[70px] sm:max-w-none truncate text-center transition-all ${tagClass}`}
       >
         {tagText}
       </span>
@@ -294,10 +301,24 @@ const RecommendSlider = () => {
                       </h4>
                     </div>
 
+                    {/* 🔥 CẬP NHẬT: Logic hiển thị giá gốc gạch ngang và giá giảm cực mượt */}
                     <div className="pt-2 mt-auto border-t border-neutral-100 dark:border-neutral-800/40 flex items-center justify-between">
-                      <span className="text-xs md:text-sm font-bold text-neutral-900 dark:text-neutral-100">
-                        ${Number(product.price || 0).toFixed(2)}
-                      </span>
+                      <div className="flex items-center gap-x-1.5 flex-wrap">
+                        {product.discountPrice > 0 && product.discountPrice < product.price ? (
+                          <>
+                            <span className="text-xs md:text-sm font-bold text-[#77cd3a]">
+                              ${Number(product.discountPrice).toFixed(2)}
+                            </span>
+                            <span className="text-[10px] md:text-xs text-neutral-400 dark:text-neutral-500 line-through font-normal">
+                              ${Number(product.price).toFixed(2)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs md:text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                            ${Number(product.price || 0).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] font-semibold text-[#77cd3a] opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 hidden sm:inline-block">
                         Detail →
                       </span>
