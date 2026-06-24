@@ -1,18 +1,14 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { axiosInstance } from "../../lib/axios";
 
+// THUNK: Lấy danh sách gợi ý (Trả về 'list' và 'type' từ backend)
 export const fetchRecommendations = createAsyncThunk(
   "recommend/fetchRecommendations",
   async (_, thunkAPI) => {
     try {
-      // Added timestamp to prevent aggressive browser caching
       const res = await axiosInstance.get(`/recommendations?_t=${Date.now()}`);
 
-      // LOG TO DEBUG: Check your F12 console
-      // console.log("API Response:", res.data);
-
       return {
-        // MATCHING THE CONTROLLER: Controller returns 'list', not 'data'
         list: Array.isArray(res.data.list) ? res.data.list : [],
         type: res.data.type || "trending",
       };
@@ -23,23 +19,17 @@ export const fetchRecommendations = createAsyncThunk(
     }
   },
 );
+
+// THUNK: Gợi ý công thức từ nguyên liệu
 export const fetchRecipes = createAsyncThunk(
   "product/fetchRecipes",
-
   async (ingredients, thunkAPI) => {
     try {
-      // ingredients = ["chicken", "tomato", "onion"]
-
       const ingredientQuery = ingredients.join(",");
-
-      // console.log(ingredientQuery);
-      
       const res = await axiosInstance.get(
         `/recipes/suggest?ingredients=${ingredientQuery}&_t=${Date.now()}`,
       );
-
       return Array.isArray(res.data.meals) ? res.data.meals : [];
-
     } catch (error) {
       return thunkAPI.rejectWithValue(
         error.response?.data?.message || "Failed to fetch recipes",
@@ -48,16 +38,14 @@ export const fetchRecipes = createAsyncThunk(
   },
 );
 
+// THUNK: Tìm món ăn ngon nhất hợp với tủ lạnh
 export const fetchBestRecipe = createAsyncThunk(
   "recommend/fetchBestRecipe",
   async (ingredientQuery, thunkAPI) => {
     try {
-      // Ở file giao diện Tủ Lạnh, ingredientQuery đã là dạng chuỗi: "thịt heo,trứng,cà chua"
       const res = await axiosInstance.get(
         `/recipes/best-match?ingredients=${ingredientQuery}&_t=${Date.now()}`
       );
-
-      // Trả về toàn bộ data ({ success, matchStats, recipe })
       return res.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(
@@ -68,14 +56,14 @@ export const fetchBestRecipe = createAsyncThunk(
 );
 
 const recommendSlice = createSlice({
-  name: "recommender",
+  name: "recommend", // Đã sửa từ 'recommender' -> 'recommend' cho khớp UI
   initialState: {
     list: [],
     type: "trending",
     isLoading: false,
     error: null,
     recipes: [],
-    bestRecipeMatch: null, // Lưu riêng data của món ngon nhất
+    bestRecipeMatch: null, 
   },
   reducers: {
     resetRecommender: (state) => {
@@ -87,7 +75,7 @@ const recommendSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Xử lý recommendations
+      // Fetch Recommendations
       .addCase(fetchRecommendations.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -95,7 +83,7 @@ const recommendSlice = createSlice({
       .addCase(fetchRecommendations.fulfilled, (state, action) => {
         state.isLoading = false;
         state.list = action.payload.list;
-        state.type = action.payload.type;
+        state.type = action.payload.type; // Nhận diện user SVD hay Fallback trending
       })
       .addCase(fetchRecommendations.rejected, (state, action) => {
         state.isLoading = false;
@@ -103,14 +91,13 @@ const recommendSlice = createSlice({
         state.list = [];
       })
       
-      // Xử lý fetchRecipes cũ
+      // Fetch Recipes
       .addCase(fetchRecipes.fulfilled, (state, action) => {
         state.recipes = action.payload;
       })
 
-      // Xử lý fetchBestRecipe mới
+      // Fetch Best Recipe
       .addCase(fetchBestRecipe.fulfilled, (state, action) => {
-        // Lưu data món ngon nhất vào state nếu muốn dùng ở component khác
         state.bestRecipeMatch = action.payload.recipe; 
       });
   },

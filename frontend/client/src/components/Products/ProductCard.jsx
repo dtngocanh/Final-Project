@@ -2,7 +2,6 @@ import React from "react";
 import { Star, Plus, Leaf, Carrot, Citrus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { motion } from "framer-motion";
 import { trackClickThunk } from "../../store/slices/interactionSlice";
 import { useProductNavigation } from "../../hooks/useProductNavigation";
 import { addToCartThunk } from "../../store/slices/cartSlice";
@@ -14,16 +13,23 @@ const ProductCard = ({ product }) => {
   const navigate = useNavigate();
   const { handleProductClick } = useProductNavigation();
 
-  // Hàm render Tag Giảm giá / Best Seller đồng bộ logic từ Slider
+  // Hàm render Tag Giảm giá / Best Seller đồng bộ dữ liệu Realtime
   const renderProductTag = () => {
     let tagText = product.tag;
     let tagClass =
       "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
 
     if (!tagText) {
-      if (product.discount > 0) {
-        tagText = `-${product.discount}%`;
-        tagClass = "bg-rose-500 text-white font-medium";
+      const price = Number(product.price || 0);
+      const discountPrice = Number(product.discountPrice || 0);
+
+      // Nếu có giá giảm hợp lệ (giá giảm lớn hơn 0 và nhỏ hơn giá gốc)
+      if (discountPrice > 0 && price > 0 && discountPrice < price) {
+        // Công thức tính phần trăm giảm giá thực tế
+        const calculatedDiscount = Math.round(((price - discountPrice) / price) * 100);
+        
+        tagText = `-${calculatedDiscount}%`;
+        tagClass = "bg-rose-500 text-white font-semibold animate-pulse shadow-md";
       } else if (product.ratings >= 4.8) {
         tagText = "Best Seller";
         tagClass = "bg-[#77cd3a] text-white font-medium";
@@ -41,7 +47,7 @@ const ProductCard = ({ product }) => {
     );
   };
 
-  // 🛒 LOGIC XỬ LÝ HIỆU ỨNG BAY VÀO GIỎ HÀNG (ĐÃ FIX TỌA ĐỘ)
+  //  LOGIC XỬ LÝ HIỆU ỨNG BAY VÀO GIỎ HÀNG (ĐÃ FIX TỌA ĐỘ)
   const runFlyToCartAnimation = (buttonElement) => {
     const productCardElement = buttonElement.closest(".group");
     const productImg = productCardElement?.querySelector(".product-target-img");
@@ -150,15 +156,31 @@ const ProductCard = ({ product }) => {
         {/* Thanh phân cách mỏng */}
         <div className="mx-4 sm:mx-8 h-[1px] bg-neutral-100 dark:bg-neutral-800/40 relative z-10" />
 
-        {/* 4. THÔNG TIN SẢN PHẨM */}
+        {/* 4. THÔNG TIN SẢN PHẨM & GIÁ CẢ REALTIME */}
         <div className="px-3 py-4 sm:px-6 sm:py-6 text-center relative z-20 bg-transparent flex-1 flex flex-col justify-between">
           <h3 className="text-xs sm:text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1 sm:mb-1.5 truncate lg:group-hover:text-neutral-950 dark:lg:group-hover:text-white transition-colors duration-200 leading-tight">
             {product.name}
           </h3>
-          <div className="flex flex-col xs:flex-row items-center justify-center gap-0.5 xs:gap-1">
-            <span className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-neutral-100">
-              ${product.price?.toFixed(2)}
-            </span>
+          
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1">
+            {product.discountPrice > 0 && product.discountPrice < product.price ? (
+              <>
+                {/* Giá đã giảm mới nhất */}
+                <span className="text-xs sm:text-sm font-bold text-[#77cd3a] dark:text-rose-400">
+                  ${product.discountPrice?.toFixed(2)}
+                </span>
+                {/* Giá cũ chưa giảm bị gạch ngang */}
+                <span className="text-[10px] sm:text-xs text-neutral-400 dark:text-neutral-500 line-through font-normal">
+                  ${product.price?.toFixed(2)}
+                </span>
+              </>
+            ) : (
+              /* Trường hợp giá thường không giảm */
+              <span className="text-xs sm:text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                ${product.price?.toFixed(2)}
+              </span>
+            )}
+            
             <span className="text-[8px] sm:text-[9px] text-neutral-400 font-medium uppercase tracking-tight">
               / per kg
             </span>
@@ -170,7 +192,7 @@ const ProductCard = ({ product }) => {
           <button
             onClick={async (e) => {
               e.preventDefault();
-              e.stopPropagation(); // Ngăn hành vi nổi bọt kích hoạt click vào card (Lưu vào vừa xem)
+              e.stopPropagation(); // Ngăn hành vi nổi bọt kích hoạt click vào card
 
               // Kích hoạt hiệu ứng bay ngay lập tức
               runFlyToCartAnimation(e.currentTarget);
@@ -179,7 +201,6 @@ const ProductCard = ({ product }) => {
                 await dispatch(
                   addToCartThunk({ productId: product._id, quantity: 1 }),
                 ).unwrap();
-                // toast.success(`Added ${product.name} to cart`);
               } catch (error) {
                 toast.error("Failed to add product to cart");
               }

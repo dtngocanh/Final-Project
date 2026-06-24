@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import FloatingDecor from "../Fruit/FloatingDecor.jsx";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect } from "react";
 import { fetchRecommendations } from "../../store/slices/recommendSlice.js";
 import { addToCartThunk } from "../../store/slices/cartSlice.js";
 import { addToRecentlyViewed } from "../../store/slices/interactionSlice.js";
@@ -23,28 +22,26 @@ const RecommendSlider = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { list = [], isLoading } = useSelector((state) => state.recommend);
+  // Đồng bộ đúng state từ slice "recommend"
+  const { list = [], type = "trending", isLoading } = useSelector((state) => state.recommend);
 
   useEffect(() => {
     dispatch(fetchRecommendations());
   }, [dispatch]);
 
+  // Lọc sản phẩm hợp lệ và còn hàng
   const products = useMemo(() => {
     return (list || []).filter((p) => p && p._id && p.stock > 0);
   }, [list]);
 
-  // HÀM XỬ LÝ KHI NGƯỜI DÙNG BẤM XEM CHI TIẾT SẢN PHẨM GỢI Ý
+  // Xử lý khi người dùng bấm xem chi tiết sản phẩm gợi ý
   const handleProductDetailClick = (e, product) => {
     e.preventDefault();
-
-    // Ghi nhận ngay vào danh sách RAM "Sản phẩm vừa xem" để hiển thị tức thì
     dispatch(addToRecentlyViewed(product));
-
-    // Tiến hành chuyển sang trang thông tin chi tiết
     navigate(`/product/${product._id}`);
   };
 
-  // HÀM XỬ LÝ HIỆU ỨNG ẢNH BAY THẲNG TUỐT MƯỢT MÀ
+  // Hiệu ứng ảnh bay mượt mà vào giỏ hàng
   const handleFlyToCart = (e, product) => {
     e.preventDefault();
 
@@ -89,23 +86,18 @@ const RecommendSlider = () => {
 
       setTimeout(() => {
         flyImg.remove();
-
-        // Hiệu ứng phản hồi nhún nhảy nhẹ nhàng của icon giỏ hàng khi tiếp nhận
         cartIcon.classList.add("cart-bounce-feedback");
         setTimeout(() => {
           cartIcon.classList.remove("cart-bounce-feedback");
         }, 300);
       }, animationDuration);
-    } else {
-      dispatch(addToCartThunk({ productId: product._id, quantity: 1 }));
     }
   };
 
   const scroll = (direction) => {
     if (scrollRef.current) {
       const clientWidth = scrollRef.current.clientWidth;
-      const amount =
-        direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
+      const amount = direction === "left" ? -clientWidth * 0.8 : clientWidth * 0.8;
 
       scrollRef.current.scrollBy({
         left: amount,
@@ -114,11 +106,11 @@ const RecommendSlider = () => {
     }
   };
 
-  // 🔥 CẬP NHẬT: Tính toán tag % giảm giá tự động màu đỏ nhấp nháy siêu đẹp
+  // 🔥 ĐÃ CẬP NHẬT: Loại bỏ hoàn toàn trường product.discount cũ không có trong DB.
+  // Chỉ tính toán trực tiếp dựa vào giá trị thực tế của price và discountPrice.
   const renderProductTag = (product) => {
     let tagText = product.tag;
-    let tagClass =
-      "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
+    let tagClass = "bg-neutral-900/10 text-neutral-800 dark:bg-white/10 dark:text-neutral-200";
 
     if (!tagText) {
       if (product.discountPrice > 0 && product.price > 0 && product.discountPrice < product.price) {
@@ -127,9 +119,6 @@ const RecommendSlider = () => {
         );
         tagText = `-${calculatedDiscount}%`;
         tagClass = "bg-rose-500 text-white font-semibold animate-pulse shadow-md";
-      } else if (product.discount > 0) {
-        tagText = `-${product.discount}%`;
-        tagClass = "bg-rose-500 text-white font-medium";
       } else if (product.ratings >= 4.8) {
         tagText = (
           <>
@@ -159,7 +148,7 @@ const RecommendSlider = () => {
       <FloatingDecor />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 relative z-10">
-        {/* HEADER */}
+        {/* HEADER - Tự động đổi text dựa vào trạng thái fallback/SVD gợi ý */}
         <div className="flex flex-col items-center mb-10 md:mb-16 text-center select-none">
           <div className="flex flex-col items-center mb-4">
             <div className="relative w-12 h-12 flex items-center justify-center mb-2">
@@ -168,8 +157,7 @@ const RecommendSlider = () => {
                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                 className="absolute inset-0 rounded-full bg-gradient-to-r from-[#77cd3a]/30 via-transparent to-transparent p-[1px]"
                 style={{
-                  WebkitMask:
-                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                   WebkitMaskComposite: "xor",
                   maskComposite: "exclude",
                 }}
@@ -181,7 +169,7 @@ const RecommendSlider = () => {
               />
             </div>
             <span className="text-[10px] font-bold tracking-[0.3em] text-[#77cd3a] uppercase">
-              Personalized Picks
+              {type === "personalized" ? "Personalized Picks" : "Trending Now"}
             </span>
           </div>
 
@@ -189,13 +177,15 @@ const RecommendSlider = () => {
             <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-neutral-950 dark:text-white flex items-center justify-center gap-3">
               <span className="h-[1px] w-6 md:w-12 bg-neutral-200 dark:bg-neutral-800 rounded-full hidden sm:block" />
               <span className="font-fredoka text-neutral-900 dark:text-neutral-100">
-                Just for you
+                {type === "personalized" ? "Just for you" : "Hot Products"}
               </span>
               <span className="h-[1px] w-6 md:w-12 bg-neutral-200 dark:bg-neutral-800 rounded-full hidden sm:block" />
             </h3>
 
             <p className="text-xs md:text-sm text-neutral-500 dark:text-neutral-400 max-w-md mx-auto font-normal leading-relaxed tracking-wide">
-              Handpicked organic products tailored to your healthy lifestyle.
+              {type === "personalized" 
+                ? "Handpicked organic products tailored to your healthy lifestyle."
+                : "The most popular organic choices loved by our community."}
             </p>
           </div>
         </div>
@@ -264,11 +254,7 @@ const RecommendSlider = () => {
                       className="w-full h-full flex items-center justify-center p-2 relative z-10 cursor-pointer"
                     >
                       <img
-                        src={
-                          product.images?.[0]?.url ||
-                          product.image ||
-                          "/placeholder.png"
-                        }
+                        src={product.images?.[0]?.url || product.image || "/placeholder.png"}
                         alt={product.name}
                         className="product-img-target max-w-full max-h-full w-auto h-auto object-contain transition-transform duration-500 ease-out group-hover/card:scale-[1.03] mix-blend-multiply dark:mix-blend-normal dark:brightness-95"
                         loading="lazy"
@@ -301,7 +287,7 @@ const RecommendSlider = () => {
                       </h4>
                     </div>
 
-                    {/* 🔥 CẬP NHẬT: Logic hiển thị giá gốc gạch ngang và giá giảm cực mượt */}
+                    {/* HIỂN THỊ GIÁ CẢ KHỚP DB: Chỉ check discountPrice so với price */}
                     <div className="pt-2 mt-auto border-t border-neutral-100 dark:border-neutral-800/40 flex items-center justify-between">
                       <div className="flex items-center gap-x-1.5 flex-wrap">
                         {product.discountPrice > 0 && product.discountPrice < product.price ? (
