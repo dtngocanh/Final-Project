@@ -65,7 +65,7 @@ export const productList = async (req, res, next) => {
     const [totalProducts, products] = await Promise.all([
       Product.countDocuments(query),
       Product.find(query)
-        .select("name description price images category stock ratings")
+        .select("name description price images category stock ratings discountPrice")
         .populate("category", "name parent level")
         .sort({ createdAt: -1 })
         .skip(skip) 

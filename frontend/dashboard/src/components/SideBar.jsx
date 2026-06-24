@@ -8,7 +8,8 @@ import {
   LogOut,
   X,
   Tags,
-  Boxes,
+  LucideCamera,
+  Boxes
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { NavLink, useNavigate } from "react-router-dom"; // QUAN TRỌNG: Dùng NavLink
@@ -29,6 +30,7 @@ const SideBar = () => {
     { to: "/orders", icon: <ListOrdered size={20} />, label: "Orders" },
     { to: "/products", icon: <Package size={20} />, label: "Products" },
     { to: "/categories", icon: <Tags size={20} />, label: "Categories" },
+    { to: "/campaigns", icon: <LucideCamera size={20} />, label: "Campaigns" },
     // { to: "/profile", icon: <User size={20} />, label: "Profile" },
   ];
 

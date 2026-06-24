@@ -3,7 +3,9 @@ import Product from "../models/Product.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import crypto from "crypto"; // Dùng để tạo mã nhóm combo ngẫu nhiên nhằm phân biệt các bộ combo với nhau
 
+// =========================================================================
 // 1. UPDATE USER CART: api/cart/update
+// =========================================================================
 export const updateCart = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -50,7 +52,6 @@ export const updateCart = async (req, res, next) => {
 
     for (const item of cartItems) {
       const productId = item.product?._id || item.product;
-
       const product = await Product.findById(productId);
 
       // Sản phẩm đã bị xóa khỏi DB
@@ -71,7 +72,6 @@ export const updateCart = async (req, res, next) => {
         warnings.push(
           `${product.name} quantity adjusted from ${quantity} to ${product.stock}.`,
         );
-
         quantity = product.stock;
       }
 
@@ -81,7 +81,12 @@ export const updateCart = async (req, res, next) => {
           old.comboId === item.comboId,
       );
 
-      let settledPrice = product.price;
+      // TỰ ĐỘNG CHECK GIÁ FLASH SALE THỜI GIAN THỰC CHO SẢN PHẨM THƯỜNG
+      const currentLivePrice = (product.discountPrice && product.discountPrice > 0)
+        ? product.discountPrice
+        : product.price;
+
+      let settledPrice = currentLivePrice;
 
       // Combo bị phá vỡ
       const isComboBroken =
@@ -90,12 +95,14 @@ export const updateCart = async (req, res, next) => {
           incomingComboCounts[item.comboId] < oldComboCounts[item.comboId]);
 
       if (isComboBroken) {
-        settledPrice = product.price;
+        settledPrice = currentLivePrice; // Quay về giá flash sale hiện hành (hoặc giá gốc)
         item.comboId = undefined;
       } else if (item.price !== undefined) {
         settledPrice = item.price;
       } else if (oldItem && oldItem.price !== undefined) {
         settledPrice = oldItem.price;
+      } else {
+        settledPrice = currentLivePrice;
       }
 
       newTotalCart += settledPrice * quantity;
@@ -128,7 +135,9 @@ export const updateCart = async (req, res, next) => {
   }
 };
 
+// =========================================================================
 // 2. GET CART FOR A USER: api/cart/get
+// =========================================================================
 export const getCart = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate(
@@ -144,7 +153,9 @@ export const getCart = async (req, res) => {
   }
 };
 
+// =========================================================================
 // 3. ADD COMBO TO CART: api/cart/add-combo
+// =========================================================================
 export const addCombo = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -185,18 +196,16 @@ export const addCombo = async (req, res, next) => {
     let currentCartItems = [...user.cartItems];
 
     // TẠO MỘT TOKEN ĐỊNH DANH DUY NHẤT CHO BỘ COMBO NÀY
-    // Giúp phân biệt nếu khách mua nhiều bộ combo khác nhau trong giỏ hàng
     const uniqueComboId = `combo_${crypto.randomBytes(4).toString("hex")}`;
 
     for (const product of products) {
       const discountedPrice = Number((product.price * 0.9).toFixed(2));
 
-      // Thêm sản phẩm mới kèm mã định danh nhóm combo vừa tạo
       currentCartItems.push({
         product: product._id,
         quantity: 1,
         price: discountedPrice,
-        comboId: uniqueComboId, // Đánh dấu tất cả các món này thuộc chung 1 group combo
+        comboId: uniqueComboId,
       });
     }
 
@@ -223,6 +232,9 @@ export const addCombo = async (req, res, next) => {
   }
 };
 
+// =========================================================================
+// 4. BULK ADD TO CART: api/cart/bulk-add
+// =========================================================================
 export const bulkAddCart = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -243,20 +255,27 @@ export const bulkAddCart = async (req, res, next) => {
         (c) => c.product.toString() === item.productId,
       );
 
+      // TỰ ĐỘNG CHECK GIÁ FLASH SALE KHI THÊM HÀNG LOẠT
+      const currentPrice = (product.discountPrice && product.discountPrice > 0)
+        ? product.discountPrice
+        : product.price;
+
       const qty = Math.min(item.quantity, product.stock);
 
       if (existing) {
         existing.quantity += qty;
+        existing.price = Number(currentPrice.toFixed(2)); // Đồng bộ giá sale mới nhất
       } else {
         cart.push({
           product: item.productId,
           quantity: qty,
-          price: product.price,
+          price: Number(currentPrice.toFixed(2)),
         });
       }
     }
 
     user.cartItems = cart;
+    user.total_cart = calculateCartTotal(cart); // Tính lại tổng tiền chuẩn chỉnh
     await user.save();
 
     const populated = await user.populate("cartItems.product");
@@ -271,6 +290,9 @@ export const bulkAddCart = async (req, res, next) => {
   }
 };
 
+// =========================================================================
+// 5. ADD SINGLE PRODUCT TO CART: api/cart/add
+// =========================================================================
 export const addToCart = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -284,23 +306,26 @@ export const addToCart = async (req, res, next) => {
     }
 
     const cart = user.cartItems || [];
-
     const existing = cart.find((i) => i.product.toString() === productId);
-
     const qty = Math.min(quantity, product.stock);
+
+    // TỰ ĐỘNG KIỂM TRA XEM CÓ GIÁ FLASH SALE NGẦM KHÔNG
+    const currentPrice = (product.discountPrice && product.discountPrice > 0)
+      ? product.discountPrice
+      : product.price;
 
     if (existing) {
       existing.quantity = Math.min(existing.quantity + quantity, product.stock);
+      existing.price = Number(currentPrice.toFixed(2)); // Cập nhật sang giá sale nếu sản phẩm vừa bước vào khung giờ vàng
     } else {
       cart.push({
         product: productId,
         quantity: qty,
-        price: product.price,
+        price: Number(currentPrice.toFixed(2)), // Đẩy giá sale thực tế vào Document Item
       });
     }
 
     user.cartItems = cart;
-
     user.total_cart = calculateCartTotal(cart);
 
     await user.save();
@@ -317,65 +342,80 @@ export const addToCart = async (req, res, next) => {
   }
 };
 
+// =========================================================================
+// 6. REMOVE PRODUCT FROM CART
+// =========================================================================
 export const removeFromCart = async (req, res) => {
-  const userId = req.user._id;
-  const { productId } = req.body;
+  try {
+    const userId = req.user._id;
+    const { productId } = req.body;
 
-  // console.log(productId);
+    const user = await User.findById(userId);
 
-  const user = await User.findById(userId);
-
-  user.cartItems = user.cartItems.filter((item) => {
-    const itemProductId = item.product._id ? item.product._id : item.product;
-    return !itemProductId.equals(productId);
-  });
-
-  user.total_cart = calculateCartTotal(user.cartItems);
-  await user.save();
-
-  const populated = await user.populate("cartItems.product");
-  res.json({
-    success: true,
-    cartItems: populated.cartItems,
-    total_cart: user.total_cart,
-  });
-};
-
-export const updateQty = async (req, res) => {
-  const userId = req.user._id;
-  const { productId, change } = req.body;
-
-  const user = await User.findById(userId);
-
-  const item = user.cartItems.find((i) => {
-    const itemProductId = i.product._id ? i.product._id : i.product;
-    return itemProductId.equals(productId);
-  });
-
-  if (!item)
-    return res.status(404).json({ message: "Product not found in cart" });
-
-  item.quantity += change;
-
-  if (item.quantity <= 0) {
-    user.cartItems = user.cartItems.filter((i) => {
-      const itemProductId = i.product._id ? i.product._id : i.product;
+    user.cartItems = user.cartItems.filter((item) => {
+      const itemProductId = item.product._id ? item.product._id : item.product;
       return !itemProductId.equals(productId);
     });
+
+    user.total_cart = calculateCartTotal(user.cartItems);
+    await user.save();
+
+    const populated = await user.populate("cartItems.product");
+    res.json({
+      success: true,
+      cartItems: populated.cartItems,
+      total_cart: user.total_cart,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-
-  user.total_cart = calculateCartTotal(user.cartItems);
-
-  await user.save();
-
-  const populated = await user.populate("cartItems.product");
-  res.json({
-    success: true,
-    cartItems: populated.cartItems,
-    total_cart: user.total_cart,
-  });
 };
 
+// =========================================================================
+// 7. UPDATE QUANTITY (PLUS/MINUS BUTTON)
+// =========================================================================
+export const updateQty = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { productId, change } = req.body;
+
+    const user = await User.findById(userId);
+
+    const item = user.cartItems.find((i) => {
+      const itemProductId = i.product._id ? i.product._id : i.product;
+      return itemProductId.equals(productId);
+    });
+
+    if (!item)
+      return res.status(404).json({ message: "Product not found in cart" });
+
+    item.quantity += change;
+
+    if (item.quantity <= 0) {
+      user.cartItems = user.cartItems.filter((i) => {
+        const itemProductId = i.product._id ? i.product._id : i.product;
+        return !itemProductId.equals(productId);
+      });
+    }
+
+    user.total_cart = calculateCartTotal(user.cartItems);
+
+    await user.save();
+
+    const populated = await user.populate("cartItems.product");
+    res.json({
+      success: true,
+      cartItems: populated.cartItems,
+      total_cart: user.total_cart,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// =========================================================================
+// 8. CLEAR ENTIRE CART
+// =========================================================================
 export const clearCart = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -394,6 +434,9 @@ export const clearCart = async (req, res) => {
   }
 };
 
+// =========================================================================
+// HELPER FUNCTION: CALCULATE TOTAL AMOUNT
+// =========================================================================
 const calculateCartTotal = (cart) => {
   return cart.reduce((total, item) => total + item.quantity * item.price, 0);
 };
