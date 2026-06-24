@@ -134,11 +134,16 @@ export const importProducts = createAsyncThunk(
 
 export const replenishProductStock = createAsyncThunk(
   "product/replenishStock",
-  async ({ productId, quantity }, { rejectWithValue }) => {
+  async (
+    { productId, quantity, manufactureDate, expiryDate },
+    { rejectWithValue },
+  ) => {
     try {
       const response = await axiosInstance.post("/admin/products/replenish", {
         productId,
         quantity,
+        manufactureDate,
+        expiryDate,
       });
       return response.data.product;
     } catch (error) {
@@ -151,9 +156,21 @@ export const restockProductLogs = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get("/admin/products/restock-logs");
-      console.log(response.data.logs);
-      
+      // console.log(response.data.logs);
+
       return response.data.logs;
+    } catch (error) {
+      return rejectWithValue(error.response.data.message);
+    }
+  },
+);
+
+export const fetchExpiringProducts = createAsyncThunk(
+  "product/fetchExpiring",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get("/admin/products/expiring-soon");
+      return response.data.expiringItems;
     } catch (error) {
       return rejectWithValue(error.response.data.message);
     }
@@ -170,6 +187,7 @@ const productsSlice = createSlice({
     totalProducts: 0,
     error: null,
     restockLogs: [],
+    expiringItems:[]
   },
   reducers: {
     // Standard synchronous reducers can go here
@@ -216,6 +234,9 @@ const productsSlice = createSlice({
         state.error = action.payload;
       })
 
+      .addCase(fetchExpiringProducts.fulfilled, (state, action) => {
+        state.expiringItems = action.payload;
+      })
       // Generic loading state for write operations (Create/Update/Delete)
       .addMatcher(
         (action) =>

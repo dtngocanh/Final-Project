@@ -1,11 +1,11 @@
 import Product from "../../models/Product.js";
 import RestockLog from "../../models/PurchaseOrder.js";
 import Category from "../../models/Category.js";
-import XLSX from 'xlsx';
+import XLSX from "xlsx";
 
 export const replenishStock = async (req, res) => {
   try {
-    const { productId, quantity } = req.body;
+    const { productId, quantity, manufactureDate, expiryDate } = req.body;
 
     // 1. Kiểm tra dữ liệu đầu vào
     if (!productId || !quantity || quantity <= 0) {
@@ -14,29 +14,69 @@ export const replenishStock = async (req, res) => {
         .json({ success: false, message: "Invalid product or quantity" });
     }
 
-    // 2. Tìm sản phẩm và cập nhật tăng số lượng stock ($inc = increment trong MongoDB)
+    // Kiểm tra ngày tháng nếu là hàng có hạn sử dụng
+    if (!manufactureDate || !expiryDate) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Manufacture date and expiry date are required",
+        });
+    }
+
+    // 2. Tìm sản phẩm và cập nhật tăng tổng số lượng stock
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
       { $inc: { stock: Number(quantity) } },
       { new: true }, // Trả về data mới sau khi đã cập nhật
-    ).populate("category"); // Populate nếu category của bạn là một Object
+    ).populate("category");
 
     if (!updatedProduct) {
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
+
     const newLog = await RestockLog.create({
       product: productId,
       quantityAdded: Number(quantity),
-      // supplier: "Veggies Wholesale Farm"
+      manufactureDate: new Date(manufactureDate), // Lưu dưới dạng Date Object
+      expiryDate: new Date(expiryDate), // Lưu dưới dạng Date Object
+      supplier: "Veggies Wholesale Farm",
     });
 
     res.status(200).json({
       success: true,
-      message: "Stock replenished successfully!",
+      message: "Stock replenished successfully with batch tracking!",
       product: updatedProduct,
       log: newLog,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getExpiringSoonLogs = async (req, res) => {
+  try {
+    const today = new Date();
+
+    const oneMonthFromNow = new Date();
+    oneMonthFromNow.setDate(today.getDate() + 30);
+
+    // Tìm trong bảng RestockLog
+    const expiringLogs = await RestockLog.find({
+      expiryDate: {
+        $gte: today, // Lớn hơn hoặc bằng ngày hôm nay (chưa hết hạn)
+        $lte: oneMonthFromNow, // Nhỏ hơn hoặc bằng ngày này tháng sau (còn dưới 1 tháng)
+      },
+    })
+      .populate("product") // Lấy thêm thông tin chi tiết của sản phẩm (tên, hình ảnh...)
+      .sort({ expiryDate: 1 }); // Sắp xếp lô nào hết hạn trước thì xếp lên đầu
+
+    res.status(200).json({
+      success: true,
+      count: expiringLogs.length,
+      expiringItems: expiringLogs,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -76,7 +116,9 @@ const getOrCreateCategory = async (name, parentId = null, level = 0) => {
         level: level,
         path: parentId ? `${parentId},` : ",",
       });
-      console.log(` Successfully created category: ${cleanName} (Level ${level})`);
+      console.log(
+        ` Successfully created category: ${cleanName} (Level ${level})`,
+      );
     } catch (error) {
       // Bọc lót lỗi race condition bất đồng bộ (trùng mã E11000) thì tìm lại lần cuối
       if (error.code === 11000) {
@@ -90,7 +132,6 @@ const getOrCreateCategory = async (name, parentId = null, level = 0) => {
   }
   return category;
 };
-
 
 // [POST] api/product/import
 export const importPostman = async (req, res) => {

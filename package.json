@@ -7,9 +7,9 @@
     "server": "cd backend/server && npm run server",
     "client": "cd frontend/client && npm run dev",
     "dashboard": "cd frontend/dashboard && npm run dev",
-    "chat": "python backend/chat/chat_api.py",
+    "stripe":"cd backend/server && stripe.exe listen --forward-to localhost:4000/payment/webhook",
     
-    "all": "concurrently --kill-others \"npm run server\" \"npm run client\" \"npm run dashboard\" \"npm run chat\" \"npm run stripe\""
+    "all": "concurrently --kill-others \"npm run server\" \"npm run client\" \"npm run dashboard\" \"npm run stripe\""
   },
   "keywords": [],
   "author": "",

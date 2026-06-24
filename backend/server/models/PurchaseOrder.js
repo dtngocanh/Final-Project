@@ -22,12 +22,14 @@ const restockLogSchema = new mongoose.Schema(
     operator: {
       type: String,
       default: "Admin",
-    }
+    },
+    manufactureDate: { type: Date, required: true },
+    expiryDate: { type: Date, required: true },
   },
-  { 
+  {
     // createdAt và updatedAt
-    timestamps: true, 
-  }
+    timestamps: true,
+  },
 );
 
 const RestockLog = mongoose.model("RestockLog", restockLogSchema);

@@ -4,6 +4,7 @@ import { deleteMockProducts, getRecentRestockLogs, importPostman, replenishStock
 const productAdRouter = express.Router();
 
 productAdRouter.post("/replenish", replenishStock);
+productAdRouter.post("/expiring-soon", replenishStock);
 productAdRouter.get("/restock-logs", getRecentRestockLogs);
 productAdRouter.post("/import", importPostman);
 productAdRouter.get("/delmock", deleteMockProducts);
