@@ -102,6 +102,6 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-orderSchema.index({ "paymentInfo.id": 1 }, { unique: true });
+orderSchema.index({ "paymentInfo.id": 1 }, { unique: true, sparse: true });
 const Order = mongoose.models.order || mongoose.model("order", orderSchema);
 export default Order;
