@@ -2,7 +2,10 @@ import { X, Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toggleCart } from "../../store/slices/popupSlice";
-import { removeFromCartThunk, updateQtyThunk } from "../../store/slices/cartSlice";
+import {
+  removeFromCartThunk,
+  updateQtyThunk,
+} from "../../store/slices/cartSlice";
 
 const CartSidebar = () => {
   const dispatch = useDispatch();
@@ -13,7 +16,6 @@ const CartSidebar = () => {
   const activeColor = "#77cd3af2";
 
   const handleClose = () => dispatch(toggleCart());
-
 
   // 1. TÍNH TOÁN GIÁ TRỊ TỔNG ĐƠN HÀNG CHUẨN XÁC
   const originalTotal =
@@ -74,7 +76,12 @@ const CartSidebar = () => {
               return (
                 <div
                   key={item._id}
-                  className="group relative flex gap-4 sm:gap-6 items-start animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  className={`group relative flex gap-4 sm:gap-6 items-start animate-in fade-in slide-in-from-bottom-2 duration-300 rounded-2xl p-2 transition-all
+                    ${
+                      product.stock === 0
+                        ? "bg-gray-100 dark:bg-red-950/10 opacity-75"
+                        : ""
+                    }`}
                 >
                   {/* Product Image: Giảm kích thước xuống w-20 trên mobile nhỏ để nhường chỗ cho text */}
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gray-50 dark:bg-white/5 overflow-hidden flex-shrink-0 border border-gray-100 dark:border-white/10">
@@ -110,6 +117,15 @@ const CartSidebar = () => {
                           ${product.price}
                         </span>
                       )}
+                      {product.stock === 0 ? (
+                        <p className="text-[9px] text-red-500 font-bold tracking-wider uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-md w-max mt-2">
+                          Out of stock · Remove this item
+                        </p>
+                      ) : product.stock <= 5 ? (
+                        <p className="text-[9px] text-red-500 font-bold tracking-wider uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-md w-max mt-2 animate-pulse">
+                          Only {product.stock} left
+                        </p>
+                      ) : null}
                     </div>
 
                     {/* Bộ điều khiển số lượng và giá tổng của Item */}
@@ -117,19 +133,17 @@ const CartSidebar = () => {
                       {/* Quantity Selector: Thu nhỏ khoảng cách padding trên điện thoại cực bé */}
                       <div className="flex items-center border border-gray-200 dark:border-white/10 rounded-full px-1.5 py-0.5 sm:px-2 sm:py-1 gap-2 sm:gap-4 flex-shrink-0">
                         <button
-                          onClick={
-                            async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
 
-                              await dispatch(
-                                updateQtyThunk({
-                                  productId: product._id,
-                                  change: -1,
-                                }),
-                              );
-                            }
-                          }
+                            await dispatch(
+                              updateQtyThunk({
+                                productId: product._id,
+                                change: -1,
+                              }),
+                            );
+                          }}
                           className="p-1 hover:text-[#77cd3af2] transition-colors"
                         >
                           <Minus size={12} className="sm:w-3.5 sm:h-3.5" />
@@ -138,19 +152,17 @@ const CartSidebar = () => {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={
-                            async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
 
-                              await dispatch(
-                                updateQtyThunk({
-                                  productId: product._id,
-                                  change: 1,
-                                }),
-                              );
-                            }
-                          }
+                            await dispatch(
+                              updateQtyThunk({
+                                productId: product._id,
+                                change: 1,
+                              }),
+                            );
+                          }}
                           disabled={item.quantity >= product.stock}
                           className={`p-1 hover:text-[#77cd3af2] transition-colors ${item.quantity >= product.stock ? "opacity-20 cursor-not-allowed" : ""}`}
                         >
