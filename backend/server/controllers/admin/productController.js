@@ -3,47 +3,68 @@ import RestockLog from "../../models/PurchaseOrder.js";
 import Category from "../../models/Category.js";
 import XLSX from "xlsx";
 
-export const replenishStock = async (req, res) => {
-  try {
-    const { productId, quantity, manufactureDate, expiryDate } = req.body;
+import mongoose from "mongoose";
 
-    // 1. Kiểm tra dữ liệu đầu vào
-    if (!productId || !quantity || quantity <= 0) {
+export const replenishStock = async (req, res) => {
+  // Khởi tạo session cho transaction
+  const session = await mongoose.startSession();
+
+  try {
+    const { productId, quantity, costPrice, manufactureDate, expiryDate } =
+      req.body;
+
+    // 1. Kiểm tra dữ liệu đầu vào (Làm trước khi start transaction để tối ưu hiệu năng)
+    if (!productId || !quantity || quantity <= 0 || !costPrice) {
       return res
         .status(400)
         .json({ success: false, message: "Invalid product or quantity" });
     }
 
-    // Kiểm tra ngày tháng nếu là hàng có hạn sử dụng
     if (!manufactureDate || !expiryDate) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Manufacture date and expiry date are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Manufacture date and expiry date are required",
+      });
     }
 
-    // 2. Tìm sản phẩm và cập nhật tăng tổng số lượng stock
+    // Bắt đầu Transaction
+    session.startTransaction();
+
+    // 2. Tìm sản phẩm và cập nhật tăng tổng số lượng stock (Truyền session vào)
     const updatedProduct = await Product.findByIdAndUpdate(
       productId,
       { $inc: { stock: Number(quantity) } },
-      { new: true }, // Trả về data mới sau khi đã cập nhật
+      { new: true, session },
     ).populate("category");
 
     if (!updatedProduct) {
+      // Nếu không tìm thấy product, hủy transaction và return luôn
+      await session.abortTransaction();
+      session.endSession();
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
 
-    const newLog = await RestockLog.create({
-      product: productId,
-      quantityAdded: Number(quantity),
-      manufactureDate: new Date(manufactureDate), // Lưu dưới dạng Date Object
-      expiryDate: new Date(expiryDate), // Lưu dưới dạng Date Object
-      supplier: "Veggies Wholesale Farm",
-    });
+    // 3. Tạo bản ghi lịch sử nhập hàng (Truyền session vào dưới dạng mảng [] cho hàm tạo)
+    // Lưu ý với Mongoose: .create() nhận session qua options ở tham số thứ 2 nếu truyền data dạng mảng
+    const [newLog] = await RestockLog.create(
+      [
+        {
+          product: productId,
+          quantityAdded: Number(quantity),
+          costPrice: Number(costPrice),
+          manufactureDate: new Date(manufactureDate),
+          expiryDate: new Date(expiryDate),
+          supplier: "Veggies Wholesale Farm",
+        },
+      ],
+      { session },
+    );
+
+    // Nếu mọi thứ chạy mượt mà đến đây, xác nhận lưu vĩnh viễn vào DB
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json({
       success: true,
@@ -52,6 +73,10 @@ export const replenishStock = async (req, res) => {
       log: newLog,
     });
   } catch (error) {
+    // Nếu có bất kỳ lỗi nào xảy ra trong khối try, hủy bỏ toàn bộ thay đổi trước đó
+    await session.abortTransaction();
+    session.endSession();
+
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -59,19 +84,23 @@ export const replenishStock = async (req, res) => {
 export const getExpiringSoonLogs = async (req, res) => {
   try {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const oneMonthFromNow = new Date();
-    oneMonthFromNow.setDate(today.getDate() + 30);
+    const oneMonthFromNow = new Date(today);
+    oneMonthFromNow.setDate(oneMonthFromNow.getDate() + 30);
+    oneMonthFromNow.setHours(23, 59, 59, 999);
 
-    // Tìm trong bảng RestockLog
+    // console.log(today);
+    // console.log(oneMonthFromNow);
+
     const expiringLogs = await RestockLog.find({
       expiryDate: {
-        $gte: today, // Lớn hơn hoặc bằng ngày hôm nay (chưa hết hạn)
-        $lte: oneMonthFromNow, // Nhỏ hơn hoặc bằng ngày này tháng sau (còn dưới 1 tháng)
+        $gte: today,
+        $lte: oneMonthFromNow,
       },
     })
-      .populate("product") // Lấy thêm thông tin chi tiết của sản phẩm (tên, hình ảnh...)
-      .sort({ expiryDate: 1 }); // Sắp xếp lô nào hết hạn trước thì xếp lên đầu
+      .populate("product")
+      .sort({ expiryDate: 1 });
 
     res.status(200).json({
       success: true,
@@ -79,7 +108,10 @@ export const getExpiringSoonLogs = async (req, res) => {
       expiringItems: expiringLogs,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 

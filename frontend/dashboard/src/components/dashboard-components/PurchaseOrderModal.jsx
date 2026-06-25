@@ -13,6 +13,7 @@ const PurchaseOrderModal = ({ isOpen, onClose, products }) => {
   const [manufactureDate, setManufactureDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [costPrice, setCostPrice] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpenDropdown, setIsOpenDropdown] = useState(false);
@@ -51,6 +52,7 @@ const PurchaseOrderModal = ({ isOpen, onClose, products }) => {
       !selectedProductId ||
       !replenishQty ||
       replenishQty <= 0 ||
+      costPrice <= 0 ||
       !manufactureDate ||
       !expiryDate
     ) {
@@ -70,6 +72,7 @@ const PurchaseOrderModal = ({ isOpen, onClose, products }) => {
         replenishProductStock({
           productId: selectedProductId,
           quantity: Number(replenishQty),
+          costPrice: Number(costPrice),
           manufactureDate,
           expiryDate,
         }),
@@ -81,6 +84,7 @@ const PurchaseOrderModal = ({ isOpen, onClose, products }) => {
       setSelectedProductId("");
       setReplenishQty("");
       setManufactureDate("");
+      setCostPrice("");
       setExpiryDate("");
       onClose();
     } catch (err) {
@@ -174,21 +178,36 @@ const PurchaseOrderModal = ({ isOpen, onClose, products }) => {
             )}
           </div>
 
-          {/* Quantity */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-black text-gray-500 uppercase tracking-wider">
-              Quantity to Add
-            </label>
-            <input
-              type="number"
-              min="1"
-              placeholder="e.g. 50"
-              value={replenishQty}
-              onChange={(e) => setReplenishQty(e.target.value)}
-              className="w-full p-4 text-sm bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-[#77cd3af2]"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            {/* Quantity */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-black text-gray-500 uppercase tracking-wider">
+                Quantity to Add
+              </label>
+              <input
+                type="number"
+                min="1"
+                placeholder="e.g. 50"
+                value={replenishQty}
+                onChange={(e) => setReplenishQty(e.target.value)}
+                className="w-full p-4 text-sm bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-[#77cd3af2]"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-black text-gray-500 uppercase tracking-wider">
+                Cost Price ($)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                placeholder="e.g. 15000"
+                value={costPrice}
+                onChange={(e) => setCostPrice(e.target.value)}
+                className="w-full p-4 text-sm bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:border-[#77cd3af2]"
+              />
+            </div>
           </div>
-
           {/* Manufacture Date */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-black text-gray-500 uppercase tracking-wider">

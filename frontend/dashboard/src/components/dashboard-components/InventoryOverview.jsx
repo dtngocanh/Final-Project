@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux"; // 1. Import useSelector để lấy data từ Redux
 import {
@@ -10,6 +9,7 @@ import {
 import PurchaseOrderModal from "./PurchaseOrderModal";
 import { useState } from "react";
 import ExpiryAlerts from "./ExpiryAlerts";
+import { Package, ArrowLeft, DollarSign, AlertCircle, TrendingDown } from "lucide-react";
 
 const InventoryOverview = () => {
   const dispatch = useDispatch();
@@ -40,9 +40,18 @@ const InventoryOverview = () => {
     let stockOutCount = 0;
     const categoryData = {};
 
+    if (restockLogs && restockLogs.length > 0) {
+      restockLogs.forEach((log) => {
+        const qtyAdded = log.quantityAdded || 0;
+        const costPrice = log.costPrice || 0;
+        totalValue += qtyAdded * costPrice; // Tích lũy: Số lượng nhập * Giá gốc nhập
+      });
+    }
+
     products.forEach((product) => {
       const stock = product.stock || 0;
       const price = product.price || 0;
+      const sold = product.salesCount || 0;
 
       const category =
         typeof product.category === "object" && product.category?.name
@@ -50,13 +59,19 @@ const InventoryOverview = () => {
           : product.categoryName || "Uncategorized";
 
       totalQty += stock;
-      totalValue += stock * price;
       if (stock === 0) stockOutCount++;
 
       if (!categoryData[category]) {
-        categoryData[category] = 0;
+        categoryData[category] = {
+          qty: 0,
+          value: 0,
+          totalSold: 0,
+        };
       }
-      categoryData[category] += stock;
+
+      categoryData[category].qty += stock;
+      categoryData[category].value += stock * price;
+      categoryData[category].totalSold += sold;
     });
 
     // Lọc ra các sản phẩm sắp hết hàng (stock < 10) hoặc đã hết hàng để hiển thị ở bảng chi tiết
@@ -74,41 +89,42 @@ const InventoryOverview = () => {
 
   const topStats = [
     {
-      title: "Total Stock Quantity",
+      title: "Total Stock",
       value: formatNumber(stats.totalQty),
       sub: "Available items",
       change: "Live",
-      isUp: true,
+      icon: Package,
+      color: "bg-blue-50 text-blue-600",
+      ring: "from-blue-500/10 to-blue-100/20",
     },
     {
-      title: "Total Stock Value",
+      title: "Inventory Value",
       value: `$${stats.totalValue.toLocaleString()}`,
-      sub: "Inventory worth",
-      change: "Live",
-      isUp: true,
+      sub: "Inbound cost",
+      change: "Updated",
+      icon: DollarSign,
+      color: "bg-emerald-50 text-emerald-600",
+      ring: "from-emerald-500/10 to-emerald-100/20",
     },
     {
-      title: "Out of Stock Items",
+      title: "Out of Stock",
       value: stats.stockOutCount,
-      sub: "Products at 0 stock",
+      sub: "Need replenishment",
       change: "Alert",
-      isUp: stats.stockOutCount > 0 ? false : null,
+      icon: AlertCircle,
+      color: "bg-rose-50 text-rose-600",
+      ring: "from-rose-500/10 to-rose-100/20",
     },
-    // {
-    //   title: "Average Lead Time",
-    //   value: "15 Days",
-    //   sub: "Standard logistics",
-    //   change: "0.0%",
-    //   isUp: null,
-    // },
     {
-      title: "Below Reorder %",
+      title: "Critical Ratio",
       value: products?.length
         ? ((stats.stockOutCount / products.length) * 100).toFixed(1) + "%"
         : "0%",
-      sub: "Critical stock ratio",
-      change: "Update",
-      isUp: false,
+      sub: "Low inventory risk",
+      change: "Monitor",
+      icon: TrendingDown,
+      color: "bg-amber-50 text-amber-600",
+      ring: "from-amber-500/10 to-amber-100/20",
     },
   ];
 
@@ -141,35 +157,69 @@ const InventoryOverview = () => {
       </div>
 
       {/* TOP KPI MEASURES ROW */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-8">
-        {topStats.map((stat, idx) => (
-          <motion.div
-            whileHover={{ y: -4 }}
-            key={idx}
-            className="bg-white p-5 rounded-[28px] border border-gray-100 shadow-sm relative overflow-hidden group"
-          >
-            <p className="text-[11px] font-black text-gray-400 uppercase tracking-wider">
-              {stat.title}
-            </p>
-            <h2 className="text-2xl font-black text-gray-800 mt-2 mb-1 tracking-tight group-hover:text-[#77cd3af2] transition-colors">
-              {stat.value}
-            </h2>
-            <div className="flex items-center justify-between text-[11px] mt-3 pt-2 border-t border-gray-50">
-              <span className="text-gray-400 font-medium">{stat.sub}</span>
-              <span
-                className={`font-bold px-2 py-0.5 rounded-lg text-[10px] ${
-                  stat.isUp === true
-                    ? "text-emerald-600 bg-emerald-50"
-                    : stat.isUp === false
-                      ? "text-rose-600 bg-rose-50"
-                      : "text-amber-600 bg-amber-50"
-                }`}
-              >
-                {stat.change}
-              </span>
-            </div>
-          </motion.div>
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        {topStats.map((stat, idx) => {
+          const Icon = stat.icon;
+
+          return (
+            <motion.div
+              key={idx}
+              whileHover={{
+                y: -6,
+                scale: 1.02,
+              }}
+              transition={{ duration: 0.2 }}
+              className={`
+          relative overflow-hidden
+          rounded-[32px]
+          bg-gradient-to-br ${stat.ring}
+          border border-white/60
+          backdrop-blur-sm
+          p-6
+          shadow-sm hover:shadow-xl
+        `}
+            >
+              {/* Background Circle */}
+              <div className="absolute -right-8 -top-8 w-28 h-28 rounded-full bg-white/40" />
+
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest font-bold text-gray-400">
+                      {stat.title}
+                    </p>
+
+                    <h2 className="text-3xl font-black text-gray-800 mt-3">
+                      {stat.value}
+                    </h2>
+                  </div>
+
+                  <div
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${stat.color}`}
+                  >
+                    <Icon size={26} />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-white/50 pt-4">
+                  <span className="text-sm text-gray-500">{stat.sub}</span>
+
+                  <span
+                    className={`text-[11px] font-bold px-3 py-1 rounded-full ${
+                      stat.change === "Alert"
+                        ? "bg-rose-100 text-rose-600"
+                        : stat.change === "Monitor"
+                          ? "bg-amber-100 text-amber-600"
+                          : "bg-emerald-100 text-emerald-600"
+                    }`}
+                  >
+                    {stat.change}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* MAIN DATA GRID */}
@@ -313,38 +363,76 @@ const InventoryOverview = () => {
         </div>
 
         {/* BLOCK 3: DỮ LIỆU THẬT - PHÂN BỔ SẢN PHẨM THEO DANH MỤC */}
+        {/* BLOCK 3: CATEGORY ALLOCATION (QUANTITY, VALUE & SALES VELOCITY) */}
         <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm col-span-1 flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-gray-800 text-lg mb-1">
               Category Allocation
             </h3>
             <p className="text-xs text-gray-400">
-              Total stock volume breakdown by product categories
+              Detailed breakdown of quantity, inventory value, and sales
+              velocity
             </p>
           </div>
 
-          <div className="space-y-4 my-4 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-5 my-4 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
             {Object.keys(stats.categoryData).length > 0 ? (
               Object.entries(stats.categoryData).map(
-                ([category, count], idx) => {
-                  // Tính phần trăm phân bổ của danh mục đó
+                ([category, data], idx) => {
                   const percentage = stats.totalQty
-                    ? ((count / stats.totalQty) * 100).toFixed(1)
+                    ? ((data.qty / stats.totalQty) * 100).toFixed(1)
                     : 0;
 
+                  // Smart sales velocity status badges in English
+                  let velocityBadge = (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100">
+                      Stable
+                    </span>
+                  );
+                  if (data.totalSold > 50) {
+                    velocityBadge = (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100 animate-pulse">
+                        Hot Seller 🔥
+                      </span>
+                    );
+                  } else if (data.qty > 0 && data.totalSold <= 5) {
+                    velocityBadge = (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-100">
+                        Slow Moving ⚠️
+                      </span>
+                    );
+                  }
+
                   return (
-                    <div key={idx} className="text-xs">
-                      <div className="flex justify-between font-bold text-gray-700 mb-1.5">
-                        <span className="text-gray-500 font-medium capitalize">
-                          {category}
-                        </span>
-                        <span className="text-gray-900 font-black">
-                          {count} ({percentage}%)
-                        </span>
+                    <div
+                      key={idx}
+                      className="text-xs border-b border-gray-50/50 pb-3 last:border-0 last:pb-0"
+                    >
+                      <div className="flex justify-between items-start mb-1.5">
+                        <div>
+                          <span className="text-gray-800 font-bold capitalize text-[13px] block">
+                            {category}
+                          </span>
+                          <div className="flex gap-2 mt-1 items-center">
+                            {velocityBadge}
+                            <span className="text-[10px] text-gray-400">
+                              Sold: {data.totalSold}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-gray-900 font-black block text-[13px]">
+                            {data.qty.toLocaleString()} pcs ({percentage}%)
+                          </span>
+                          {/* <span className="text-[11px] text-emerald-600 font-bold block mt-0.5">
+                            Value: ${data.value.toLocaleString()}
+                          </span> */}
+                        </div>
                       </div>
-                      <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden border border-gray-100">
+                      {/* Progress Bar */}
+                      <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden border border-gray-100 mt-2">
                         <div
-                          className="h-full rounded-full bg-[#77cd3af2]"
+                          className={`h-full rounded-full ${data.totalSold > 50 ? "bg-emerald-500" : "bg-[#77cd3af2]"}`}
                           style={{ width: `${percentage}%` }}
                         ></div>
                       </div>

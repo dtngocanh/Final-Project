@@ -9,8 +9,11 @@ const restockLogSchema = new mongoose.Schema(
       ref: "product",
       required: true,
     },
-    // Số lượng nạp thêm vào trong đợt này
     quantityAdded: {
+      type: Number,
+      required: true,
+    },
+    costPrice: {
       type: Number,
       required: true,
     },

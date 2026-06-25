@@ -25,7 +25,8 @@ const ExpiryAlerts = () => {
           <div>
             <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
               <AlertTriangle size={20} className="text-amber-500" />
-              Expiry Alerts (&lt; 30 Days)
+              Expiry Alerts 
+              {/* (&lt; 30 Days) */}
             </h3>
             <p className="text-[11px] text-gray-400">Batches expiring within the next 1 month</p>
           </div>

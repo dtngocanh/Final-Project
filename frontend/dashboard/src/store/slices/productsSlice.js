@@ -135,13 +135,14 @@ export const importProducts = createAsyncThunk(
 export const replenishProductStock = createAsyncThunk(
   "product/replenishStock",
   async (
-    { productId, quantity, manufactureDate, expiryDate },
+    { productId, quantity, costPrice, manufactureDate, expiryDate },
     { rejectWithValue },
   ) => {
     try {
       const response = await axiosInstance.post("/admin/products/replenish", {
         productId,
         quantity,
+        costPrice,
         manufactureDate,
         expiryDate,
       });
@@ -188,7 +189,7 @@ const productsSlice = createSlice({
     totalProducts: 0,
     error: null,
     restockLogs: [],
-    expiringItems:[]
+    expiringItems: [],
   },
   reducers: {
     // Standard synchronous reducers can go here
@@ -209,7 +210,10 @@ const productsSlice = createSlice({
         if (Array.isArray(action.payload)) {
           // Nếu Backend trả về mảng trực tiếp [...]
           state.products = action.payload;
-        } else if (action.payload?.products && Array.isArray(action.payload.products)) {
+        } else if (
+          action.payload?.products &&
+          Array.isArray(action.payload.products)
+        ) {
           // Nếu Backend trả về dạng { products: [...] }
           state.products = action.payload.products;
         } else if (action.payload?.data && Array.isArray(action.payload.data)) {
@@ -222,7 +226,10 @@ const productsSlice = createSlice({
 
         // Giữ nguyên logic tính total ban đầu của ní nhưng bọc an toàn tránh crash
         state.totalProducts =
-          action.payload?.totalProducts || action.payload?.products?.length || state.products.length || 0;
+          action.payload?.totalProducts ||
+          action.payload?.products?.length ||
+          state.products.length ||
+          0;
       })
       .addCase(fetchAllProducts.rejected, (state, action) => {
         state.loading = false;
