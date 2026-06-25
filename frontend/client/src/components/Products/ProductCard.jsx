@@ -202,7 +202,7 @@ const ProductCard = ({ product }) => {
                   addToCartThunk({ productId: product._id, quantity: 1 }),
                 ).unwrap();
               } catch (error) {
-                toast.error("Failed to add product to cart");
+                toast.error(error || "Failed to add product to cart");
               }
             }}
             className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 md:bottom-[82px] md:right-5 w-8 h-8 sm:w-9 sm:h-9 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-full flex items-center justify-center shadow-xs active:scale-90 md:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200 hover:!bg-[#77cd3a] hover:!text-white z-30 cursor-pointer"

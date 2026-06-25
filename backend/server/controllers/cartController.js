@@ -331,6 +331,13 @@ export const addToCart = async (req, res, next) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Not enough stock available",
+      });
+    }
+
     const cart = user.cartItems || [];
     const existing = cart.find((i) => i.product.toString() === productId);
     const qty = Math.min(quantity, product.stock);

@@ -13,7 +13,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import FloatingDecor from "../components/Fruit/FloatingDecor";
 import { useProductNavigation } from "../hooks/useProductNavigation";
-import { clearCartThunk, removeFromCartThunk, updateQtyThunk } from "../store/slices/cartSlice";
+import {
+  clearCartThunk,
+  removeFromCartThunk,
+  updateQtyThunk,
+} from "../store/slices/cartSlice";
 import { toast } from "react-toastify";
 
 const Cart = () => {
@@ -120,7 +124,13 @@ const Cart = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -10 }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="flex gap-4 md:gap-6 p-4 md:p-5 bg-gray-50/50 dark:bg-white/[0.01] hover:bg-white dark:hover:bg-white/[0.03] rounded-3xl border border-gray-100/60 dark:border-white/[0.03] hover:border-gray-200/80 dark:hover:border-white/10 hover:shadow-xl hover:shadow-gray-100/40 dark:hover:shadow-none group relative items-center transition-all duration-300"
+                    className={`flex gap-4 md:gap-6 p-4 md:p-5 rounded-3xl border group relative items-center transition-all duration-300
+                    ${
+                      product.stock === 0
+                        ? "bg-gray-100 dark:bg-red-950/10 border-red-200 dark:border-red-900/30 opacity-75"
+                        : "bg-gray-50/50 dark:bg-white/[0.01] hover:bg-white dark:hover:bg-white/[0.03] border-gray-100/60 dark:border-white/[0.03] hover:border-gray-200/80 dark:hover:border-white/10 hover:shadow-xl hover:shadow-gray-100/40 dark:hover:shadow-none"
+                    }
+                  `}
                   >
                     {/* Ảnh sản phẩm hình khối sang trọng */}
                     <div
@@ -161,11 +171,15 @@ const Cart = () => {
                         </div>
 
                         {/* Thông báo số lượng khẩn cấp */}
-                        {product.stock <= 5 && (
+                        {product.stock === 0 ? (
+                          <p className="text-[9px] text-red-500 font-bold tracking-wider uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-md w-max">
+                            Out of stock · Please remove this item
+                          </p>
+                        ) : product.stock <= 5 ? (
                           <p className="text-[9px] text-red-500 font-bold tracking-wider uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-md w-max animate-pulse">
                             Only {product.stock} left
                           </p>
-                        )}
+                        ) : null}
                       </div>
 
                       {/* Control tăng giảm số lượng & Thành tiền */}
