@@ -1,6 +1,7 @@
 import os
 import sys
 import warnings
+import random  # Thư viện dùng để lấy mẫu ngẫu nhiên (Lớp 2 & Lớp 3)
 import pandas as pd
 from dotenv import load_dotenv
 from pymongo import MongoClient, UpdateOne
@@ -27,7 +28,7 @@ product_col = db["products"]
 
 def sync_recommendations_to_products():
     print("==============================================================")
-    print(" BẮT ĐẦU TIẾN TRÌNH SYNC GỢI Ý SIÊU TỐC - CHỐNG TREO TUYỆT ĐỐI")
+    print(" CHẠY FP-FROW - COMBO ĐƯỢC MUA THƯỜNG XUYÊN  ")
     print("==============================================================")
     
     # ------------------------------------------------------------
@@ -106,19 +107,29 @@ def sync_recommendations_to_products():
             rules = rules[rules["confidence"] >= MIN_CONFIDENCE]
             rules = rules.sort_values(by=["lift", "confidence"], ascending=False)
 
-            print("\n" + "=" * 120 + "\n TOP 100 FP-GROWTH RULES\n" + "=" * 120)
-            single_rules = rules[(rules["antecedents"].apply(len) == 1) & (rules["consequents"].apply(len) == 1)]
+            # --- KHU VỰC IN LOG MIÊU TẢ LUẬT COMBO (1 -> NHIỀU SẢN PHẨM) ---
+            print("\n" + "=" * 140)
+            print(f"{'ANTECEDENT (1 SP)':<35} -> {'CONSEQUENTS (Combo nhiều SP)':<55} | {'Vế phải':<8} | {'Support':<8} | {'Conf':<6} | {'Lift':<6}")
+            print("=" * 140)
+            
+            # Chỉ lấy các luật có vế trái là 1 sản phẩm (Phục vụ trang chi tiết)
+            single_antecedent_rules = rules[rules["antecedents"].apply(len) == 1]
 
-            for _, row in single_rules.head(100).iterrows():
+            for _, row in single_antecedent_rules.head(100).iterrows():
                 antecedent = list(row["antecedents"])[0]
-                consequent = list(row["consequents"])[0]
-                print(f"{antecedent:<40} -> {consequent:<40}| support={row['support']:.3f} | confidence={row['confidence']:.3f} | lift={row['lift']:.3f}")
+                consequents = list(row["consequents"])
+                
+                consequent_str = f"[{', '.join(consequents)}]"
+                consequent_len = f"{len(consequents)} SP"
 
-            print("=" * 120)
-            print(f" Tổng số rule tìm được: {len(rules)}")
-            print(f" Rule 1→1 tìm được: {len(single_rules)}")
-            print("=" * 120)
+                print(f"{antecedent:<35} -> {consequent_str:<55} | {consequent_len:<8} | {row['support']:.3f}   | {row['confidence']:.3f} | {row['lift']:.2f}")
 
+            print("=" * 140)
+            print(f" Tổng số rule tìm được trên toàn hệ thống: {len(rules)}")
+            print(f" Số rule 1 -> nhiều áp dụng được thực tế : {len(single_antecedent_rules)}")
+            print("=" * 140)
+
+            # Xử lý và đưa các sản phẩm từ luật vào map bộ nhớ RAM
             for row in rules.itertuples():
                 antecedents = list(row.antecedents)
                 consequents = list(row.consequents)
@@ -130,13 +141,17 @@ def sync_recommendations_to_products():
                 if origin not in frequent_map:
                     frequent_map[origin] = []
 
+                # Bốc tách toàn bộ sản phẩm xuất hiện ở vế phải (bất kể vế phải có bao nhiêu SP)
                 for target in consequents:
                     if target == origin:
                         continue
                     if target not in frequent_map[origin]:
                         frequent_map[origin].append(target)
-                    if len(frequent_map[origin]) >= 10:
-                        break
+                
+                # Giới hạn tối đa lưu trữ tạm thời 15 sản phẩm gợi ý hàng đầu để tối ưu bộ nhớ
+                if len(frequent_map[origin]) >= 15:
+                    frequent_map[origin] = frequent_map[origin][:15]
+                    
         del df_onehot
 
     # ------------------------------------------------------------
@@ -170,9 +185,6 @@ def sync_recommendations_to_products():
     
     product_cursor.close()
 
-    for cat in cat_map:
-        cat_map[cat].sort(key=lambda x: product_stats.get(x, 0), reverse=True)
-
     # ------------------------------------------------------------
     # BƯỚC 4: TÍNH TOÁN GỢI Ý 3 LỚP & ĐẨY KHỐI SONG SONG (BULK WRITE)
     # ------------------------------------------------------------
@@ -180,7 +192,6 @@ def sync_recommendations_to_products():
     bulk_updates = []
     total_processed = 0
     
-    # Khởi tạo các biến thống kê tổng quan ở cuối tiến trình
     total_l1, total_l2, total_l3 = 0, 0, 0
 
     for p in all_products_minimal:
@@ -188,10 +199,9 @@ def sync_recommendations_to_products():
         final_names = []
         seen = {p_name} 
         
-        # Mảng lưu vết log xem item được gợi ý đến từ layer nào
         debug_layers = []
 
-        # Lớp 1: Lấy từ kết quả AI FP-Growth mua kèm nhiều nhất
+        # Lớp 1: Lấy từ AI FP-Growth (Ưu tiên các sản phẩm combo tách từ luật 1 -> nhiều lên trước)
         if p_name in frequent_map:
             for name in frequent_map[p_name]:
                 if name in info_lookup and name not in seen:
@@ -199,29 +209,39 @@ def sync_recommendations_to_products():
                     seen.add(name)
                     debug_layers.append(f"'{name}' (L1: FP-Growth)")
                     total_l1 += 1
-                    if len(final_names) >= 4: break
+                    if len(final_names) >= 4: 
+                        break
 
-        # Lớp 2: Fallback - Lấy sản phẩm cùng Danh mục (Category) bán chạy nhất
+        # Lớp 2: Fallback - Lấy NGẪU NHIÊN sản phẩm cùng Danh mục (Category)
         if len(final_names) < 4:
-            for f_name in cat_map.get(p['category'], []):
-                if f_name not in seen and f_name in info_lookup:
-                    final_names.append(f_name)
-                    seen.add(f_name)
-                    debug_layers.append(f"'{f_name}' (L2: Category Hot)")
-                    total_l2 += 1
-                    if len(final_names) >= 4: break
+            cat_items = cat_map.get(p['category'], [])
+            # Lọc trước các phần tử hợp lệ để tránh bốc trúng sản phẩm lỗi/trùng
+            valid_cat_items = [item for item in cat_items if item not in seen and item in info_lookup]
+            
+            needed = 4 - len(final_names)
+            random_cat_items = random.sample(valid_cat_items, min(len(valid_cat_items), needed))
+            
+            for f_name in random_cat_items:
+                final_names.append(f_name)
+                seen.add(f_name)
+                debug_layers.append(f"'{f_name}' (L2: Category Random)")
+                total_l2 += 1
 
-        # Lớp 3: Fallback - Lấy Top sản phẩm bán chạy nhất toàn sàn hệ thống
+        # Lớp 3: Fallback - Lấy NGẪU NHIÊN sản phẩm bán chạy toàn sàn hệ thống
         if len(final_names) < 4:
-            for g_name in global_popular:
-                if g_name not in seen and g_name in info_lookup:
-                    final_names.append(g_name)
-                    seen.add(g_name)
-                    debug_layers.append(f"'{g_name}' (L3: Global Hot)")
-                    total_l3 += 1
-                    if len(final_names) >= 4: break
+            # Lọc trước các phần tử hợp lệ toàn hệ thống
+            valid_global_items = [item for item in global_popular if item not in seen and item in info_lookup]
+            
+            needed = 4 - len(final_names)
+            random_global_items = random.sample(valid_global_items, min(len(valid_global_items), needed))
+            
+            for g_name in random_global_items:
+                final_names.append(g_name)
+                seen.add(g_name)
+                debug_layers.append(f"'{g_name}' (L3: Global Random)")
+                total_l3 += 1
 
-        # --- LOG CHI TIẾT SẢN PHẨM RA MÀN HÌNH ---
+        # --- LOG CHI TIẾT ĐỂ BẠN KIỂM TRA SẢN PHẨM ĐƯỢC CHỌN TỪ LAYER NÀO ---
         print(f" Sản phẩm: [{p_name}] -> Gợi ý: [{', '.join(debug_layers)}]")
 
         formatted_list = [
@@ -231,7 +251,6 @@ def sync_recommendations_to_products():
                 "image": info_lookup[n]["image"],
                 "price": info_lookup[n]["price"]
             }
-            # Cắt mảng lấy 4 phần tử (Đảm bảo an toàn logic gốc)
             for n in final_names[:4] 
         ]
 
@@ -252,10 +271,10 @@ def sync_recommendations_to_products():
         
     print("\n==============================================================")
     print(f" THÀNH CÔNG RỰC RỠ! Đã xử lý & đồng bộ {total_processed} sản phẩm.")
-    print(" THỐNG KÊ CHI TIẾT ĐỘ PHỦ LAYER:")
-    print(f"  - Số item gợi ý sinh ra từ L1 (FP-Growth)   : {total_l1}")
-    print(f"  - Số item gợi ý sinh ra từ L2 (Category Hot) : {total_l2}")
-    print(f"  - Số item gợi ý sinh ra từ L3 (Global Hot)   : {total_l3}")
+    print(" THỐNG KÊ CHI TIẾT ĐỘ PHỦ LAYER OÙA THAY ĐỔI:")
+    print(f"  - Số item gợi ý sinh ra từ L1 (FP-Growth)     : {total_l1}")
+    print(f"  - Số item gợi ý sinh ra từ L2 (Category Random): {total_l2}")
+    print(f"  - Số item gợi ý sinh ra từ L3 (Global Random)  : {total_l3}")
     print("==============================================================")
 
 if __name__ == "__main__":
