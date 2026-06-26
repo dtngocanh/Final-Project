@@ -431,39 +431,48 @@ export const importProducts = async (req, res) => {
  * [GET] api/product/related-v2/:id
  * Giải thích: Lấy trực tiếp mảng related_product_ids từ DB và hydrate thông tin
  */
+// 1. Lấy sản phẩm liên quan (Đã sửa theo cấu trúc data trong image_bc8bc3.png)
 export const getRelatedProductsFromDB = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // 1. Tìm sản phẩm hiện tại, chỉ lấy đúng trường related_product_ids
-    const product = await Product.findById(id).select("related_product_ids");
+    // Tìm sản phẩm hiện tại, lấy đúng trường related_products và dùng .lean() cho nhẹ
+    const product = await Product.findById(id).select("related_products").lean();
 
     if (!product) {
       return next(new ErrorHandler("Cannot find this product", 404));
     }
 
-    // 2. Nếu mảng rỗng thì trả về mảng rỗng luôn
-    if (
-      !product.related_product_ids ||
-      product.related_product_ids.length === 0
-    ) {
+    // Nếu không có mảng hoặc mảng rỗng thì trả về luôn
+    if (!product.related_products || product.related_products.length === 0) {
       return res.status(200).json({
         success: true,
         related: [],
       });
     }
 
-    // 3. Lôi chi tiết thông tin của 6 cái ID đó ra
-    const relatedProducts = await Product.find({
-      _id: { $in: product.related_product_ids },
-    });
+    // Gom danh sách các productId từ mảng object [{productId, reason}, ...]
+    const relatedIds = product.related_products.map((item) => item.productId);
 
-    // 4. Sắp xếp lại cho đúng thứ tự ưu tiên mà AI đã tính
-    const sortedRelated = product.related_product_ids
-      .map((recId) =>
-        relatedProducts.find((p) => p._id.toString() === recId.toString()),
-      )
-      .filter((p) => p !== undefined);
+    // Lấy chi tiết thông tin của các sản phẩm đó
+    const relatedProducts = await Product.find({
+      _id: { $in: relatedIds },
+    }).lean();
+
+    // Sắp xếp lại cho đúng thứ tự ưu tiên trong DB và đính kèm luôn trường 'reason' nếu cần hiển thị lên UI
+    const sortedRelated = product.related_products
+      .map((item) => {
+        const fullProduct = relatedProducts.find(
+          (p) => p._id.toString() === item.productId.toString()
+        );
+        if (!fullProduct) return null;
+        
+        return {
+          ...fullProduct,
+          reason: item.reason, // Trả thêm lý do gợi ý (ví dụ: "More in Essentials")
+        };
+      })
+      .filter((p) => p !== null);
 
     res.status(200).json({
       success: true,
@@ -473,21 +482,24 @@ export const getRelatedProductsFromDB = async (req, res, next) => {
     next(error);
   }
 };
-// get freq product
-export const getFreqProducts = async (req, res) => {
+
+// 2. Lấy sản phẩm thường được mua cùng nhau (Tối ưu hóa logic)
+export const getFreqProducts = async (req, res, next) => {
   try {
+    const { id } = req.params;
+    
     // Dùng .lean() để lấy plain object, nhẹ và nhanh hơn
-    const product = await Product.findById(req.params.id).lean();
+    const product = await Product.findById(id).lean();
 
     if (!product) {
-      return res.status(404).json({ message: "Sản phẩm không tồn tại" });
+      return res.status(404).json({ success: false, message: "Sản phẩm không tồn tại" });
     }
 
     let recommendations = product.frequentlyBoughtTogether || [];
 
     // Kiểm tra nếu chưa đủ 4 món
     if (recommendations.length < 4) {
-      // Lấy danh sách ID đã có để tránh trùng
+      // Lấy danh sách ID đã có để tránh trùng (bao gồm cả sản phẩm gốc)
       const currentIds = recommendations.map((r) => r.productId.toString());
       currentIds.push(product._id.toString());
 
@@ -498,30 +510,27 @@ export const getFreqProducts = async (req, res) => {
         .sort({ salesCount: -1 })
         .limit(4 - recommendations.length)
         .select("_id name image")
-        .lean(); // Dùng .lean() ở đây luôn
+        .lean();
 
       const formattedFallback = fallback.map((f) => ({
         productId: f._id,
         name: f.name,
-        // Kiểm tra xem image có tồn tại và là mảng không
-        image: f.image && f.image.length > 0 ? f.image[0] : "",
+        // Kiểm tra an toàn xem image có tồn tại và là mảng không
+        image: Array.isArray(f.image) && f.image.length > 0 ? f.image[0] : (f.image || ""),
       }));
 
       recommendations = [...recommendations, ...formattedFallback];
     }
 
-    // Chỉ trả về 4 món đầu tiên
+    // Chỉ lấy đúng 4 món đầu tiên
     const finalRecommendations = recommendations.slice(0, 4);
 
-    // Trả về dữ liệu
-    res.json({
+    res.status(200).json({
       success: true,
-      // Nếu ní chỉ cần list gợi ý thì dùng key này
       frequentlyBoughtTogether: finalRecommendations,
-      // Nếu cần cả thông tin SP gốc thì giữ lại dòng dưới
-      // product: product
     });
   } catch (error) {
+    // Nếu có next(error) ở controller này thì nên dùng để đồng bộ bắt lỗi, hoặc giữ nguyên res.status(500) của bạn
     res.status(500).json({ success: false, message: error.message });
   }
 };

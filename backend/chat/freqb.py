@@ -68,7 +68,6 @@ def sync_recommendations_to_products():
     # BƯỚC 2: STREAMING ĐƠN HÀNG VÀ CHẠY FP-GROWTH
     # ------------------------------------------------------------
     print("\n[2/5] Step 1.2: Đang tải danh sách đơn hàng về bộ nhớ...")
-    # Chỉ lôi các đơn có từ 2 mặt hàng trở lên
     order_cursor = order_col.find({"orderItems.1": {"$exists": True}}, {"orderItems.name": 1})
     
     filtered_transactions = []
@@ -88,70 +87,39 @@ def sync_recommendations_to_products():
 
     frequent_map = {} 
     if filtered_transactions:
-        # TĂNG MIN_SUPPORT LÊN 0.04 (4%) ĐỂ KIỂM SOÁT TỐC ĐỘ, TRÁNH BÙNG NỔ TỔ HỢP GÂY ĐƠ MÁY
         MIN_SUPPORT = 0.04 
         print(f"\n[3/5] Step 1.3: Đang huấn luyện mô hình FP-Growth (min_support={MIN_SUPPORT})...")
         
         te = TransactionEncoder()
         te_ary = te.fit(filtered_transactions).transform(filtered_transactions, sparse=True)
         df_onehot = pd.DataFrame.sparse.from_spmatrix(te_ary, columns=te.columns_)
-        df_onehot = df_onehot.astype(pd.SparseDtype(bool, False)) # Ép chặt bit chống tràn RAM
+        df_onehot = df_onehot.astype(pd.SparseDtype(bool, False))
         
-        del filtered_transactions, te_ary # Giải phóng RAM ngay tức khắc
+        del filtered_transactions, te_ary
         
         frequent_itemsets = fpgrowth(df_onehot, min_support=MIN_SUPPORT, use_colnames=True)
-        print(f"   Đã tạo ra {len(frequent_itemsets)} tập phổ biến.")
+        print(f"    Đã tạo ra {len(frequent_itemsets)} tập phổ biến.")
         
         if not frequent_itemsets.empty:
-
-            rules = association_rules(
-                frequent_itemsets,
-                metric="lift",
-                min_threshold=1.0
-            )
-
-            # Lọc rule chất lượng hơn
+            rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1.0)
             MIN_CONFIDENCE = 0.4
             rules = rules[rules["confidence"] >= MIN_CONFIDENCE]
+            rules = rules.sort_values(by=["lift", "confidence"], ascending=False)
 
-            rules = rules.sort_values(
-                by=["lift", "confidence"],
-                ascending=False
-            )
-
-            print("\n")
-            print("=" * 120)
-            print(" TOP 100 FP-GROWTH RULES")
-            print("=" * 120)
-
-            single_rules = rules[
-                (rules["antecedents"].apply(len) == 1)
-                &
-                (rules["consequents"].apply(len) == 1)
-            ]
+            print("\n" + "=" * 120 + "\n TOP 100 FP-GROWTH RULES\n" + "=" * 120)
+            single_rules = rules[(rules["antecedents"].apply(len) == 1) & (rules["consequents"].apply(len) == 1)]
 
             for _, row in single_rules.head(100).iterrows():
-
                 antecedent = list(row["antecedents"])[0]
                 consequent = list(row["consequents"])[0]
-
-                print(
-                    f"{antecedent:<40}"
-                    f" -> "
-                    f"{consequent:<40}"
-                    f"| support={row['support']:.3f}"
-                    f" | confidence={row['confidence']:.3f}"
-                    f" | lift={row['lift']:.3f}"
-                )
+                print(f"{antecedent:<40} -> {consequent:<40}| support={row['support']:.3f} | confidence={row['confidence']:.3f} | lift={row['lift']:.3f}")
 
             print("=" * 120)
             print(f" Tổng số rule tìm được: {len(rules)}")
             print(f" Rule 1→1 tìm được: {len(single_rules)}")
             print("=" * 120)
 
-            # Tạo frequent_map cho recommendation
             for row in rules.itertuples():
-
                 antecedents = list(row.antecedents)
                 consequents = list(row.consequents)
 
@@ -159,18 +127,14 @@ def sync_recommendations_to_products():
                     continue
 
                 origin = antecedents[0]
-
                 if origin not in frequent_map:
                     frequent_map[origin] = []
 
                 for target in consequents:
-
                     if target == origin:
                         continue
-
                     if target not in frequent_map[origin]:
                         frequent_map[origin].append(target)
-
                     if len(frequent_map[origin]) >= 10:
                         break
         del df_onehot
@@ -206,7 +170,6 @@ def sync_recommendations_to_products():
     
     product_cursor.close()
 
-    # Sắp xếp danh mục sẵn theo độ hot để fallback tức thời
     for cat in cat_map:
         cat_map[cat].sort(key=lambda x: product_stats.get(x, 0), reverse=True)
 
@@ -217,10 +180,16 @@ def sync_recommendations_to_products():
     bulk_updates = []
     total_processed = 0
     
+    # Khởi tạo các biến thống kê tổng quan ở cuối tiến trình
+    total_l1, total_l2, total_l3 = 0, 0, 0
+
     for p in all_products_minimal:
         p_name = p['name']
         final_names = []
         seen = {p_name} 
+        
+        # Mảng lưu vết log xem item được gợi ý đến từ layer nào
+        debug_layers = []
 
         # Lớp 1: Lấy từ kết quả AI FP-Growth mua kèm nhiều nhất
         if p_name in frequent_map:
@@ -228,6 +197,8 @@ def sync_recommendations_to_products():
                 if name in info_lookup and name not in seen:
                     final_names.append(name)
                     seen.add(name)
+                    debug_layers.append(f"'{name}' (L1: FP-Growth)")
+                    total_l1 += 1
                     if len(final_names) >= 4: break
 
         # Lớp 2: Fallback - Lấy sản phẩm cùng Danh mục (Category) bán chạy nhất
@@ -236,6 +207,8 @@ def sync_recommendations_to_products():
                 if f_name not in seen and f_name in info_lookup:
                     final_names.append(f_name)
                     seen.add(f_name)
+                    debug_layers.append(f"'{f_name}' (L2: Category Hot)")
+                    total_l2 += 1
                     if len(final_names) >= 4: break
 
         # Lớp 3: Fallback - Lấy Top sản phẩm bán chạy nhất toàn sàn hệ thống
@@ -244,9 +217,13 @@ def sync_recommendations_to_products():
                 if g_name not in seen and g_name in info_lookup:
                     final_names.append(g_name)
                     seen.add(g_name)
+                    debug_layers.append(f"'{g_name}' (L3: Global Hot)")
+                    total_l3 += 1
                     if len(final_names) >= 4: break
 
-        # Ép cấu trúc mảng JSON chuẩn để hiển thị FE công nghệ đẹp mắt
+        # --- LOG CHI TIẾT SẢN PHẨM RA MÀN HÌNH ---
+        print(f" Sản phẩm: [{p_name}] -> Gợi ý: [{', '.join(debug_layers)}]")
+
         formatted_list = [
             {
                 "productId": info_lookup[n]["id"],
@@ -254,7 +231,8 @@ def sync_recommendations_to_products():
                 "image": info_lookup[n]["image"],
                 "price": info_lookup[n]["price"]
             }
-            for n in final_names[:4]
+            # Cắt mảng lấy 4 phần tử (Đảm bảo an toàn logic gốc)
+            for n in final_names[:4] 
         ]
 
         bulk_updates.append(UpdateOne(
@@ -262,19 +240,22 @@ def sync_recommendations_to_products():
             {"$set": {"frequentlyBoughtTogether": formatted_list}}
         ))
         
-        # Đóng gói 200 bản ghi gửi đi một lần (Phù hợp cả Local lẫn Cloud Atlas)
         if len(bulk_updates) >= 200:
             product_col.bulk_write(bulk_updates, ordered=False)
             total_processed += len(bulk_updates)
-            print(f"    Đã lưu thành công bộ gợi ý cho {total_processed} sản phẩm...")
+            print(f"\n--- [BULK WRITE] Đã lưu thành công bộ gợi ý cho {total_processed} sản phẩm ---\n")
             bulk_updates = []
 
-    # Ghi nốt phần dư thừa còn lại
     if bulk_updates:
         product_col.bulk_write(bulk_updates, ordered=False)
         total_processed += len(bulk_updates)
         
-    print(f"\n✨ THÀNH CÔNG RỰC RỠ! Đã xử lý & đồng bộ {total_processed} sản phẩm.")
+    print("\n==============================================================")
+    print(f" THÀNH CÔNG RỰC RỠ! Đã xử lý & đồng bộ {total_processed} sản phẩm.")
+    print(" THỐNG KÊ CHI TIẾT ĐỘ PHỦ LAYER:")
+    print(f"  - Số item gợi ý sinh ra từ L1 (FP-Growth)   : {total_l1}")
+    print(f"  - Số item gợi ý sinh ra từ L2 (Category Hot) : {total_l2}")
+    print(f"  - Số item gợi ý sinh ra từ L3 (Global Hot)   : {total_l3}")
     print("==============================================================")
 
 if __name__ == "__main__":
