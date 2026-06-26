@@ -1,24 +1,23 @@
 import Stripe from "stripe";
-import mongoose from "mongoose"; // 1. Import thêm mongoose
+import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
+import Campaign from "../models/Campaign.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const processStripeOrder = async (stripeSession) => {
-  // 2. Khởi tạo session của MongoDB
   const session = await mongoose.startSession();
   session.startTransaction();
 
   const paymentIntentId = stripeSession.payment_intent || stripeSession.id;
 
   try {
-    // CHECK DUPLICATE ORDER
+    // 1. Kiểm tra đơn hàng trùng lặp (Idempotency Check)
     const existingOrder = await Order.findOne({
       "paymentInfo.id": paymentIntentId,
     });
-
     if (existingOrder) {
       await session.abortTransaction();
       session.endSession();
@@ -45,44 +44,102 @@ export const processStripeOrder = async (stripeSession) => {
     const shippingPriceVND = Number(metadata.shippingFeeVND || 0);
 
     const orderItems = [];
+
+    // 2. XỬ LÝ CHI TIẾT TỪNG SẢN PHẨM TRONG ĐƠN HÀNG
     for (const item of rawOrderItems) {
-      const productId = item.p || item.product;
-      const quantity = item.q || item.quantity;
+      // Ép kiểu hoặc lấy key viết tắt một cách an toàn
+      const productId = item.p || item.product || item._id;
+      const quantity = Number(item.q || item.quantity || 1);
 
-      // Tìm thông tin sản phẩm (Đính kèm session)
-      const dbProduct = await Product.findById(productId).session(session);
-      const price = item.pr || item.price || (dbProduct ? dbProduct.price : 0);
-
-      orderItems.push({
-        product: productId,
-        quantity: quantity,
-        price: price,
-        name: dbProduct ? dbProduct.name : "Unknown Product",
-        image:
-          dbProduct && dbProduct.images?.[0]?.url
-            ? dbProduct.images[0].url
-            : "https://via.placeholder.com/150",
-      });
-    }
-
-    // CHECK & UPDATE STOCK (Đính kèm session)
-    for (const item of orderItems) {
-      const product = await Product.findOneAndUpdate(
-        {
-          _id: item.product,
-          stock: { $gte: item.quantity },
-        },
-        {
-          $inc: { stock: -item.quantity, salesCount: item.quantity },
-        },
-        { session }, // Loại bỏ new: true để tối ưu performance
-      );
-
-      if (!product) {
+      if (!productId) {
         throw new Error(
-          `One or more products are out of stock or insufficient.`,
+          "Missing product ID in Stripe metadata item structure.",
         );
       }
+
+      // Lấy thông tin sản phẩm từ DB (Đính kèm session)
+      const dbProduct = await Product.findById(productId).session(session);
+      if (!dbProduct) {
+        throw new Error(`Product with ID ${productId} not found in database.`);
+      }
+
+      // --- Bước A: Cập nhật giảm kho (Atomic Update) ---
+      const updatedProduct = await Product.findOneAndUpdate(
+        { _id: productId, stock: { $gte: quantity } },
+        { $inc: { stock: -quantity, salesCount: quantity } },
+        { session },
+      );
+      if (!updatedProduct) {
+        throw new Error(
+          `Product ${dbProduct.name} is out of stock or insufficient.`,
+        );
+      }
+
+      // --- Bước B: Kiểm tra và cập nhật chiến dịch (Sử dụng ID chuẩn hóa từ DB) ---
+      const activeCampaign = await Campaign.findOne({
+        isActive: true,
+        $or: [
+          { products: dbProduct._id }, // Đồng bộ tuyệt đối bằng ObjectId từ DB, không dùng String từ metadata
+          { category: dbProduct.category, targetType: "category" },
+        ],
+      }).session(session);
+
+      // Lấy giá: Ưu tiên giá truyền từ Stripe metadata (nếu có), không thì lấy giá gốc sản phẩm
+      let price = item.pr || item.price || dbProduct.price;
+
+      if (activeCampaign) {
+        const updatedCampaign = await Campaign.findOneAndUpdate(
+          {
+            _id: activeCampaign._id,
+            isActive: true,
+            $expr: {
+              $or: [
+                { $eq: ["$saleLimit", 0] },
+                { $lte: [{ $add: ["$saleSold", quantity] }, "$saleLimit"] },
+              ],
+            },
+          },
+          { $inc: { saleSold: quantity } },
+          { session, new: true },
+        );
+
+        if (!updatedCampaign) {
+          throw new Error(
+            `The promotional price for ${dbProduct.name} has just reached its limit.`,
+          );
+        }
+
+        // Cập nhật lại giá dựa trên chiến dịch đang chạy thực tế
+        price =
+          dbProduct.discountPrice && dbProduct.discountPrice > 0
+            ? dbProduct.discountPrice
+            : dbProduct.price;
+
+        // Tự động đóng chiến dịch nếu chạm đỉnh saleLimit
+        if (
+          updatedCampaign.saleLimit > 0 &&
+          updatedCampaign.saleSold >= updatedCampaign.saleLimit
+        ) {
+          await Campaign.updateOne(
+            { _id: updatedCampaign._id },
+            { $set: { isActive: false } },
+            { session },
+          );
+          await Product.updateOne(
+            { _id: dbProduct._id },
+            { $set: { discountPrice: 0 } },
+            { session },
+          );
+        }
+      }
+
+      orderItems.push({
+        product: dbProduct._id, 
+        quantity,
+        price: Number(price.toFixed(2)),
+        name: dbProduct.name,
+        image: dbProduct.images?.[0]?.url || "https://via.placeholder.com/150",
+      });
     }
 
     const itemsPrice = orderItems.reduce(
@@ -91,7 +148,7 @@ export const processStripeOrder = async (stripeSession) => {
     );
     const totalPrice = Number((itemsPrice + shippingPrice).toFixed(2));
 
-    // CREATE ORDER (Đính kèm session - Lưu ý: dùng mảng [] khi truyền session cho .create)
+    // 3. Khởi tạo bản ghi đơn hàng mới
     const [order] = await Order.create(
       [
         {
@@ -114,7 +171,7 @@ export const processStripeOrder = async (stripeSession) => {
       { session },
     );
 
-    // CLEAR USER CART (Đính kèm session)
+    // 4. Làm sạch giỏ hàng của người dùng
     if (userId && userId !== "GUEST_USER") {
       await User.findByIdAndUpdate(
         userId,
@@ -123,20 +180,19 @@ export const processStripeOrder = async (stripeSession) => {
       );
     }
 
-    // 3. Nếu mọi thứ chạy tốt -> COMMIT đồng loạt
+    // Xác nhận và lưu trữ vĩnh viễn mọi thay đổi dữ liệu
     await session.commitTransaction();
     session.endSession();
 
     return order;
   } catch (error) {
-    // 4. Nếu có bất kỳ lỗi nào -> HOÀN TÁC TOÀN BỘ dũ liệu kho/đơn hàng về ban đầu
+    // Hoàn tác (Rollback) toàn bộ thao tác nếu xảy ra bất kỳ sự cố nào
     await session.abortTransaction();
     session.endSession();
 
     console.error("[PROCESS STRIPE ORDER ERROR]:", error);
 
     if (error.code === 11000) {
-      console.log("Duplicate order ignored");
       return await Order.findOne({ "paymentInfo.id": paymentIntentId });
     }
 

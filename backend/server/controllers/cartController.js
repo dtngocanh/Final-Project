@@ -386,6 +386,27 @@ export const removeFromCart = async (req, res) => {
 
     const user = await User.findById(userId);
 
+    // 1. Kiểm tra xem nó có nằm trong combo không
+    const targetItem = user.cartItems.find(
+      (i) => i.product.toString() === productId.toString(),
+    );
+
+    // 2. Tiến hành rã nhóm combo
+    if (targetItem && targetItem.comboId) {
+      const brokenComboId = targetItem.comboId;
+
+      for (let item of user.cartItems) {
+        if (item.comboId === brokenComboId) {
+          const prodInfo = await Product.findById(item.product);
+          item.price =
+            prodInfo.discountPrice && prodInfo.discountPrice > 0
+              ? prodInfo.discountPrice
+              : prodInfo.price;
+          item.comboId = undefined;
+        }
+      }
+    }
+
     user.cartItems = user.cartItems.filter((item) => {
       const itemProductId = item.product._id ? item.product._id : item.product;
       return !itemProductId.equals(productId);
@@ -426,6 +447,25 @@ export const updateQty = async (req, res) => {
     item.quantity += change;
 
     if (item.quantity <= 0) {
+      const targetItem = user.cartItems.find(
+        (i) => i.product.toString() === productId.toString(),
+      );
+
+      if (targetItem && targetItem.comboId) {
+        const brokenComboId = targetItem.comboId;
+
+        for (let item of user.cartItems) {
+          if (item.comboId === brokenComboId) {
+            const prodInfo = await Product.findById(item.product);
+            item.price =
+              prodInfo.discountPrice && prodInfo.discountPrice > 0
+                ? prodInfo.discountPrice
+                : prodInfo.price;
+            item.comboId = undefined;
+          }
+        }
+      }
+
       user.cartItems = user.cartItems.filter((i) => {
         const itemProductId = i.product._id ? i.product._id : i.product;
         return !itemProductId.equals(productId);
