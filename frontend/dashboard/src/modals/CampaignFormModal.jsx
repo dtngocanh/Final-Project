@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, X, Tag, ShoppingBag, Search, ChevronDown } from "lucide-react";
+import {
+  Sparkles,
+  X,
+  Tag,
+  ShoppingBag,
+  Search,
+  ChevronDown,
+} from "lucide-react";
 
 const CampaignFormModal = ({
   isOpen,
@@ -16,7 +23,7 @@ const CampaignFormModal = ({
   // =========================================================================
   // KHAI BÁO TẤT CẢ CÁC HOOK Ở TRÊN ĐẦU (KHÔNG ĐƯỢC RETURN SỚM Ở ĐÂY)
   // =========================================================================
-  
+
   // --- State tìm kiếm nội bộ ---
   const [categorySearch, setCategorySearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
@@ -32,10 +39,14 @@ const CampaignFormModal = ({
   // --- Đồng bộ dữ liệu khi Edit ---
   const selectedProductId = useMemo(() => {
     if (formData.product) {
-      return typeof formData.product === "object" ? formData.product._id : formData.product;
+      return typeof formData.product === "object"
+        ? formData.product._id
+        : formData.product;
     }
     if (formData.products && formData.products.length > 0) {
-      return typeof formData.products[0] === "object" ? formData.products[0]._id : formData.products[0];
+      return typeof formData.products[0] === "object"
+        ? formData.products[0]._id
+        : formData.products[0];
     }
     return "";
   }, [formData.product, formData.products]);
@@ -45,10 +56,10 @@ const CampaignFormModal = ({
   }, [formData.category]);
 
   // Tìm kiếm Object tương ứng để hiển thị nhãn (Label)
-  const selectedCategoryLabel = useMemo(() => {
-    const found = categories.find((c) => c._id === selectedCategoryId);
-    return found ? found.name : "-- Choose a category --";
-  }, [categories, selectedCategoryId]);
+  // const selectedCategoryLabel = useMemo(() => {
+  //   const found = categories.find((c) => c._id === selectedCategoryId);
+  //   return found ? found.name : "-- Choose a category --";
+  // }, [categories, selectedCategoryId]);
 
   const selectedProductLabel = useMemo(() => {
     const found = products.find((p) => p._id === selectedProductId);
@@ -56,16 +67,49 @@ const CampaignFormModal = ({
     return `${found.name} ${found.stock !== undefined ? `(${found.stock > 0 ? `${found.stock} items` : "Out of stock"})` : ""}`;
   }, [products, selectedProductId]);
 
-  // --- Lọc danh sách thời gian thực ---
+  // 1. Làm phẳng danh mục và thêm ký tự thụt lề cho danh mục con dễ nhìn
+  const allCategoriesFlat = useMemo(() => {
+    const flatList = [];
+    categories.forEach((parent) => {
+      // Danh mục cha
+      flatList.push({
+        ...parent,
+        displayName: parent.name,
+      });
+
+      // Danh mục con (nếu có)
+      if (parent.subcategories && parent.subcategories.length > 0) {
+        parent.subcategories.forEach((sub) => {
+          flatList.push({
+            ...sub,
+            displayName: `— ${sub.name}`,
+          });
+        });
+      }
+    });
+    return flatList;
+  }, [categories]);
+
+  const selectedCategoryLabel = useMemo(() => {
+    const found = allCategoriesFlat.find((c) => c._id === selectedCategoryId);
+    return found ? found.name : "-- Choose a category --";
+  }, [allCategoriesFlat, selectedCategoryId]);
+
   const filteredCategories = useMemo(() => {
-    return categories.filter((cat) =>
-      cat.name?.toLowerCase().includes(categorySearch.toLowerCase())
+    return allCategoriesFlat.filter((cat) =>
+      cat.displayName?.toLowerCase().includes(categorySearch.toLowerCase()),
     );
-  }, [categories, categorySearch]);
+  }, [allCategoriesFlat, categorySearch]);
+
+  // const filteredCategories = useMemo(() => {
+  //   return categories.filter((cat) =>
+  //     cat.name?.toLowerCase().includes(categorySearch.toLowerCase()),
+  //   );
+  // }, [categories, categorySearch]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((prod) =>
-      prod.name?.toLowerCase().includes(productSearch.toLowerCase())
+      prod.name?.toLowerCase().includes(productSearch.toLowerCase()),
     );
   }, [products, productSearch]);
 
@@ -92,12 +136,10 @@ const CampaignFormModal = ({
     if (!isProdDropdownOpen) setProductSearch("");
   }, [isProdDropdownOpen]);
 
-
   // =========================================================================
   // ĐẶT ĐIỀU KIỆN RETURN SỚM TẠI ĐÂY (SAU KHI ĐÃ KHỞI TẠO XONG HOOK)
   // =========================================================================
   if (!isOpen) return null;
-
 
   // =========================================================================
   // RENDER JSX NỘI DUNG CHÍNH
@@ -105,13 +147,13 @@ const CampaignFormModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Content */}
-      <div className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl border border-slate-100 p-6 sm:p-8 max-h-[90vh] overflow-y-auto z-10 animate-in fade-in zoom-in-95 duration-200 text-slate-700 font-['Fredoka']">
+      <div className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl border border-slate-100 p-6 sm:p-8 max-h-[90vh] overflow-y-auto z-10 animate-in fade-in zoom-in-95 duration-200 text-slate-700 font-['Fredoka'] custom-scrollbar">
         <button
           type="button"
           onClick={onClose}
@@ -121,7 +163,10 @@ const CampaignFormModal = ({
         </button>
 
         <div className="flex items-center gap-2 border-b border-slate-50 pb-4">
-          <Sparkles size={18} className={isEditing ? "text-amber-500" : "text-[#77cd3af2]"} />
+          <Sparkles
+            size={18}
+            className={isEditing ? "text-amber-500" : "text-[#77cd3af2]"}
+          />
           <h3 className="text-lg font-bold text-slate-800 uppercase tracking-wide">
             {isEditing ? "Update Campaign Details" : "Create New Campaign"}
           </h3>
@@ -182,7 +227,12 @@ const CampaignFormModal = ({
               </label>
               <select
                 name="targetType"
-                value={(formData.targetType === "products" || formData.targetType === "product") ? "product" : "category"}
+                value={
+                  formData.targetType === "products" ||
+                  formData.targetType === "product"
+                    ? "product"
+                    : "category"
+                }
                 onChange={onInputChange}
                 className="p-3.5 rounded-2xl border border-slate-100 bg-white focus:outline-none focus:ring-4 focus:ring-[#77cd3a15] focus:border-[#77cd3af2] transition-all text-sm font-medium cursor-pointer shadow-sm text-slate-600"
               >
@@ -193,12 +243,12 @@ const CampaignFormModal = ({
           </div>
 
           {/* Smart Search Scope Selection: Category */}
-          {((formData.targetType || "").toLowerCase() === "category") && (
+          {(formData.targetType || "").toLowerCase() === "category" && (
             <div className="flex flex-col gap-1 relative" ref={catRef}>
               <label className="font-semibold text-slate-600 text-xs sm:text-sm">
                 Select Target Category
               </label>
-              
+
               <button
                 type="button"
                 onClick={() => setIsCatDropdownOpen(!isCatDropdownOpen)}
@@ -208,7 +258,10 @@ const CampaignFormModal = ({
                   <Tag size={16} className="text-blue-400 shrink-0" />
                   <span className="truncate">{selectedCategoryLabel}</span>
                 </div>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${isCatDropdownOpen ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-400 transition-transform ${isCatDropdownOpen ? "rotate-180" : ""}`}
+                />
               </button>
 
               <AnimatePresence>
@@ -229,11 +282,13 @@ const CampaignFormModal = ({
                         className="w-full bg-transparent text-xs font-medium focus:outline-none"
                       />
                     </div>
-                    <div className="overflow-y-auto flex flex-col gap-0.5">
+                    <div className="overflow-y-auto flex flex-col gap-0.5 custom-scrollbar pr-0.5">
                       <button
                         type="button"
                         onClick={() => {
-                          onInputChange({ target: { name: "category", value: "" } });
+                          onInputChange({
+                            target: { name: "category", value: "" },
+                          });
                           setIsCatDropdownOpen(false);
                         }}
                         className={`w-full text-left px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors cursor-pointer ${!selectedCategoryId ? "text-[#77cd3af2] bg-green-50/50 font-semibold" : "text-slate-500"}`}
@@ -245,16 +300,21 @@ const CampaignFormModal = ({
                           key={cat._id}
                           type="button"
                           onClick={() => {
-                            onInputChange({ target: { name: "category", value: cat._id } });
+                            onInputChange({
+                              target: { name: "category", value: cat._id },
+                            });
                             setIsCatDropdownOpen(false);
                           }}
                           className={`w-full text-left px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors cursor-pointer ${selectedCategoryId === cat._id ? "text-[#77cd3af2] bg-green-50/50 font-semibold" : "text-slate-600"}`}
                         >
-                          {cat.name}
+                          {/* {cat.name} */}
+                          {cat.displayName}
                         </button>
                       ))}
                       {filteredCategories.length === 0 && (
-                        <span className="text-center py-4 text-xs italic text-gray-400">No categories found</span>
+                        <span className="text-center py-4 text-xs italic text-gray-400">
+                          No categories found
+                        </span>
                       )}
                     </div>
                   </motion.div>
@@ -264,7 +324,8 @@ const CampaignFormModal = ({
           )}
 
           {/* Smart Search Scope Selection: Product */}
-          {((formData.targetType || "").toLowerCase() === "product" || formData.targetType === "products") && (
+          {((formData.targetType || "").toLowerCase() === "product" ||
+            formData.targetType === "products") && (
             <div className="flex flex-col gap-1 relative" ref={prodRef}>
               <label className="font-semibold text-slate-600 text-xs sm:text-sm">
                 Select Target Product
@@ -279,7 +340,10 @@ const CampaignFormModal = ({
                   <ShoppingBag size={16} className="text-purple-400 shrink-0" />
                   <span className="truncate">{selectedProductLabel}</span>
                 </div>
-                <ChevronDown size={16} className={`text-gray-400 transition-transform ${isProdDropdownOpen ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-400 transition-transform ${isProdDropdownOpen ? "rotate-180" : ""}`}
+                />
               </button>
 
               <AnimatePresence>
@@ -300,11 +364,13 @@ const CampaignFormModal = ({
                         className="w-full bg-transparent text-xs font-medium focus:outline-none"
                       />
                     </div>
-                    <div className="overflow-y-auto flex flex-col gap-0.5">
+                    <div className="overflow-y-auto flex flex-col gap-0.5 custom-scrollbar pr-0.5">
                       <button
                         type="button"
                         onClick={() => {
-                          onInputChange({ target: { name: "product", value: "" } });
+                          onInputChange({
+                            target: { name: "product", value: "" },
+                          });
                           setIsProdDropdownOpen(false);
                         }}
                         className={`w-full text-left px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors cursor-pointer ${!selectedProductId ? "text-[#77cd3af2] bg-green-50/50 font-semibold" : "text-slate-500"}`}
@@ -316,19 +382,29 @@ const CampaignFormModal = ({
                           key={prod._id}
                           type="button"
                           onClick={() => {
-                            onInputChange({ target: { name: "product", value: prod._id } });
+                            onInputChange({
+                              target: { name: "product", value: prod._id },
+                            });
                             setIsProdDropdownOpen(false);
                           }}
                           className={`w-full text-left px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors cursor-pointer flex justify-between items-center ${selectedProductId === prod._id ? "text-[#77cd3af2] bg-green-50/50 font-semibold" : "text-slate-600"}`}
                         >
                           <span className="truncate mr-2">{prod.name}</span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-md shrink-0 ${prod.stock > 0 ? "bg-slate-100 text-slate-500" : "bg-rose-50 text-rose-400"}`}>
-                            {prod.stock !== undefined ? (prod.stock > 0 ? `${prod.stock} left` : "Out of stock") : ""}
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded-md shrink-0 ${prod.stock > 0 ? "bg-slate-100 text-slate-500" : "bg-rose-50 text-rose-400"}`}
+                          >
+                            {prod.stock !== undefined
+                              ? prod.stock > 0
+                                ? `${prod.stock} left`
+                                : "Out of stock"
+                              : ""}
                           </span>
                         </button>
                       ))}
                       {filteredProducts.length === 0 && (
-                        <span className="text-center py-4 text-xs italic text-gray-400">No products found</span>
+                        <span className="text-center py-4 text-xs italic text-gray-400">
+                          No products found
+                        </span>
                       )}
                     </div>
                   </motion.div>
