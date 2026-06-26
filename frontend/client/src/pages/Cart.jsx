@@ -113,7 +113,7 @@ const Cart = () => {
             <AnimatePresence mode="popLayout">
               {cart.map((item) => {
                 const product = item.product || {};
-                const isComboItem = item.price && item.price < product.price;
+                const isSale = item.price && item.price < product.price;
                 const displayPrice = item.price || product.price || 0;
 
                 return (
@@ -156,13 +156,13 @@ const Cart = () => {
 
                         {/* Tag deals & Đơn giá */}
                         <div className="flex items-center gap-2.5">
-                          {isComboItem ? (
-                            <span className="text-[8px] font-black bg-emerald-500/10 text-emerald-600 dark:text-[#77cd3a] px-2 py-0.5 rounded uppercase tracking-wider">
-                              Combo Deal
+                          {isSale ? (
+                            <span className="text-[8px] font-black bg-[#77cd3a]/10 text-[#77cd3a] dark:text-[#77cd3a] px-2 py-0.5 rounded uppercase tracking-wider">
+                              Sale
                             </span>
                           ) : (
                             <span className="text-[8px] font-bold bg-gray-200/60 dark:bg-white/5 text-gray-400 dark:text-gray-500 px-2 py-0.5 rounded uppercase tracking-wider">
-                              Standard
+                              Price
                             </span>
                           )}
                           <span className="text-xs text-gray-400 dark:text-zinc-500 font-medium">
@@ -170,13 +170,12 @@ const Cart = () => {
                           </span>
                         </div>
 
-                        {/* Thông báo số lượng khẩn cấp */}
                         {product.stock === 0 ? (
-                          <p className="text-[9px] text-red-500 font-bold tracking-wider uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-md w-max">
-                            Out of stock · Please remove this item
+                          <p className="text-[9px] font-semibold text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800/60 px-2 py-0.5 rounded-full tracking-widest uppercase w-max">
+                            Out of stock · Please remove
                           </p>
                         ) : product.stock <= 5 ? (
-                          <p className="text-[9px] text-red-500 font-bold tracking-wider uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-md w-max animate-pulse">
+                          <p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full tracking-widest uppercase w-max">
                             Only {product.stock} left
                           </p>
                         ) : null}
@@ -237,14 +236,14 @@ const Cart = () => {
 
                         {/* Tổng giá trị của dòng sản phẩm này */}
                         <div className="w-24 text-right flex flex-col justify-center">
-                          {isComboItem && (
+                          {isSale && (
                             <span className="text-[10px] line-through text-gray-300 dark:text-gray-600 block mb-0.5">
                               $
                               {(product.price * item.quantity).toLocaleString()}
                             </span>
                           )}
                           <span
-                            className={`text-base font-semibold tracking-tight block ${isComboItem ? "text-[#77cd3a]" : "text-gray-900 dark:text-white"}`}
+                            className={`text-base font-semibold tracking-tight block ${isSale ? "text-[#77cd3a]" : "text-gray-900 dark:text-white"}`}
                           >
                             ${(displayPrice * item.quantity).toLocaleString()}
                           </span>

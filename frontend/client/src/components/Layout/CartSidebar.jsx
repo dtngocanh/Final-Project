@@ -70,7 +70,7 @@ const CartSidebar = () => {
           {cart.length > 0 ? (
             cart.map((item) => {
               const product = item?.product || {};
-              const isComboItem = item.price && item.price < product.price;
+              const isSale = item.price && item.price < product.price;
               const displayPrice = item.price || product.price || 0;
 
               return (
@@ -100,29 +100,29 @@ const CartSidebar = () => {
 
                     {/* Tags & Price */}
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {isComboItem ? (
+                      {isSale ? (
                         <span className="text-[8px] font-bold bg-[#77cd3a]/10 text-[#77cd3a] px-1.5 py-0.5 rounded uppercase tracking-wider">
-                          Combo
+                          Sale
                         </span>
                       ) : (
                         <span className="text-[8px] font-bold bg-gray-100 dark:bg-white/5 text-gray-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                          Item
+                          Price
                         </span>
                       )}
                       <span className="text-xs text-gray-400">
                         ${displayPrice}
                       </span>
-                      {isComboItem && (
+                      {isSale && (
                         <span className="text-[10px] text-gray-400/40 line-through">
                           ${product.price}
                         </span>
                       )}
                       {product.stock === 0 ? (
-                        <p className="text-[9px] text-red-500 font-bold tracking-wider uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-md w-max mt-2">
-                          Out of stock · Remove this item
+                        <p className="text-[9px] font-semibold text-gray-500 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800/60 px-2 py-0.5 rounded-full tracking-widest uppercase w-max">
+                          Out of stock · Please remove
                         </p>
                       ) : product.stock <= 5 ? (
-                        <p className="text-[9px] text-red-500 font-bold tracking-wider uppercase bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded-md w-max mt-2 animate-pulse">
+                        <p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full tracking-widest uppercase w-max">
                           Only {product.stock} left
                         </p>
                       ) : null}
@@ -172,7 +172,7 @@ const CartSidebar = () => {
 
                       {/* Item Total Price: Đảm bảo không bị vỡ bố cục khi số tiền lớn */}
                       <div className="flex items-baseline gap-1.5 flex-shrink-0 min-w-0">
-                        {isComboItem ? (
+                        {isSale ? (
                           <>
                             <span className="text-[10px] sm:text-[11px] line-through text-gray-400/40 truncate">
                               $
