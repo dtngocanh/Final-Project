@@ -4,13 +4,11 @@ import { toast } from "react-toastify";
 
 // --- ASYNC THUNKS (API Calls) ---
 
-// 1. Fetch all campaigns (Backend populates product/category descriptors automatically)
 export const fetchAllCampaigns = createAsyncThunk(
   "campaigns/fetchAllCampaigns",
   async (_, thunkAPI) => {
     try {
       const res = await axiosInstance.get("/campaign");
-      // Expected payload format: { success: true, data: [...] }
       return res.data.data; 
     } catch (error) {
       return thunkAPI.rejectWithValue(
@@ -20,15 +18,12 @@ export const fetchAllCampaigns = createAsyncThunk(
   }
 );
 
-// 2. Create a new campaign (Forwards local form configuration including saleLimit constraints)
 export const createNewCampaign = createAsyncThunk(
   "campaigns/createNewCampaign",
   async (campaignData, thunkAPI) => {
     try {
       const res = await axiosInstance.post("/campaign", campaignData);
       toast.success("Campaign created successfully!");
-      
-      // Re-synchronize remote changes into local client store context
       thunkAPI.dispatch(fetchAllCampaigns());
       return res.data.data;
     } catch (error) {
@@ -39,14 +34,12 @@ export const createNewCampaign = createAsyncThunk(
   }
 );
 
-// 3. Update an existing campaign configurations
 export const updateCampaign = createAsyncThunk(
   "campaigns/updateCampaign",
   async ({ id, campaignData }, thunkAPI) => {
     try {
       const res = await axiosInstance.put(`/campaign/${id}`, campaignData);
       toast.success("Campaign configuration updated successfully!");
-
       thunkAPI.dispatch(fetchAllCampaigns());
       return res.data.data;
     } catch (error) {
@@ -57,14 +50,12 @@ export const updateCampaign = createAsyncThunk(
   }
 );
 
-// 4. Delete a campaign item
 export const deleteCampaign = createAsyncThunk(
   "campaigns/deleteCampaign",
   async (id, thunkAPI) => {
     try {
       const res = await axiosInstance.delete(`/campaign/${id}`);
       toast.success(res.data.message || "Campaign removed successfully!");
-      
       thunkAPI.dispatch(fetchAllCampaigns());
       return id;
     } catch (error) {
@@ -75,14 +66,12 @@ export const deleteCampaign = createAsyncThunk(
   }
 );
 
-// 5. Force Manual Override Override Engine (Trigger start/end schedules manually)
 export const triggerManualDiscount = createAsyncThunk(
   "campaigns/triggerManualDiscount",
   async ({ id, action }, thunkAPI) => {
     try {
       const res = await axiosInstance.post(`/campaign/test-trigger/${id}?action=${action}`);
       toast.success(res.data.message || `Campaign status modified successfully to: ${action}`);
-      
       thunkAPI.dispatch(fetchAllCampaigns());
       return res.data;
     } catch (error) {
@@ -101,15 +90,91 @@ const campaignsSlice = createSlice({
     loading: false,
     campaigns: [],
     error: null,
+    isOpenModal: false,
+    isEditing: false,
+    formData: {
+      name: "",
+      discountPercent: "",
+      saleLimit: 0,
+      targetType: "category",
+      product: "",
+      category: "",
+      startTime: "",
+      endTime: "",
+    },
   },
   reducers: {
     clearCampaignError: (state) => {
       state.error = null;
     },
+    
+    // Action cho sản phẩm
+    openModalWithProduct: (state, action) => {
+      const product = action.payload;
+      state.formData = {
+        name: "",
+        discountPercent: "", 
+        saleLimit: 0,
+        targetType: "product", 
+        product: product._id,  
+        category: "",
+        startTime: "",
+        endTime: "",
+      };
+      state.isEditing = false;
+      state.isOpenModal = true;
+    },
+
+    // --- ĐÃ THÊM: Action điền nhanh Category và mở Modal y như Product ---
+    openModalWithCategory: (state, action) => {
+      const categoryObj = action.payload; // Nhận về object chứa thông tin danh mục
+      state.formData = {
+        name: "",
+        discountPercent: "",
+        saleLimit: 0,
+        targetType: "category",       // Ép scope chọn toàn bộ Danh mục
+        product: "",                  // Xóa trống mục sản phẩm
+        category: categoryObj._id,    // Gán ID danh mục nhận được từ payload
+        startTime: "",
+        endTime: "",
+      };
+      state.isEditing = false;
+      state.isOpenModal = true;
+    },
+
+    updateCampaignFormData: (state, action) => {
+      const { name, value } = action.payload;
+      state.formData[name] = value;
+    },
+
+    closeCampaignModal: (state) => {
+      state.isOpenModal = false;
+      state.isEditing = false;
+      state.formData = {
+        name: "",
+        discountPercent: "",
+        saleLimit: 0,
+        targetType: "category",
+        product: "",
+        category: "",
+        startTime: "",
+        endTime: "",
+      };
+    },
+    
+    openEmptyCampaignModal: (state) => {
+      state.isEditing = false;
+      state.isOpenModal = true;
+    },
+
+    openEditCampaignModal: (state, action) => {
+      state.formData = action.payload;
+      state.isEditing = true;
+      state.isOpenModal = true;
+    }
   },
   extraReducers: (builder) => {
     builder
-      // Fetching lifecycle handling
       .addCase(fetchAllCampaigns.pending, (state) => {
         state.loading = true;
       })
@@ -121,8 +186,12 @@ const campaignsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Centralized loading automation selectors across mutations (Create / Update / Delete / Force status toggle triggers)
+      .addCase(createNewCampaign.fulfilled, (state) => {
+        state.isOpenModal = false;
+      })
+      .addCase(updateCampaign.fulfilled, (state) => {
+        state.isOpenModal = false;
+      })
       .addMatcher(
         (action) => action.type.startsWith("campaigns/") && action.type.endsWith("/pending"),
         (state) => {
@@ -140,5 +209,15 @@ const campaignsSlice = createSlice({
   },
 });
 
-export const { clearCampaignError } = campaignsSlice.actions;
+// Nhớ export hàm mới ở dưới này ra nhé!
+export const { 
+  clearCampaignError, 
+  openModalWithProduct, 
+  openModalWithCategory, // <-- Đã xuất ra đây để sử dụng
+  updateCampaignFormData, 
+  closeCampaignModal,
+  openEmptyCampaignModal,
+  openEditCampaignModal
+} = campaignsSlice.actions;
+
 export default campaignsSlice.reducer;

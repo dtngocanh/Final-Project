@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux"; // Đọc ghi dữ liệu từ Redux Store
+import { updateCampaignFormData, closeCampaignModal, createNewCampaign, updateCampaign } from "../store/slices/campaignsSlice"
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -9,20 +11,20 @@ import {
   ChevronDown,
 } from "lucide-react";
 
+// Rút gọn toàn bộ Props liên quan đến đóng mở và dữ liệu form, chỉ nhận mảng cứng để render list
 const CampaignFormModal = ({
-  isOpen,
-  onClose,
-  isEditing,
-  formData,
   categories = [],
   products = [],
-  isGlobalLoading,
-  onInputChange,
-  onSubmit,
 }) => {
-  // =========================================================================
-  // KHAI BÁO TẤT CẢ CÁC HOOK Ở TRÊN ĐẦU (KHÔNG ĐƯỢC RETURN SỚM Ở ĐÂY)
-  // =========================================================================
+  const dispatch = useDispatch();
+
+  // Móc nối trực tiếp với Redux Store để tự vận hành độc lập
+  const { 
+    isOpenModal: isOpen, 
+    isEditing, 
+    formData, 
+    loading: isGlobalLoading 
+  } = useSelector((state) => state.campaigns);
 
   // --- State tìm kiếm nội bộ ---
   const [categorySearch, setCategorySearch] = useState("");
@@ -36,7 +38,31 @@ const CampaignFormModal = ({
   const catRef = useRef(null);
   const prodRef = useRef(null);
 
-  // --- Đồng bộ dữ liệu khi Edit ---
+  // Đổi hàm quản lý sự kiện gõ ký tự đẩy trực tiếp lên Redux Slice
+  const onInputChange = (e) => {
+    const name = e.target ? e.target.name : e.name;
+    const value = e.target ? e.target.value : e.value;
+    dispatch(updateCampaignFormData({ name, value }));
+  };
+
+  const onClose = () => {
+    dispatch(closeCampaignModal());
+  };
+
+  // Tự xử lý Submit tích hợp tương ứng theo trạng thái Edit hay Create
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (isEditing) {
+      dispatch(updateCampaign({ id: formData._id, campaignData: formData }));
+    } else {
+      dispatch(createNewCampaign(formData));
+    }
+  };
+
+  // =========================================================================
+  // TOÀN BỘ LOGIC TÍNH TOÁN DỮ LIỆU CŨ ĐƯỢC GIỮ NGUYÊN 100%
+  // =========================================================================
+
   const selectedProductId = useMemo(() => {
     if (formData.product) {
       return typeof formData.product === "object"
@@ -55,29 +81,20 @@ const CampaignFormModal = ({
     return formData.category?._id || formData.category || "";
   }, [formData.category]);
 
-  // Tìm kiếm Object tương ứng để hiển thị nhãn (Label)
-  // const selectedCategoryLabel = useMemo(() => {
-  //   const found = categories.find((c) => c._id === selectedCategoryId);
-  //   return found ? found.name : "-- Choose a category --";
-  // }, [categories, selectedCategoryId]);
-
   const selectedProductLabel = useMemo(() => {
     const found = products.find((p) => p._id === selectedProductId);
     if (!found) return "-- Choose a single product --";
     return `${found.name} ${found.stock !== undefined ? `(${found.stock > 0 ? `${found.stock} items` : "Out of stock"})` : ""}`;
   }, [products, selectedProductId]);
 
-  // 1. Làm phẳng danh mục và thêm ký tự thụt lề cho danh mục con dễ nhìn
   const allCategoriesFlat = useMemo(() => {
     const flatList = [];
     categories.forEach((parent) => {
-      // Danh mục cha
       flatList.push({
         ...parent,
         displayName: parent.name,
       });
 
-      // Danh mục con (nếu có)
       if (parent.subcategories && parent.subcategories.length > 0) {
         parent.subcategories.forEach((sub) => {
           flatList.push({
@@ -101,19 +118,12 @@ const CampaignFormModal = ({
     );
   }, [allCategoriesFlat, categorySearch]);
 
-  // const filteredCategories = useMemo(() => {
-  //   return categories.filter((cat) =>
-  //     cat.name?.toLowerCase().includes(categorySearch.toLowerCase()),
-  //   );
-  // }, [categories, categorySearch]);
-
   const filteredProducts = useMemo(() => {
     return products.filter((prod) =>
       prod.name?.toLowerCase().includes(productSearch.toLowerCase()),
     );
   }, [products, productSearch]);
 
-  // --- Xử lý click ra ngoài đóng menu ---
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (catRef.current && !catRef.current.contains(event.target)) {
@@ -127,7 +137,6 @@ const CampaignFormModal = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- Reset từ khóa tìm kiếm khi đổi trạng thái đóng mở ---
   useEffect(() => {
     if (!isCatDropdownOpen) setCategorySearch("");
   }, [isCatDropdownOpen]);
@@ -136,13 +145,11 @@ const CampaignFormModal = ({
     if (!isProdDropdownOpen) setProductSearch("");
   }, [isProdDropdownOpen]);
 
-  // =========================================================================
-  // ĐẶT ĐIỀU KIỆN RETURN SỚM TẠI ĐÂY (SAU KHI ĐÃ KHỞI TẠO XONG HOOK)
-  // =========================================================================
+  // Ngắt tiến trình render nếu trạng thái mở tắt đang đóng
   if (!isOpen) return null;
 
   // =========================================================================
-  // RENDER JSX NỘI DUNG CHÍNH
+  // TOÀN BỘ GIAO DIỆN JSX CŨ GIỮ NGUYÊN 100%
   // =========================================================================
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -172,7 +179,8 @@ const CampaignFormModal = ({
           </h3>
         </div>
 
-        <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-5">
+        {/* Thay thế hàm nộp dữ liệu onSubmit tổng */}
+        <form onSubmit={handleFormSubmit} className="flex flex-col gap-4 mt-5">
           {/* Campaign Name */}
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-slate-600 text-xs sm:text-sm">
@@ -287,7 +295,7 @@ const CampaignFormModal = ({
                         type="button"
                         onClick={() => {
                           onInputChange({
-                            target: { name: "category", value: "" },
+                            name: "category", value: ""
                           });
                           setIsCatDropdownOpen(false);
                         }}
@@ -301,13 +309,12 @@ const CampaignFormModal = ({
                           type="button"
                           onClick={() => {
                             onInputChange({
-                              target: { name: "category", value: cat._id },
+                              name: "category", value: cat._id
                             });
                             setIsCatDropdownOpen(false);
                           }}
                           className={`w-full text-left px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors cursor-pointer ${selectedCategoryId === cat._id ? "text-[#77cd3af2] bg-green-50/50 font-semibold" : "text-slate-600"}`}
                         >
-                          {/* {cat.name} */}
                           {cat.displayName}
                         </button>
                       ))}
@@ -369,7 +376,7 @@ const CampaignFormModal = ({
                         type="button"
                         onClick={() => {
                           onInputChange({
-                            target: { name: "product", value: "" },
+                            name: "product", value: ""
                           });
                           setIsProdDropdownOpen(false);
                         }}
@@ -383,7 +390,7 @@ const CampaignFormModal = ({
                           type="button"
                           onClick={() => {
                             onInputChange({
-                              target: { name: "product", value: prod._id },
+                              name: "product", value: prod._id
                             });
                             setIsProdDropdownOpen(false);
                           }}
