@@ -16,8 +16,8 @@ A modern e-commerce platform specializing in fresh food and groceries. The proje
 
 ## Tech Stack
 
-* **Frontend:** React.js / Tailwind CSS
+* **Frontend:** React.js / Tailwind CSS / Redux 
 * **Backend:** Node.js (Express)
-* **Database:** MongoDB / SQL
+* **Database:** MongoDB
 * **Hosting:** Render
 
